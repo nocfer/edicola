@@ -3,17 +3,26 @@
 // Offline mode validates `data/catalog.json` against the entry schema in
 // `docs/catalog.md`: unique slug ids, ISO country and language codes, https
 // URLs, Categories from the Catalog's own list. `--fetch` additionally requests
-// every feedUrl (concurrency 4, 15 s timeout) and checks that the response is a
-// 200 that looks like a Feed. Both modes exit 1 on any problem.
+// every feedUrl (concurrency 4, 15 s timeout), checks that the response is a
+// 200 that looks like a Feed, and parses it with the app's own `parseFeed` so a
+// Feed that answers 200 with nothing Edicola can read is a failure here rather
+// than an empty Publication in the reader's app. Both modes exit 1 on any
+// problem.
+//
+// Parsing needs a DOM (ADR-0010), which comes from `tools/testing/dom.js` and
+// therefore from the on-demand install in `tools/ensure-test-deps.mjs`. When
+// jsdom is absent the check says so and falls back to sniffing the root
+// element, because a missing dev dependency is not a Catalog problem.
 //
 // Usage:
 //   node tools/check-catalog.mjs            # schema only
-//   node tools/check-catalog.mjs --fetch    # schema + network, prints a table
+//   node tools/check-catalog.mjs --fetch    # schema + network + parse, prints a table
 //   import { validateCatalog } from "./tools/check-catalog.mjs"
 
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { FeedParseError, parseFeed } from "../src/feed.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const CATALOG_PATH = resolve(ROOT, "data/catalog.json");
@@ -252,16 +261,41 @@ export function feedKind(body) {
  * @property {boolean} ok
  * @property {string} status  HTTP status, or the error name.
  * @property {string} detail  Feed kind on success, reason on failure.
+ * @property {number|null} items  Items `parseFeed` found, or null when it did not run.
  */
 
 /**
- * Fetch one Feed with a timeout and classify the result.
+ * A `DOMParser` constructor for `parseFeed`, or null to skip parsing.
+ * @typedef {(new () => DOMParser)|null} DomParserCtor
+ */
+
+/**
+ * Load the Node-side DOM (`tools/testing/dom.js`, jsdom). Returns null when the
+ * on-demand test dependencies are not installed, so `--fetch` degrades to root
+ * sniffing instead of crashing the weekly workflow.
+ *
+ * @returns {Promise<DomParserCtor>}
+ */
+export async function loadDomParser() {
+  try {
+    const dom = await import("./testing/dom.js");
+    return dom.DOMParser;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch one Feed with a timeout, then read it the way the app would: sniff the
+ * root element, and when a DOM is available parse it with `parseFeed`. A 200
+ * that parses to zero Items fails: the Publication would sit empty in Today.
  *
  * @param {Publication} publication
  * @param {typeof fetch} fetchImpl
+ * @param {DomParserCtor} [DomParser]
  * @returns {Promise<FetchResult>}
  */
-async function checkFeed(publication, fetchImpl) {
+async function checkFeed(publication, fetchImpl, DomParser = null) {
   const { id, feedUrl } = publication;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -277,14 +311,48 @@ async function checkFeed(publication, fetchImpl) {
     });
     const status = String(res.status);
     if (res.status !== 200) {
-      return { id, feedUrl, ok: false, status, detail: "not 200" };
+      return { id, feedUrl, ok: false, status, detail: "not 200", items: null };
     }
     const body = await res.text();
     const kind = feedKind(body);
     if (!kind) {
-      return { id, feedUrl, ok: false, status, detail: "not a feed" };
+      return {
+        id,
+        feedUrl,
+        ok: false,
+        status,
+        detail: "not a feed",
+        items: null,
+      };
     }
-    return { id, feedUrl, ok: true, status, detail: kind };
+    if (!DomParser) {
+      return { id, feedUrl, ok: true, status, detail: kind, items: null };
+    }
+    try {
+      const feed = parseFeed(body, { url: feedUrl, DOMParser: DomParser });
+      const items = feed.items.length;
+      if (items === 0) {
+        return {
+          id,
+          feedUrl,
+          ok: false,
+          status,
+          detail: `${kind} with no Items`,
+          items: 0,
+        };
+      }
+      return { id, feedUrl, ok: true, status, detail: kind, items };
+    } catch (err) {
+      const reason = err instanceof FeedParseError ? err.reason : "parse error";
+      return {
+        id,
+        feedUrl,
+        ok: false,
+        status,
+        detail: `does not parse: ${reason}`,
+        items: null,
+      };
+    }
   } catch (err) {
     const name =
       err instanceof Error && err.name === "AbortError"
@@ -298,7 +366,7 @@ async function checkFeed(publication, fetchImpl) {
         : err instanceof Error
           ? err.message
           : String(err);
-    return { id, feedUrl, ok: false, status: name, detail: cause };
+    return { id, feedUrl, ok: false, status: name, detail: cause, items: null };
   } finally {
     clearTimeout(timer);
   }
@@ -306,12 +374,19 @@ async function checkFeed(publication, fetchImpl) {
 
 /**
  * Fetch every Feed in the Catalog, four at a time, preserving Catalog order.
+ * Pass a `DOMParser` to have each Feed parsed with `parseFeed` as well;
+ * `loadDomParser()` provides the Node one.
  *
  * @param {Catalog} catalog
  * @param {typeof fetch} [fetchImpl]
+ * @param {DomParserCtor} [DomParser]
  * @returns {Promise<FetchResult[]>}
  */
-export async function fetchCatalog(catalog, fetchImpl = fetch) {
+export async function fetchCatalog(
+  catalog,
+  fetchImpl = fetch,
+  DomParser = null,
+) {
   const queue = [...catalog.publications];
   /** @type {FetchResult[]} */
   const results = new Array(queue.length);
@@ -319,7 +394,7 @@ export async function fetchCatalog(catalog, fetchImpl = fetch) {
   const worker = async () => {
     while (next < queue.length) {
       const i = next++;
-      results[i] = await checkFeed(queue[i], fetchImpl);
+      results[i] = await checkFeed(queue[i], fetchImpl, DomParser);
     }
   };
   await Promise.all(
@@ -337,8 +412,8 @@ export async function fetchCatalog(catalog, fetchImpl = fetch) {
 export function renderTable(results) {
   const rows = [...results].sort((a, b) => Number(a.ok) - Number(b.ok));
   const lines = [
-    "| Result | Publication | Status | Detail | Feed |",
-    "| --- | --- | --- | --- | --- |",
+    "| Result | Publication | Status | Detail | Items | Feed |",
+    "| --- | --- | --- | --- | --- | --- |",
   ];
   for (const r of rows) {
     const cells = [
@@ -346,6 +421,7 @@ export function renderTable(results) {
       r.id,
       r.status,
       r.detail,
+      r.items ?? "—",
       r.feedUrl,
     ].map((c) => String(c).replace(/\|/g, "\\|"));
     lines.push(`| ${cells.join(" | ")} |`);
@@ -370,7 +446,20 @@ async function main() {
   );
   if (!withFetch) return;
 
-  const results = await fetchCatalog(catalog);
+  const DomParser = await loadDomParser();
+  if (DomParser) {
+    console.log("✔ Parsing each Feed with parseFeed from src/feed.js (jsdom).");
+  } else {
+    console.log(
+      "⚠ jsdom is not installed, so Feeds are only sniffed, not parsed:",
+    );
+    console.log(
+      "  a Feed answering 200 with no Items will pass. Run",
+      "`node tools/ensure-test-deps.mjs` first for the full check.",
+    );
+  }
+
+  const results = await fetchCatalog(catalog, fetch, DomParser);
   const failing = results.filter((r) => !r.ok).length;
   console.log("");
   console.log(renderTable(results));

@@ -1,7 +1,9 @@
 name: Catalog health
 
-# Weekly fetch of every Feed in data/catalog.json. Publishers move, rename and
-# drop Feeds without notice; this job notices for us. On failure it opens one
+# Weekly fetch of every Feed in data/catalog.json, each one parsed with the
+# app's own parser so a Feed that answers 200 and yields no Items counts as
+# failing. Publishers move, rename and drop Feeds without notice, and a Feed
+# can rot into an empty shell; this job notices for us. On failure it opens one
 # issue labelled needs-triage (or refreshes the open one) with the result table
 # from tools/check-catalog.mjs --fetch. When everything passes again it closes
 # that issue. Independent of ci.yml, which stays network-free.
@@ -26,6 +28,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      # The check parses every Feed with src/feed.js, which needs a DOM
+      # (ADR-0010). Without this step it falls back to sniffing the root
+      # element and a Feed answering 200 with no Items would pass.
+      - name: Install the test-only DOM (jsdom)
+        run: node tools/ensure-test-deps.mjs
 
       - name: Fetch every Catalog Feed
         id: check
