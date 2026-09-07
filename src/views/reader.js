@@ -53,6 +53,14 @@ import { emptyState } from "./layout.js";
  */
 export const READER_SCROLL_ID = "reader-scroll";
 
+/**
+ * Reasons that mean the publisher did not send the full Article: Extraction
+ * ran on what an anonymous visitor was given and found a teaser, or no article
+ * text at all (ADR-0004). Every other reason is a request that failed, which
+ * is a different sentence.
+ */
+const WITHHELD_REASONS = new Set(["too-short", "no-content"]);
+
 /** Summary-only reasons that have their own line of copy (`reader.reason.*`). */
 const KNOWN_REASONS = new Set([
   "no-content",
@@ -559,24 +567,31 @@ function summaryBlock() {
 }
 
 /**
- * Why there is no Article, and the Original (ADR-0004). An Item the publisher
- * withheld says so plainly; an Item Extraction has simply not reached yet says
- * *that*, because claiming a paywall where there is none would be a lie in the
- * other direction.
+ * Why there is no Article, and the Original (ADR-0004).
+ *
+ * Which sentence is honest depends on what happened. Extraction that ran and
+ * found little or nothing means the publisher did not send the full Article —
+ * that is the paywall case the ADR is about. A request that never got an
+ * answer (offline, a timeout, a refusal, a dead page) means only that the
+ * Article could not be fetched; blaming a paywall there would be a lie in the
+ * other direction, as would blaming anyone for an Item Extraction has simply
+ * not reached yet.
  */
 function fallbackCard() {
   const item = /** @type {ItemRow} */ (screen.item);
   const reason = screen.fetchReason || item.summaryOnlyReason;
-  const withheld = Boolean(item.summaryOnly || screen.fetchReason);
   const offline = !state.online;
+  const body = !reason
+    ? "reader.notFetched"
+    : WITHHELD_REASONS.has(reason)
+      ? "reader.summaryOnlyBody"
+      : "reader.fetchFailed";
   return html`
     <div class="card reader__fallback">
       <p class="reader__fallbackhead">${t("reader.summaryOnly")}</p>
-      <p class="reader__fallbackbody">
-        ${t(withheld ? "reader.summaryOnlyBody" : "reader.notFetched")}
-      </p>
+      <p class="reader__fallbackbody">${t(body)}</p>
       ${
-        withheld && reason && KNOWN_REASONS.has(reason)
+        reason && KNOWN_REASONS.has(reason)
           ? html`<p class="reader__reason">${t(`reader.reason.${reason}`)}</p>`
           : nothing
       }
