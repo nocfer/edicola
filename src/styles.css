@@ -1015,3 +1015,277 @@ button {
     transition-duration: 0s !important;
   }
 }
+
+/* Reader: one Article, full screen. The header is sticky so the Publication's
+   name and the link to the Original stay in view however far the reader
+   scrolls (ADR-0004). The Article column is held to a comfortable measure and
+   everything inside it — images, figures, tables, code — is clamped to that
+   column or scrolls inside itself, so the page never scrolls sideways.
+   Tokens only, as everywhere; the one exception is the heading scale inside
+   the Article, which is expressed in `em` because no token means "a little
+   larger than the surrounding prose". */
+.screen--reader {
+  gap: var(--s-3);
+}
+.reader__header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  gap: var(--s-2);
+  margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) 0;
+  padding: var(--s-2) var(--s-4);
+  background: var(--surface);
+  border-bottom: 1px solid var(--hairline);
+}
+.reader__ident {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.reader__pub {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reader__origin {
+  font-size: var(--fs-caption);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reader__action--on {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.reader__body {
+  gap: var(--s-4);
+  min-width: 0;
+}
+.reader__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  width: 100%;
+  min-width: 0;
+  max-width: 65ch;
+  margin: 0 auto;
+}
+.reader__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.reader__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1) var(--s-3);
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+.reader__byline {
+  color: var(--text);
+  font-weight: 500;
+}
+.reader__hint {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+
+/* The Article body: stored, sanitized markup rendered as prose. */
+.reader__article {
+  min-width: 0;
+  overflow-x: clip;
+  font-family: var(--font-display);
+  font-size: var(--fs-lead);
+  line-height: 1.65;
+  overflow-wrap: break-word;
+}
+.reader__article > :first-child {
+  margin-top: 0;
+}
+.reader__article p,
+.reader__article ul,
+.reader__article ol,
+.reader__article dl,
+.reader__article blockquote,
+.reader__article figure,
+.reader__article pre,
+.reader__article table {
+  margin: 0 0 var(--s-5);
+}
+.reader__article > :last-child {
+  margin-bottom: 0;
+}
+.reader__article h1,
+.reader__article h2,
+.reader__article h3,
+.reader__article h4,
+.reader__article h5,
+.reader__article h6 {
+  margin: var(--s-6) 0 var(--s-3);
+  font-family: var(--font-display);
+  line-height: var(--lh-tight);
+  font-size: 1.3em;
+}
+.reader__article h3,
+.reader__article h4,
+.reader__article h5,
+.reader__article h6 {
+  font-size: 1.1em;
+}
+.reader__article a {
+  text-decoration: underline;
+}
+.reader__article img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  border-radius: var(--r-control);
+  background: var(--chip-bg);
+}
+.reader__article figure {
+  margin-inline: 0;
+}
+.reader__article figcaption {
+  margin-top: var(--s-2);
+  color: var(--muted);
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  text-align: center;
+}
+.reader__article blockquote {
+  padding-left: var(--s-4);
+  border-left: 2px solid var(--hairline);
+  color: var(--muted);
+}
+.reader__article pre {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--chip-bg);
+}
+.reader__article code,
+.reader__article kbd,
+.reader__article samp,
+.reader__article pre {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+}
+.reader__article table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+}
+.reader__article th,
+.reader__article td {
+  padding: var(--s-2);
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+.reader__article hr {
+  height: 0;
+  margin: var(--s-6) 0;
+  border: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+/* The Feed's Summary, shown until an Article exists. */
+.reader__summarylabel {
+  margin: 0 0 var(--s-2);
+  font-family: var(--font-ui);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reader__nosummary {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* The honest fallback (ADR-0004) and the on-demand Extraction spinner. */
+.reader__fallback {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.reader__fallbackhead {
+  margin: 0;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.reader__fallbackbody {
+  margin: 0;
+  font-size: var(--fs-lead);
+}
+.reader__reason {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+.reader__fallbackactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.reader__fetching {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  color: var(--muted);
+}
+.reader__spinner {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--hairline);
+  border-top-color: var(--accent);
+  border-radius: var(--r-pill);
+  animation: reader-spin 0.8s linear infinite;
+}
+@keyframes reader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reader__spinner {
+    animation: none;
+  }
+}
+
+/* The Original, once more, at the end of the Article. */
+.reader__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+.reader__footertext {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}

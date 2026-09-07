@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-2af08973";
+const CACHE = "edicola-662b4db1";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.
@@ -41,6 +41,8 @@ const SHELL = [
   "./src/settings.js",
   "./src/storage-usage.js",
   "./src/update.js",
+  "./src/article-render.js",
+  "./src/fetch-one.js",
 ];
 
 // CDN hosts whose pinned modules the app loads at runtime (lit-html, and later
