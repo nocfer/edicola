@@ -560,10 +560,6 @@ button {
 .input::placeholder {
   color: var(--faint);
 }
-.input--short {
-  flex: 0 0 6ch;
-  text-align: center;
-}
 .pubs__error {
   margin: var(--s-3) 0 0;
   color: var(--link);
@@ -579,10 +575,21 @@ button {
   border-top: 1px solid var(--hairline);
 }
 .pubs__field {
-  flex: 1 1 10ch;
+  flex: 1 1 16ch;
   display: flex;
   flex-direction: column;
   gap: var(--s-1);
+}
+/* The input is the field's whole width; without this it grows down the column. */
+.pubs__field .input {
+  flex: none;
+  width: 100%;
+}
+.pubs__field--short {
+  flex: 0 1 9ch;
+}
+.pubs__field--short .input {
+  text-align: center;
 }
 .pubs__fieldlabel {
   color: var(--muted);

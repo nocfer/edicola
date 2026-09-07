@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-5689a784";
+const CACHE = "edicola-9f82e4f4";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.

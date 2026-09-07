@@ -215,15 +215,29 @@ function applyInferredLang(inferred) {
 // --- Writes ----------------------------------------------------------------
 
 /**
+ * Runs queued one after another: `syncNow` joins a run already in flight
+ * instead of starting a second one, so switching three Publications on in a row
+ * would otherwise Sync only the first. Each waits for the previous to finish,
+ * when `sync-client.js` is free again.
+ * @type {Promise<unknown>}
+ */
+let syncQueue = Promise.resolve();
+
+/**
  * Start a Sync for one Publication and refresh the rows when it finishes, so
  * the row shows what happened.
  * @param {{ id: string, name: string }} publication
  */
 function startSync(publication) {
   showToast(t("pubs.syncStarted", { name: publication.name }));
-  syncNow({ publicationIds: [publication.id] })
+  syncQueue = syncQueue
+    .catch(() => {})
+    .then(() => syncNow({ publicationIds: [publication.id] }))
     .then(() => load())
-    .catch(() => showToast(t("sync.error")));
+    .catch((error) => {
+      console.warn("Sync failed:", error);
+      showToast(t("sync.error"));
+    });
 }
 
 /**
@@ -589,14 +603,14 @@ function findingsList() {
  * @param {string} label
  * @param {string} value
  * @param {(next: string) => void} onInput
- * @param {{ maxlength?: number, width?: string }} [options]
+ * @param {{ maxlength?: number, short?: boolean }} [options]
  */
 function draftField(label, value, onInput, options = {}) {
   return html`
-    <label class="pubs__field">
+    <label class="pubs__field ${options.short ? "pubs__field--short" : ""}">
       <span class="pubs__fieldlabel">${label}</span>
       <input
-        class="input ${options.width === "short" ? "input--short" : ""}"
+        class="input"
         type="text"
         autocomplete="off"
         spellcheck="false"
@@ -626,7 +640,7 @@ function draftForm() {
         (next) => {
           draft.country = next.toUpperCase();
         },
-        { maxlength: 2, width: "short" },
+        { maxlength: 2, short: true },
       )}
       ${draftField(
         t("pubs.add.language"),
@@ -634,7 +648,7 @@ function draftForm() {
         (next) => {
           draft.language = next.toLowerCase();
         },
-        { maxlength: 3, width: "short" },
+        { maxlength: 3, short: true },
       )}
       <div class="pubs__actions">
         <button type="button" class="btn" @click=${cancelAdd}>
