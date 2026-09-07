@@ -3,19 +3,21 @@
 // and Language (ADR-0006) and the "add by URL" lookup behind the Publications
 // screen.
 //
-// Three kinds of function live here, in this order:
+// Two kinds of function live here, in this order:
 //
-// 1. The settings seam — `readSelectedNations` / `writeSelectedNations` and
-//    `readLanguage` / `writeLanguage` over the `settings` table. `src/settings.js`
-//    does not exist yet (ticket 12 owns it); when it does, these four move there
-//    unchanged and this module imports them.
-// 2. Pure functions — the merge, the grouping, the locale inference, the Custom
+// 1. Pure functions — the merge, the grouping, the locale inference, the Custom
 //    Publication id and the Feed-language guess. They take plain data and are
 //    the unit-tested part (test/catalog-merge.test.js).
-// 3. Database and network glue — every one takes the Dexie handle or a fetcher
+// 2. Database and network glue — every one takes the Dexie handle or a fetcher
 //    as a parameter. Nothing here imports `db.js`, so this module (and its
 //    test) import cleanly under Node, where the Dexie CDN URL cannot resolve.
 //    The Publications screen passes `getDatabase()`.
+//
+// Reader preferences are **not** here. The Nation selection is a setting, so it
+// lives in `src/settings.js` (`getNations` / `setNations`) and reaches
+// `loadPublications` as a parameter; the Language lives in
+// `localStorage['edicola.lang']` (`src/i18n.js`). This module reads the
+// `publications` table and nothing else.
 
 import { discoverFeeds, FeedParseError, parseFeed } from "./feed.js";
 import { FetchFailure } from "./fetcher.js";
@@ -23,12 +25,6 @@ import { FetchFailure } from "./fetcher.js";
 /** Where the shipped Catalog lives, relative to this module. */
 export const CATALOG_URL = new URL("../data/catalog.json", import.meta.url)
   .href;
-
-/** Keys this screen owns in the `settings` table. */
-export const SETTING_KEYS = Object.freeze({
-  selectedNations: "selectedNations",
-  language: "language",
-});
 
 /**
  * Group key the Publications screen files Custom Publications under, instead of
@@ -94,81 +90,7 @@ const CUSTOM_CATEGORY = "news";
  * @property {CategoryGroup[]} groups
  */
 
-// --- 1. The settings seam (ticket 12 moves these into src/settings.js) -----
-
-/**
- * Read one row of the `settings` table.
- * @param {EdicolaDb} db
- * @param {string} key
- * @returns {Promise<unknown>}
- */
-export async function readSetting(db, key) {
-  const row = await db.settings.get(key);
-  return row?.value;
-}
-
-/**
- * Write one row of the `settings` table.
- * @param {EdicolaDb} db
- * @param {string} key
- * @param {unknown} value
- * @returns {Promise<void>}
- */
-export async function writeSetting(db, key, value) {
-  await db.settings.put({ key, value });
-}
-
-/**
- * The Nations whose Publications the reader wants to see, or null when the
- * reader has never chosen (first run).
- * @param {EdicolaDb} db
- * @returns {Promise<string[] | null>}
- */
-export async function readSelectedNations(db) {
-  const value = await readSetting(db, SETTING_KEYS.selectedNations);
-  if (!Array.isArray(value)) return null;
-  const nations = value.filter((n) => typeof n === "string" && n.length > 0);
-  return nations.length > 0 ? nations : null;
-}
-
-/**
- * Persist the Nation selection. At least one Nation is required, so an empty
- * list is rejected rather than stored.
- * @param {EdicolaDb} db
- * @param {string[]} nations
- * @returns {Promise<void>}
- */
-export async function writeSelectedNations(db, nations) {
-  if (!Array.isArray(nations) || nations.length === 0) {
-    throw new RangeError("At least one Nation must stay selected");
-  }
-  await writeSetting(db, SETTING_KEYS.selectedNations, [...nations]);
-}
-
-/**
- * The UI Language recorded in the database, or null when there is none.
- * `edicola.lang` in localStorage stays the authority the app boots from
- * (`initLang` in i18n.js); this row is the durable copy ADR-0006's first-run
- * inference writes, and what ticket 12 should read once it owns Settings.
- * @param {EdicolaDb} db
- * @returns {Promise<Lang | null>}
- */
-export async function readLanguage(db) {
-  const value = await readSetting(db, SETTING_KEYS.language);
-  return value === "en" || value === "it" ? value : null;
-}
-
-/**
- * Record the UI Language.
- * @param {EdicolaDb} db
- * @param {Lang} lang
- * @returns {Promise<void>}
- */
-export async function writeLanguage(db, lang) {
-  await writeSetting(db, SETTING_KEYS.language, lang);
-}
-
-// --- 2. Pure functions -----------------------------------------------------
+// --- 1. Pure functions -----------------------------------------------------
 
 /**
  * First-run defaults from the browser's locale list (ADR-0006): which Nations
@@ -384,7 +306,7 @@ export function guessOrigin(feedLanguage, fallback = {}) {
   return { country, language };
 }
 
-// --- 3. Database and network glue -----------------------------------------
+// --- 2. Database and network glue -----------------------------------------
 
 /**
  * Fetch the shipped Catalog. Same-origin Shell data, so it goes through the
@@ -408,6 +330,9 @@ export async function loadCatalog(fetchImpl = (url) => globalThis.fetch(url)) {
  * @property {CatalogEntry[]} entries
  * @property {string[]} nations Every Nation the entries cover.
  * @property {string[]} selectedNations Always at least one.
+ * @property {string[]|null} inferredNations The selection the browser locale
+ *   suggests, non-null only when it did not come from the stored one, so the
+ *   caller knows it is the caller's to persist.
  * @property {Lang|null} inferredLang The Language the browser locale suggests,
  *   set only on first run so the caller can apply it (ADR-0006).
  */
@@ -415,36 +340,50 @@ export async function loadCatalog(fetchImpl = (url) => globalThis.fetch(url)) {
 /**
  * Load the Catalog, merge it with the `publications` table and resolve the
  * Nation selection, seeding it from the browser locale on first run.
+ *
+ * The stored selection comes in as `selectedNations` and the seeded one goes
+ * out as `inferredNations`: this module reads and writes the `publications`
+ * table only, and the caller owns the `settings` row (`src/settings.js`).
+ * An empty or missing `selectedNations` is the first-run signal.
+ *
  * @param {EdicolaDb} db
  * @param {object} [options]
  * @param {readonly string[]} [options.languages] Usually `navigator.languages`.
  * @param {Catalog} [options.catalog] Skip the fetch (tests, or a cached copy).
+ * @param {readonly string[]} [options.selectedNations] The stored selection.
  * @returns {Promise<PublicationsData>}
  */
-export async function loadPublications(db, { languages = [], catalog } = {}) {
+export async function loadPublications(
+  db,
+  { languages = [], catalog, selectedNations: stored = [] } = {},
+) {
   const file = catalog ?? (await loadCatalog());
   const rows = await db.publications.toArray();
   const entries = mergeCatalog(file, rows);
   const nations = nationsOf(entries);
-  const saved = await readSelectedNations(db);
+  const saved = (Array.isArray(stored) ? stored : []).filter(
+    (n) => typeof n === "string" && n.length > 0,
+  );
 
   /** @type {Lang|null} */
   let inferredLang = null;
-  let selectedNations = (saved ?? []).filter((n) => nations.includes(n));
-  if (!saved || selectedNations.length === 0) {
+  /** @type {string[]|null} */
+  let inferredNations = null;
+  let selected = saved.filter((n) => nations.includes(n));
+  if (selected.length === 0) {
     const inferred = inferPreferences(languages, nations);
-    inferredLang = saved ? null : inferred.lang;
-    selectedNations = inferred.nations;
-    if (selectedNations.length > 0) {
-      await writeSelectedNations(db, selectedNations);
-    }
+    // A reader who has chosen before keeps their Language: only a genuine
+    // first run (nothing stored at all) may suggest one.
+    inferredLang = saved.length === 0 ? inferred.lang : null;
+    selected = inferred.nations;
+    if (selected.length > 0) inferredNations = [...selected];
   }
   return {
     catalog: file,
     entries,
     nations,
-    selectedNations:
-      selectedNations.length > 0 ? selectedNations : nations.slice(0, 1),
+    selectedNations: selected.length > 0 ? selected : nations.slice(0, 1),
+    inferredNations,
     inferredLang,
   };
 }
