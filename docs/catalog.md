@@ -98,9 +98,19 @@ manual dispatch. It runs `node tools/check-catalog.mjs --fetch`, which:
 - validates the schema exactly as the test does;
 - requests every `feedUrl` with concurrency 4 and a 15 second timeout, using
   the user agent `Edicola catalog health check (+https://github.com/nocfer/edicola)`;
-- passes an entry when the response is HTTP 200 and the body looks like a Feed
-  (root `rss`, `feed` or `rdf:RDF`, or JSON with `items`);
-- prints a Markdown table, failures first, and exits 1 if any entry fails.
+- passes an entry when the response is HTTP 200, the body looks like a Feed
+  (root `rss`, `feed` or `rdf:RDF`, or JSON with `items`), **and the app's own
+  `parseFeed` yields at least one Item** from it;
+- prints a Markdown table with an `Items` column, failures first, and exits 1 if
+  any entry fails.
+
+Parsing with the real `parseFeed` rather than sniffing the root element is what
+catches the awkward case: a Publication whose Feed answers 200 and looks like
+XML but carries nothing the app can read. Three failure modes are reported
+separately — no Items, a Feed `parseFeed` rejects, and a body that is not a Feed
+at all — because they need different fixes. Parsing needs jsdom, which
+`npm test` installs on demand; the workflow installs it explicitly, and without
+it the tool degrades to sniffing and says so rather than failing silently.
 
 On failure the workflow opens an issue titled `Catalog health: N feeds failing`
 with the table, labelled `needs-triage`. If such an issue is already open it
