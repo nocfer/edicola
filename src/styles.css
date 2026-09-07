@@ -752,10 +752,13 @@ button {
   flex-direction: column;
   gap: var(--s-1);
 }
+/* Wraps rather than squeezing: with the Summary-only flag alongside, a
+   single-line row shrank the Publication name to one clipped glyph. */
 .today__meta {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--s-2);
+  gap: var(--s-1) var(--s-2);
   color: var(--faint);
   font-size: var(--fs-caption);
 }
@@ -767,6 +770,7 @@ button {
   background: var(--accent);
 }
 .today__pub {
+  max-width: 22ch;
   color: var(--muted);
   font-weight: 600;
   overflow: hidden;

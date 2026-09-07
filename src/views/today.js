@@ -25,7 +25,7 @@ import { formatRelative, LOCALES, t } from "../i18n.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
-import { hrefFor } from "../router.js";
+import { hrefFor, parseRoute } from "../router.js";
 import { syncNow } from "../sync-client.js";
 import { buildTodayModel } from "../today-model.js";
 import { emptyState, screenHeader } from "./layout.js";
@@ -311,30 +311,36 @@ function installListeners() {
     },
     { passive: true },
   );
+
+  window.addEventListener("hashchange", watchRouteForScroll);
 }
 
-let lastRoute = "";
-let restoreScroll = false;
+/** Whether the last hash change took us off Today. */
+let leftToday = false;
 
 /**
- * Note a return to Today so the render can put the reader back where they were.
- * `main.js` scrolls to the top on every path change; this runs in a later frame
- * and wins, which is what makes "read one Item, come back, carry on" work.
+ * Put the reader back where they were when they come back from the Reader.
+ *
+ * This has to hang off `hashchange` rather than off the render: while the
+ * Reader is open Today is not rendered at all, so a view-side check can never
+ * see the route leave. `main.js` scrolls to the top on every path change and
+ * lit fills the list in the same tick, so the restore waits two frames and
+ * lands after both.
  */
-function watchRoute() {
-  if (lastRoute === state.route.name) return;
-  const returning = lastRoute !== "" && state.route.name === "today";
-  lastRoute = state.route.name;
-  if (returning && screen.scrollY > 0) restoreScroll = true;
-}
-
-/** After a render with cards on screen, restore the remembered offset once. */
-function applyScrollRestore(hasCards) {
-  if (!restoreScroll || !hasCards || !onToday()) return;
-  restoreScroll = false;
+function watchRouteForScroll() {
+  const nowOnToday = parseRoute(location.hash).name === "today";
+  if (!nowOnToday) {
+    leftToday = true;
+    return;
+  }
+  if (!leftToday) return;
+  leftToday = false;
   const y = screen.scrollY;
+  if (y <= 0) return;
   requestAnimationFrame(() => {
-    if (onToday()) window.scrollTo(0, y);
+    requestAnimationFrame(() => {
+      if (parseRoute(location.hash).name === "today") window.scrollTo(0, y);
+    });
   });
 }
 
@@ -600,7 +606,6 @@ function emptyBody(model) {
 
 /** @param {import('../state.js').State} appState */
 export function todayView(appState) {
-  watchRoute();
   watchSync();
   ensureLoaded();
 
@@ -609,7 +614,6 @@ export function todayView(appState) {
     lang: appState.lang,
   });
   const loading = screen.status === "idle" || screen.status === "loading";
-  applyScrollRestore(model.cardCount > 0);
 
   return html`
     <section class="screen">
