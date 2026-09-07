@@ -27,3 +27,33 @@ close. Each line names the ticket that owns it.
       that a second era of one selector silently shadows the first. Worth a
       pass once the screens are done. The merge-introduced `.input` duplicate
       is already collapsed.
+
+## Offline verification done at the integration level (2026-09-07)
+
+Neither the Shell ticket nor any screen ticket owns proving the product's
+central claim across screens, so the integrator ran it after merging ticket 14.
+
+Method: one Chrome profile, primed online against two real Catalog Publications
+(84 Items, 17 Articles, 39 images stored; 47 entries in the Shell cache), then
+the static server was killed and the same profile reloaded twice.
+
+Confirmed with the origin unreachable:
+
+- The app boots, the service worker is in control, and the Shell is served from
+  the Cache API.
+- Today renders 82 cards with day sections, filter chips and Unread counts,
+  read from IndexedDB.
+- Publications renders 15 rows from the cached `data/catalog.json`.
+
+Two caveats, stated precisely so nobody over-reads the result:
+
+- **`navigator.onLine` was still `true`.** Only the origin was unreachable, not
+  the network interface, so this exercises Shell caching and stored content but
+  **not** the offline-specific UI (the Offline chip and the offline empty
+  state). Those were verified separately by ticket 09 with emulated conditions.
+- **Feed thumbnails appeared, but that is not evidence they work offline.**
+  Thumbnails are deliberately not stored (ticket 09); these were served from
+  Chrome's own HTTP cache because the profile was reused from the online run. On
+  a cold cache they hide themselves, which is the intended behaviour. Article
+  images are a different matter: those are stored as blobs, and ticket 10 is
+  proving them with the server down.
