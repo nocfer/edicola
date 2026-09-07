@@ -603,6 +603,226 @@ button {
   gap: var(--s-2);
 }
 
+/* Today: the "last refreshed" bar, the pull-to-refresh affordance, the filter
+   chips with their Unread counts, and the day sections with one card per Item.
+   The day header is sticky inside its own section, so scrolling one day pushes
+   the next header up rather than stacking them. */
+.today__body {
+  position: relative;
+}
+.today__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.today__status {
+  flex: 1;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+}
+.today__refresh .ico {
+  font-size: var(--fs-lead);
+  line-height: 1;
+}
+
+/* Sync progress: a hairline that fills as the pipeline works. */
+.today__progress {
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: var(--chip-bg);
+  overflow: hidden;
+}
+.today__progressfill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--dur) var(--ease);
+}
+
+/* Pull to refresh: the row only exists while a finger is moving; its height is
+   the pull distance, set inline by the view. */
+.today__pull {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.today__pulltext {
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+
+/* Filter chips. Each chip owns its overflow button and the menu it opens. */
+.today__filters {
+  align-items: center;
+}
+.today__chipwrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.today__chipname {
+  white-space: nowrap;
+}
+.today__chipcount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 var(--s-1);
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+.chip--on .today__chipcount {
+  background: var(--chip-on-fg);
+  color: var(--chip-on-bg);
+}
+.today__chipmore {
+  padding: 0 var(--s-2);
+  color: var(--muted);
+}
+.today__menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + var(--s-1));
+  left: 0;
+  padding: var(--s-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--card);
+  box-shadow: 0 8px 24px -12px rgb(0 0 0 / 45%);
+}
+.today__menuitem {
+  white-space: nowrap;
+}
+
+/* Day sections. */
+.today__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+.today__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.today__dayhead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: var(--s-2) 0;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.today__cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* One Item: the text column, and the Feed's thumbnail when it has one. */
+.today__card {
+  display: flex;
+  gap: var(--s-3);
+  align-items: flex-start;
+  color: inherit;
+  text-decoration: none;
+}
+.today__card:hover {
+  border-color: var(--muted);
+}
+.today__cardmain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+.today__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+.today__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+.today__pub {
+  color: var(--muted);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.today__when {
+  flex: none;
+}
+.today__flag {
+  flex: none;
+  padding: 0 var(--s-1);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+}
+.today__title {
+  font-family: var(--font-display);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+}
+.today__summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  line-height: var(--lh-body);
+}
+/* A Read Item stays legible but stops shouting. */
+.today__card--read .today__title {
+  font-weight: 500;
+  color: var(--muted);
+}
+.today__thumb {
+  flex: none;
+  width: 88px;
+  height: 88px;
+  border-radius: var(--r-control);
+  background: var(--chip-bg);
+  object-fit: cover;
+}
+
+.today__hint,
+.today__bounded {
+  margin: 0;
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+.today__bounded {
+  padding: var(--s-2) 0;
+  text-align: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

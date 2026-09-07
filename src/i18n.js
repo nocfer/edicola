@@ -26,6 +26,34 @@ export const en = {
   "today.placeholder":
     "Nothing here yet. Switch on some Publications to fill your newsstand.",
   "today.choosePublications": "Choose Publications",
+  "today.loading": "Opening your newsstand…",
+  "today.loadError": "Today could not be read from storage.",
+  "today.retry": "Try again",
+  "today.neverSynced":
+    "Your Publications are on. Refresh to fetch the first Items.",
+  "today.offlineEmpty":
+    "You are offline and nothing has been downloaded yet. Connect once and Edicola fills up.",
+  "today.empty": "Nothing came through on the last refresh. Try again later.",
+  "today.emptyFilter": "Nothing from {name} inside the last {days} days.",
+  "today.today": "Today",
+  "today.yesterday": "Yesterday",
+  "today.all": "All",
+  "today.refresh": "Refresh",
+  "today.filters": "Filter by Publication",
+  "today.filterTo": "Show only {name}",
+  "today.filterAll": "Show every Publication",
+  "today.unreadCount": "{count} unread",
+  "today.unread": "Unread",
+  "today.moreAria": "More actions for {name}",
+  "today.markAllRead": "Mark all read",
+  "today.markedAllRead": "{name}: everything marked read.",
+  "today.summaryOnly": "Summary only",
+  "today.pull": "Pull to refresh",
+  "today.release": "Release to refresh",
+  "today.refreshing": "Refreshing…",
+  "today.bounded":
+    "Today keeps the last {days} days. Older Items stay on their Publication.",
+  "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Saved",
   "saved.placeholder": "Items you save stay here and are never removed.",
@@ -130,6 +158,35 @@ export const it = {
   "today.placeholder":
     "Ancora niente qui. Attiva qualche testata per riempire la tua edicola.",
   "today.choosePublications": "Scegli le testate",
+  "today.loading": "Apertura dell'edicola…",
+  "today.loadError": "Impossibile leggere Oggi dall'archivio.",
+  "today.retry": "Riprova",
+  "today.neverSynced":
+    "Le tue testate sono attive. Aggiorna per scaricare i primi titoli.",
+  "today.offlineEmpty":
+    "Sei offline e non è ancora stato scaricato nulla. Collegati una volta e l'edicola si riempie.",
+  "today.empty":
+    "Nell'ultimo aggiornamento non è arrivato nulla. Riprova più tardi.",
+  "today.emptyFilter": "Niente da {name} negli ultimi {days} giorni.",
+  "today.today": "Oggi",
+  "today.yesterday": "Ieri",
+  "today.all": "Tutte",
+  "today.refresh": "Aggiorna",
+  "today.filters": "Filtra per testata",
+  "today.filterTo": "Mostra solo {name}",
+  "today.filterAll": "Mostra tutte le testate",
+  "today.unreadCount": "{count} da leggere",
+  "today.unread": "Da leggere",
+  "today.moreAria": "Altre azioni per {name}",
+  "today.markAllRead": "Segna tutto come letto",
+  "today.markedAllRead": "{name}: tutto segnato come letto.",
+  "today.summaryOnly": "Solo sommario",
+  "today.pull": "Trascina per aggiornare",
+  "today.release": "Rilascia per aggiornare",
+  "today.refreshing": "Aggiornamento…",
+  "today.bounded":
+    "Oggi conserva gli ultimi {days} giorni. I titoli più vecchi restano sulla loro testata.",
+  "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Salvati",
   "saved.placeholder":
