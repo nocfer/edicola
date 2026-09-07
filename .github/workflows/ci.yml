@@ -1,0 +1,29 @@
+name: CI
+
+# Runs the test suite and static checks on every push / PR. This includes the
+# import-graph check (test/imports.test.js), which fails the build if a module
+# imports a named export that no shipped module provides — the bug that once
+# bricked the whole deployed app. It also fails if the service-worker cache
+# version is stale (stamp:check), if Biome finds a lint/format error, or if
+# checkJs finds a type error. Does not touch deploy (Pages uses "deploy from a
+# branch").
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run tests
+        run: node --test
+      - name: Service-worker cache version is up to date
+        run: npm run stamp:check
+      - name: Lint + format (Biome)
+        run: npx -y @biomejs/biome@2 ci .
+      - name: Type-check (checkJs)
+        run: npm run typecheck

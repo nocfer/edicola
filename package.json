@@ -1,0 +1,20 @@
+{
+  "name": "edicola",
+  "version": "0.1.0",
+  "description": "Edicola: an offline-first, no-backend news reader PWA. Pick publications by nation, read full articles offline.",
+  "type": "module",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "test": "node --test",
+    "check:imports": "node tools/check-imports.mjs",
+    "stamp": "node tools/stamp-sw.mjs",
+    "stamp:check": "node tools/stamp-sw.mjs --check",
+    "lint": "npx -y @biomejs/biome@2 check .",
+    "format": "npx -y @biomejs/biome@2 format --write .",
+    "typecheck": "npx -y -p typescript@5 tsc --noEmit -p jsconfig.json",
+    "ci:local": "npm test && npm run stamp:check && npx -y @biomejs/biome@2 ci . && npm run typecheck",
+    "install:hooks": "node tools/install-hooks.mjs"
+  },
+  "keywords": ["rss", "atom", "news", "reader", "pwa", "offline"],
+  "license": "MIT"
+}
