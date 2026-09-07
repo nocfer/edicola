@@ -1,11 +1,15 @@
-// Settings: theme (system/light/dark) and Language (en/it). Ticket 12 adds
-// Proxy, Retention, storage and updates below these two cards.
+// Settings: theme (system/light/dark), Language (en/it) and Sync. Ticket 12
+// adds Proxy, Retention, storage and updates below these cards.
 //
 // The controls only write to the store; main.js applies the theme attribute,
-// persists the choice and re-translates static copy when it renders.
+// persists the choice and re-translates static copy when it renders. The one
+// exception is Sync: "Sync now" starts real work, and `initSyncClient()` brings
+// `state.sync.lastSyncAt` in step with the database the first time this screen
+// renders (main.js cannot do it yet — ticket 09 owns the boot Sync).
 import { html } from "../render.js";
-import { LANGS, t } from "../i18n.js";
-import { update } from "../state.js";
+import { formatRelative, LANGS, t } from "../i18n.js";
+import { showToast, update } from "../state.js";
+import { initSyncClient, syncNow } from "../sync-client.js";
 import { screenHeader } from "./layout.js";
 
 /** @type {import('../state.js').ThemePreference[]} */
@@ -39,8 +43,32 @@ function segmented(label, options, current, labelFor, onPick) {
   `;
 }
 
+/**
+ * One line under the "Sync now" button: what the Sync is doing while it runs,
+ * what the last one did once it has finished, and nothing before the first one.
+ * @param {import('../state.js').SyncState} sync
+ * @returns {string}
+ */
+function syncStatusLine(sync) {
+  if (sync.running) {
+    const key = sync.phase === "articles" ? "sync.articles" : "sync.feeds";
+    return t(key, { done: sync.done, total: sync.total });
+  }
+  const summary = sync.lastSummary;
+  if (!summary) return "";
+  const line = t("sync.summary", {
+    items: summary.itemsStored,
+    articles: summary.articlesOk,
+    images: summary.imagesStored,
+  });
+  if (summary.feedsFailed === 0) return line;
+  return `${line} — ${t("sync.failed", { count: summary.feedsFailed })}`;
+}
+
 /** @param {import('../state.js').State} state */
 export function settingsView(state) {
+  initSyncClient();
+  const sync = state.sync;
   return html`
     <section class="screen">
       ${screenHeader(state, t("settings.title"))}
@@ -69,6 +97,34 @@ export function settingsView(state) {
               (v) => t(`settings.language.${v}`),
               (lang) => update({ lang }),
             )}
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="card__title">${t("sync.title")}</h2>
+          <div class="row">
+            <span class="row__label">${t("sync.lastSynced")}</span>
+            <span class="sync__when">
+              ${
+                sync.lastSyncAt
+                  ? formatRelative(sync.lastSyncAt)
+                  : t("sync.never")
+              }
+            </span>
+          </div>
+          <div class="row sync__actions">
+            <button
+              type="button"
+              class="btn btn--primary"
+              ?disabled=${sync.running}
+              @click=${() => {
+                syncNow().catch(() => showToast(t("sync.error")));
+              }}
+            >
+              ${sync.running ? t("sync.running") : t("sync.now")}
+            </button>
+            <span class="sync__progress" role="status" aria-live="polite">
+              ${syncStatusLine(sync)}
+            </span>
           </div>
         </div>
       </div>

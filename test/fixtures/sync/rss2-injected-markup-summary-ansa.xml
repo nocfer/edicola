@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- DERIVED, not as served: test/fixtures/feeds/rss2-empty-channel-link-ansa.xml
+     (real ANSA Feed, curl, 2026-09-07) with hostile markup added to the first
+     item's <description> — a <script>, an <img onerror>, an <iframe>, a
+     javascript: link, an inline style and a class. A Feed is untrusted input
+     from an arbitrary site, so the Sync pipeline must run DOMPurify over every
+     Summary BEFORE it reaches storage; this fixture is what proves it. The
+     surrounding prose and the link text must survive. -->
+<rss version="2.0">
+<channel>
+<title>Primo piano ANSA - ANSA.it</title>
+<link></link>
+<description>Updated every day - FOR PERSONAL USE ONLY</description>
+<item>
+		<title><![CDATA[Venezia, il programma di oggi: Ellen Burstyn Leone alla Carriera e Strippoli in gara]]></title>
+		<description><![CDATA[<p class="teaser" style="color:red">In concorso anche Koreeda con Look Back<script>window.stolen=1</script><img src="x" onerror="window.stolen=2"><iframe src="https://tracker.test/pixel"></iframe> <a href="javascript:window.stolen=3" onclick="window.stolen=4">a Orizzonti</a> I figli della scimmia con Scamarcio</p>]]></description>
+		<link>https://www.ansa.it/sito/notizie/cultura/2026/09/06/programma-di-lunedi-ellen-burstyn-leone-alla-carriera-e-strippoli-in-gara_ea4c2fa2-2610-4e4b-9ca2-717c9e5b3ace.html</link>
+        <pubDate>Mon, 7 Sep 2026 09:07:09 +0200</pubDate>
+		<guid>https://www.ansa.it/sito/notizie/cultura/2026/09/06/programma-di-lunedi-ellen-burstyn-leone-alla-carriera-e-strippoli-in-gara_ea4c2fa2-2610-4e4b-9ca2-717c9e5b3ace.html</guid>
+	</item>
+<item>
+		<title><![CDATA[Vigilia di Fashion Week a New York, si parte con gli US Open]]></title>
+		<description><![CDATA[Complice il calendario, Osaka in passerella, Wintour sugli spalti]]></description>
+		<link>https://www.ansa.it/canale_lifestyle/notizie/moda/2026/09/06/vigilia-di-fashion-week-a-new-york-si-parte-con-gli-us-open_2410e61f-db68-45ad-9c0e-f55006bd014f.html</link>
+        <pubDate>Mon, 7 Sep 2026 09:11:26 +0200</pubDate>
+		<guid>https://www.ansa.it/canale_lifestyle/notizie/moda/2026/09/06/vigilia-di-fashion-week-a-new-york-si-parte-con-gli-us-open_2410e61f-db68-45ad-9c0e-f55006bd014f.html</guid>
+	</item>
+<item>
+		<title><![CDATA[Da De Martino a Scotti, da Conti a Fazio, dal Gf a Ballando la riparte stagione in tv]]></title>
+		<description><![CDATA[Tra grandi ritorni e cambi della guardia si rimettono in moto day time e prima serata]]></description>
+		<link>https://www.ansa.it/sito/notizie/cultura/tv/2026/09/06/da-de-martino-a-scotti-da-conti-a-fazio-dal-gf-a-ballando-riparte-stagione-tv_3b6d88a8-c8b5-436e-8f3c-d1bfb6d07b00.html</link>
+        <pubDate>Mon, 7 Sep 2026 09:13:49 +0200</pubDate>
+		<guid>https://www.ansa.it/sito/notizie/cultura/tv/2026/09/06/da-de-martino-a-scotti-da-conti-a-fazio-dal-gf-a-ballando-riparte-stagione-tv_3b6d88a8-c8b5-436e-8f3c-d1bfb6d07b00.html</guid>
+	</item>
+	</channel>
+</rss>

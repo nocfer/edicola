@@ -20,12 +20,26 @@
 /** @typedef {'en'|'it'} Lang */
 
 /**
+ * What a Sync is doing, published by `sync-client.js` (never written by a
+ * view). `phase`, `done` and `total` are only meaningful while `running`.
+ *
+ * @typedef {object} SyncState
+ * @property {boolean} running  a Sync is in flight
+ * @property {'feeds'|'articles'|null} phase  which half of the pipeline
+ * @property {number} done   units finished in this phase
+ * @property {number} total  units in this phase
+ * @property {number|null} lastSyncAt  epoch ms of the last completed Sync
+ * @property {import('./sync.js').SyncSummary|null} lastSummary  what it did
+ */
+
+/**
  * @typedef {object} State
  * @property {Route} route   the current screen, kept in sync by the router
  * @property {ThemePreference} theme  the reader's preference, not the resolved theme
  * @property {Lang} lang     the UI Language (ADR-0006)
  * @property {boolean} online  mirrors `navigator.onLine`
  * @property {string|null} toast  transient message shown by the `.toast` primitive
+ * @property {SyncState} sync  progress and result of the last Sync
  */
 
 /** @type {State} */
@@ -35,6 +49,14 @@ export const state = {
   lang: "en",
   online: true,
   toast: null,
+  sync: {
+    running: false,
+    phase: null,
+    done: 0,
+    total: 0,
+    lastSyncAt: null,
+    lastSummary: null,
+  },
 };
 
 /** @type {Array<() => void>} */

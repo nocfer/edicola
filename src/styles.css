@@ -360,6 +360,22 @@ button {
   line-height: var(--lh-body);
 }
 
+/* Sync: the "Sync now" row in Settings, its progress line and last-Sync time. */
+.sync__when {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.sync__actions {
+  margin-top: var(--s-3);
+}
+.sync__progress {
+  flex: 1 1 12ch;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  text-align: right;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
