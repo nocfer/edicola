@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+
+<rdf:RDF
+ xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+ xmlns="http://purl.org/rss/1.0/"
+ xmlns:admin="http://webns.net/mvcb/"
+ xmlns:content="http://purl.org/rss/1.0/modules/content/"
+ xmlns:dc="http://purl.org/dc/elements/1.1/"
+ xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+ xmlns:syn="http://purl.org/rss/1.0/modules/syndication/"
+ xmlns:taxo="http://purl.org/rss/1.0/modules/taxonomy/"
+>
+
+<channel rdf:about="https://slashdot.org/">
+<title>Slashdot</title>
+<link>https://slashdot.org/</link>
+<description>News for nerds, stuff that matters</description>
+<dc:language>en-us</dc:language>
+<dc:rights>Copyright Slashdot Media. All Rights Reserved.</dc:rights>
+<dc:date>2026-09-07T08:19:14+00:00</dc:date>
+<dc:publisher>Slashdot Media</dc:publisher>
+<dc:creator>feedback@slashdot.org</dc:creator>
+<dc:subject>Technology</dc:subject>
+<syn:updateBase>1970-01-01T00:00+00:00</syn:updateBase>
+<syn:updateFrequency>1</syn:updateFrequency>
+<syn:updatePeriod>hourly</syn:updatePeriod>
+<items>
+ <rdf:Seq>
+  <rdf:li rdf:resource="https://yro.slashdot.org/story/26/09/07/0727220/bitcoin-based-liquid-network-says-320-million-withdrawn-in-hack?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+  <rdf:li rdf:resource="https://entertainment.slashdot.org/story/26/09/06/0633216/rokus-247-ai-slop-channel-is-even-worse-than-expected?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+  <rdf:li rdf:resource="https://yro.slashdot.org/story/26/09/06/0553230/us-military-disables-ad-trackers-on-devices-to-protect-troops?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed" />
+  </rdf:Seq>
+</items>
+<image rdf:resource="https://a.fsdn.com/sd/topics/topicslashdot.gif" />
+<textinput rdf:resource="https://slashdot.org/search.pl" />
+</channel>
+<image rdf:about="https://a.fsdn.com/sd/topics/topicslashdot.gif">
+<title>Slashdot</title>
+<url>https://a.fsdn.com/sd/topics/topicslashdot.gif</url>
+<link>https://slashdot.org/</link>
+</image>
+<item rdf:about="https://yro.slashdot.org/story/26/09/07/0727220/bitcoin-based-liquid-network-says-320-million-withdrawn-in-hack?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed">
+<title>Bitcoin-based Liquid Network Says $320 Million Withdrawn in Hack</title>
+<link>https://yro.slashdot.org/story/26/09/07/0727220/bitcoin-based-liquid-network-says-320-million-withdrawn-in-hack?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed</link>
+<description>Reuters reports:
+
+
+Liquid Network, a Bitcoin-based payments and settlement network, said on Sunday that about $320 million was withdrawn from its federation wallet in a hack.
+"Purported white-hat hackers" withdrew around 4,000 of the 4,200 bitcoin held in its Liquid Federation wallet, Liquid Network said in a post on X.
+ 
+
+"Liquid wallets will be impacted," their post concluded, adding "and we're sorry for any inconvenience."&lt;p&gt;&lt;div class="share_submission" style="position:relative;"&gt;
+&lt;a class="slashpop" href="http://twitter.com/home?status=Bitcoin-based+Liquid+Network+Says+%24320+Million+Withdrawn+in+Hack%3A+https%3A%2F%2Fyro.slashdot.org%2Fstory%2F26%2F09%2F07%2F0727220%2F%3Futm_source%3Dtwitter%26utm_medium%3Dtwitter"&gt;&lt;img src="https://a.fsdn.com/sd/twitter_icon_large.png"&gt;&lt;/a&gt;
+&lt;a class="slashpop" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fyro.slashdot.org%2Fstory%2F26%2F09%2F07%2F0727220%2Fbitcoin-based-liquid-network-says-320-million-withdrawn-in-hack%3Futm_source%3Dslashdot%26utm_medium%3Dfacebook"&gt;&lt;img src="https://a.fsdn.com/sd/facebook_icon_large.png"&gt;&lt;/a&gt;
+
+
+
+&lt;/div&gt;&lt;/p&gt;&lt;p&gt;&lt;a href="https://yro.slashdot.org/story/26/09/07/0727220/bitcoin-based-liquid-network-says-320-million-withdrawn-in-hack?utm_source=rss1.0moreanon&amp;amp;utm_medium=feed"&gt;Read more of this story&lt;/a&gt; at Slashdot.&lt;/p&gt;&lt;iframe src="https://slashdot.org/slashdot-it.pl?op=discuss&amp;amp;id=24090906&amp;amp;smallembed=1" style="height: 300px; width: 100%; border: none;"&gt;&lt;/iframe&gt;</description>
+<dc:creator>EditorDavid</dc:creator>
+<dc:date>2026-09-07T07:30:00+00:00</dc:date>
+<dc:subject>bitcoin</dc:subject>
+<slash:department>magic-internet-money</slash:department>
+<slash:section>yro</slash:section>
+<slash:comments>2</slash:comments>
+<slash:hit_parade>2,2,2,0,0,0,0</slash:hit_parade>
+</item>
+<item rdf:about="https://entertainment.slashdot.org/story/26/09/06/0633216/rokus-247-ai-slop-channel-is-even-worse-than-expected?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed">
+<title>Roku's 24/7 AI Slop Channel Is Even Worse Than Expected</title>
+<link>https://entertainment.slashdot.org/story/26/09/06/0633216/rokus-247-ai-slop-channel-is-even-worse-than-expected?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed</link>
+<description>A new streaming TV channel shows films made with genAI, reports Engadget. "Fairground AI Creator TV" is free &amp;mdash; and supported with ads &amp;mdash; describing its material as "AI Cinema":
+
+
+"AI-generated" can make it sound as though someone typed a sentence into a machine and came back five minutes later to find a finished movie. Fairground's catalog shows why that description can be too simple. Take Lost Garden: The Awakening of the Lantern Knight. According to its Fairground page, creator Frank Houbre wrote the world, characters, mythology, emotional arc and screenplay himself. AI tools were used mainly for animation and visual production, with other tools helping create voices and music before the episode was assembled in conventional video-editing software. 
+
+There's still one question, the article notes: "whether viewers actually want an AI-focused TV channel." More than 100 AI creators have contributed to the 24-hour slate of programming, although Variety points out several of them were discovered on social media. 
+
+ The channel was recently profiled in an article by the Guardian. Its headline? "'Nightmare fodder': Roku's AI slop channel is even worse than expected." (And its subheading calls it "a 24/7 channel devoted to low-quality AI content for viewers sick of watching real people move...")
+What about people who hate plot and vision and the sight of people speaking convincing dialogue that synchronises perfectly with the movement of their lips? What about the people who just want to watch an unyielding torrent of eerily weightless nightmare fodder? Well, good news. Roku has finally caught up... Early reactions were, to put it mildly, not great. The Verge compared it to eating from a trough, while Futurism called it "bottom-of-the-barrel slop"... 
+
+On the plus side, the channel is evidence that artificial intelligence has come on in leaps and bounds over the last couple of years... However, it is still awful. Categorically, catastrophically awful. The channel doesn't so much offer shows as a drifting dreamscape of bad ideas rendered as horribly as possible with no thought paid to scheduling. At one point on Wednesday, a shrill high-frequency anime gave way to a long and staid German-language short about Nazi bureaucracy. After that came a sort of Gladiator ripoff that had all the dynamism of an exhibit you'd see at the fourth-best museum on a poorly planned family holiday.
+&lt;p&gt;&lt;div class="share_submission" style="position:relative;"&gt;
+&lt;a class="slashpop" href="http://twitter.com/home?status=Roku's+24%2F7+AI+Slop+Channel+Is+Even+Worse+Than+Expected%3A+https%3A%2F%2Fentertainment.slashdot.org%2Fstory%2F26%2F09%2F06%2F0633216%2F%3Futm_source%3Dtwitter%26utm_medium%3Dtwitter"&gt;&lt;img src="https://a.fsdn.com/sd/twitter_icon_large.png"&gt;&lt;/a&gt;
+&lt;a class="slashpop" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fentertainment.slashdot.org%2Fstory%2F26%2F09%2F06%2F0633216%2Frokus-247-ai-slop-channel-is-even-worse-than-expected%3Futm_source%3Dslashdot%26utm_medium%3Dfacebook"&gt;&lt;img src="https://a.fsdn.com/sd/facebook_icon_large.png"&gt;&lt;/a&gt;
+
+
+
+&lt;/div&gt;&lt;/p&gt;&lt;p&gt;&lt;a href="https://entertainment.slashdot.org/story/26/09/06/0633216/rokus-247-ai-slop-channel-is-even-worse-than-expected?utm_source=rss1.0moreanon&amp;amp;utm_medium=feed"&gt;Read more of this story&lt;/a&gt; at Slashdot.&lt;/p&gt;&lt;iframe src="https://slashdot.org/slashdot-it.pl?op=discuss&amp;amp;id=24090266&amp;amp;smallembed=1" style="height: 300px; width: 100%; border: none;"&gt;&lt;/iframe&gt;</description>
+<dc:creator>EditorDavid</dc:creator>
+<dc:date>2026-09-07T04:30:00+00:00</dc:date>
+<dc:subject>tv</dc:subject>
+<slash:department>free-with-ads</slash:department>
+<slash:section>entertainment</slash:section>
+<slash:comments>10</slash:comments>
+<slash:hit_parade>10,10,9,8,0,0,0</slash:hit_parade>
+</item>
+<item rdf:about="https://yro.slashdot.org/story/26/09/06/0553230/us-military-disables-ad-trackers-on-devices-to-protect-troops?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed">
+<title>US Military Disables Ad Trackers On Devices To Protect Troops</title>
+<link>https://yro.slashdot.org/story/26/09/06/0553230/us-military-disables-ad-trackers-on-devices-to-protect-troops?utm_source=rss1.0mainlinkanon&amp;utm_medium=feed</link>
+<description>Slashdot reader DeanonymizedCoward writes: Reuters reports that the US Military is disabling ad tracking on devices, to prevent adversaries from buying publicly-available tracking data to assist in targeting troops. Military officials say that they have disabled trackers on a variety of computers and mobile devices, according to letters released on Friday by Sen. Ron Wyden, and following reports that commercially-available tracking data has been used to target troops in the Middle East.... 
+
+
+Wyden said in a statement that it was clear that the military's efforts "have not been effective at neutralizing this threat." U.S. Representative Pat Harrigan, a North Carolina Republican, said that U.S. enemies "should not be able to pull out a credit card and buy information that helps them track American troops." Rep. Harrigan remains silent as to the larger question of whether the general public should be able to pull out a credit card and buy information that helps them track anyone they please. 
+
+"The Pentagon said in an email it would respond to the lawmakers directly," Reuters reports:
+
+The Army said in a statement that advertising IDs had been blocked on Windows computers "since before 2021" but that Android and Apple mobile devices had only had it disabled by default "since at least February 2026...." The effort to reduce the location data generated by smartphones comes as military officials weigh increasingly strict restrictions on phone use overall. In July, Reuters reported that some deployed personnel in the Middle East could be ordered to surrender their phones amid concerns that mobile videos they were posting to the internet were helping Iran target American bases in the region.&lt;p&gt;&lt;div class="share_submission" style="position:relative;"&gt;
+&lt;a class="slashpop" href="http://twitter.com/home?status=US+Military+Disables+Ad+Trackers+On+Devices+To+Protect+Troops%3A+https%3A%2F%2Fyro.slashdot.org%2Fstory%2F26%2F09%2F06%2F0553230%2F%3Futm_source%3Dtwitter%26utm_medium%3Dtwitter"&gt;&lt;img src="https://a.fsdn.com/sd/twitter_icon_large.png"&gt;&lt;/a&gt;
+&lt;a class="slashpop" href="http://www.facebook.com/sharer.php?u=https%3A%2F%2Fyro.slashdot.org%2Fstory%2F26%2F09%2F06%2F0553230%2Fus-military-disables-ad-trackers-on-devices-to-protect-troops%3Futm_source%3Dslashdot%26utm_medium%3Dfacebook"&gt;&lt;img src="https://a.fsdn.com/sd/facebook_icon_large.png"&gt;&lt;/a&gt;
+
+
+
+&lt;/div&gt;&lt;/p&gt;&lt;p&gt;&lt;a href="https://yro.slashdot.org/story/26/09/06/0553230/us-military-disables-ad-trackers-on-devices-to-protect-troops?utm_source=rss1.0moreanon&amp;amp;utm_medium=feed"&gt;Read more of this story&lt;/a&gt; at Slashdot.&lt;/p&gt;&lt;iframe src="https://slashdot.org/slashdot-it.pl?op=discuss&amp;amp;id=24090244&amp;amp;smallembed=1" style="height: 300px; width: 100%; border: none;"&gt;&lt;/iframe&gt;</description>
+<dc:creator>EditorDavid</dc:creator>
+<dc:date>2026-09-07T01:34:00+00:00</dc:date>
+<dc:subject>advertising</dc:subject>
+<slash:department>silencing-cellphones</slash:department>
+<slash:section>yro</slash:section>
+<slash:comments>28</slash:comments>
+<slash:hit_parade>28,27,22,19,9,4,1</slash:hit_parade>
+</item>
+<textinput rdf:about="https://slashdot.org/search.pl">
+<title>Search Slashdot</title>
+<description>Search Slashdot stories</description>
+<name>query</name>
+<link>https://slashdot.org/search.pl</link>
+</textinput>
+</rdf:RDF>
