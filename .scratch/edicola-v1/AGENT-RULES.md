@@ -61,3 +61,22 @@ if it is present in your branch, run `npm run stamp` after any Shell change.
 - Your final message is the only thing the coordinator reads. Lead with what
   works and what does not, list the files you created, and name the exported
   interfaces.
+
+## Hard-won rules (each cost a previous agent real work)
+
+- **Commit as soon as the gates pass**, before any optional polish or extra
+  verification. Two agents lost finished work to a session limit that hit
+  mid-run. A commit on your branch is cheap and reversible; uncommitted work
+  is not recoverable by the coordinator.
+- **Use absolute paths for every command, every `curl -o`, every redirect.**
+  One agent's `cd` into a not-yet-created directory silently failed, so ten
+  downloads landed in the main checkout and broke its Biome gate.
+- **This user's zsh profile defines aliases** (`g` among them) and zsh expands
+  `=cmd`. A bare `====` separator or a single-letter shell function will
+  misfire and truncate your output. Quote your heredoc delimiters and echo
+  separators, and prefer several small tool calls over one long compound
+  command.
+- **A branch that predates `src/` cannot pass `typecheck` or `check-imports`**
+  (they need files another ticket owns). If your ticket owns no `src/` file,
+  say so in your final message rather than trying to fix those two gates; the
+  coordinator verifies them on the merged tree.
