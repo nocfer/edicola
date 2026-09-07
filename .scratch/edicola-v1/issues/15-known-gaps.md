@@ -5,13 +5,13 @@ close. Each line names the ticket that owns it.
 
 **Status:** ready-for-human
 
-- [ ] **Ticket 13:** `README.md` needs a `## Self-hosting the Proxy` heading.
+- [x] **Ticket 13:** `README.md` needs a `## Self-hosting the Proxy` heading.
       Settings links to `./README.md#self-hosting-the-proxy` and the anchor has
       no target today. The default relay is a small community Cloudflare Worker
       that can vanish, so this section is load-bearing, not decorative.
-- [ ] **Ticket 13:** document that proxied responses arrive with their
+- [x] **Ticket 13:** document that proxied responses arrive with their
       `content-type` rewritten to `text/plain` by the default relay.
-- [ ] **Ticket 11:** Eviction is not wired. `runSync` trims per Publication
+- [x] **Ticket 11:** Eviction is not wired. `runSync` trims per Publication
       only. Ticket 12 left a named seam that Settings calls when Retention
       limits shrink; connect it.
 - [ ] **Ticket 12's leftovers:** `settings.about.shell` is an unused key (the
@@ -57,3 +57,55 @@ Two caveats, stated precisely so nobody over-reads the result:
   a cold cache they hide themselves, which is the intended behaviour. Article
   images are a different matter: those are stored as blobs, and ticket 10 is
   proving them with the server down.
+
+
+## Closed and still open, after every ticket merged (2026-09-07)
+
+Closed since this list was written: the README anchor and the relay caveat
+(ticket 13), Eviction (ticket 11), the two settings layers (ticket 14), and the
+`.input` duplicate plus the media-query nesting damage (integrator, now guarded
+by `test/styles-structure.test.js`).
+
+Found late and worth knowing:
+
+- **The Retention card governed nothing until ticket 11 fixed it.**
+  `syncNow` never passed the stored limits into `runSync`, so every Sync used
+  the defaults. `prefetchPerPublication` and `maxImageBytesPerArticle` are
+  therefore **newly live** and have had far less real-world exercise than the
+  rest of the pipeline.
+- **`maxTotalBytes` has never fired against real data.** It is unit tested four
+  ways, but the test corpus never approached 50 MB, let alone the 500 MB
+  default. The first reader to fill their quota is the first real test.
+
+Still open, and each needs a real device rather than headless Chrome:
+
+- [ ] The install prompt, and `env(safe-area-inset-*)` on a notched phone.
+- [ ] `navigator.storage.persist()` returning true. Headless Chrome always
+      refuses, so only the "not granted" path has ever rendered. Without a grant
+      the browser may evict the database, which is the one failure that breaks
+      the offline promise silently.
+- [ ] A successful `navigator.share` and clipboard copy. Only the failure path
+      has been observed, because headless Chrome refuses both without a user
+      gesture.
+- [ ] Pull-to-refresh with real fingers. Proven only with synthetic touch
+      events.
+- [ ] "All tabs reload together" on update. Reasoned from `clients.claim()`,
+      but the harness drives one tab.
+- [ ] An Article whose image blob is missing, falling back to the network.
+      Unit tested only; every sampled Article had all its images stored.
+
+Still open, and doable at a desk:
+
+- [ ] **Duplicate top-level CSS selectors** inherited across tickets: `.btn`,
+      `.pub`, `.pubs__field`, `.switch`, `.tabbar`, `.settings__about`,
+      `.settings__error`, `.settings__ok`. A second era of one selector silently
+      shadows the first, and **no gate catches this** — the structure test
+      checks nesting, not duplication.
+- [ ] `settings.about.shell` is an unused i18n key, and
+      `settings.storage.rows` is not pluralized.
+- [ ] The Today filter chips each carry their own overflow button, so the chip
+      row wraps awkwardly once two or three Publications are on. Cosmetic.
+- [ ] A pre-existing dev database keeps a dead `selectedNations` row after
+      ticket 14 renamed the key, and re-infers its Nations once. Harmless with
+      no shipped installs; if a migration is ever wanted, the place is `read()`
+      in `createSettingsStore`.
