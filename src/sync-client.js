@@ -89,6 +89,27 @@ async function pageFetcher() {
 }
 
 /**
+ * The Retention limits a run must respect: the reader's own, from the
+ * `settings` table, falling back to the shipped defaults when that row is
+ * missing or unreadable.
+ *
+ * Without this, `runSync`'s `limits` defaulted to `DEFAULT_RETENTION` on every
+ * run, so the Retention card in Settings governed nothing a Sync did — neither
+ * the per-Publication trim, nor the Pre-fetch count, nor (once ticket 11 wired
+ * it) the Eviction that closes a run. That is the same call ticket 12 made for
+ * the Proxy template on the two lines above: a setting the pipeline never reads
+ * is a decorative one.
+ * @returns {Promise<Partial<import('./retention.js').RetentionLimits>>}
+ */
+async function pageLimits() {
+  try {
+    return await (await getSettingsStore()).getRetention();
+  } catch {
+    return {};
+  }
+}
+
+/**
  * Run one Sync now, or join the one already running.
  * @param {{ publicationIds?: string[] }} [options]
  * @returns {Promise<SyncSummary>}
@@ -116,6 +137,7 @@ export function syncNow({ publicationIds } = {}) {
         extractArticle: extractArticleInBrowser,
         sanitizeSummary: sanitizeSummaryInBrowser,
         DOMParser,
+        limits: await pageLimits(),
         publicationIds: publicationIds ?? null,
         onProgress: ({ phase, done, total }) => publish({ phase, done, total }),
       });

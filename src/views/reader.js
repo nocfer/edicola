@@ -20,10 +20,14 @@
 // leaving the route, on moving to another Item, and on `pagehide` — so a
 // session of reading does not accumulate every image it ever showed.
 //
-// Reading Position (ticket 11) is deliberately not implemented here. The
-// window is the scroll container, as on Today, and the Article sits in a
-// container with the stable id `READER_SCROLL_ID` carrying `data-item-id`, so
-// ticket 11 has one element to measure and one id to find it by.
+// Reading Position: the window is the scroll container, as on Today, and the
+// Article sits in the element with the stable id `READER_SCROLL_ID` carrying
+// `data-item-id`. A passive `scroll` listener turns `window.scrollY` into a
+// fraction of that element's travel (`reading-position.js`) and writes it to
+// the Item, debounced; on open the fraction is applied back after lit has
+// rendered and the images have laid out; reaching the end clears it, because
+// reopening a finished Article at its last line is worse than opening it at
+// the top.
 
 import { prepareArticle, revokeObjectUrls } from "../article-render.js";
 import { getDatabase, imageKeyFor } from "../db.js";
@@ -34,6 +38,19 @@ import {
 import { fetchArticleNow } from "../fetch-one.js";
 import { createFetcher } from "../fetcher.js";
 import { formatDate, formatRelative, t } from "../i18n.js";
+import { setItemSaved, setReadingPosition } from "../item-state.js";
+import {
+  clampPosition,
+  debounce,
+  isAtEnd,
+  isWorthRestoring,
+  readingPositionOf,
+  RESTORE_ABANDON_PX,
+  RESTORE_ATTEMPTS_MS,
+  RESTORE_SETTLE_MS,
+  SAVE_DEBOUNCE_MS,
+  scrollTargetFor,
+} from "../reading-position.js";
 import { html, nothing, unsafeHTML } from "../render.js";
 import { goBack, hrefFor, parseRoute } from "../router.js";
 import { effectiveProxyTemplate, getSettingsStore } from "../settings.js";
@@ -92,6 +109,9 @@ const KNOWN_REASONS = new Set([
  * @property {number} imagesFromNetwork
  * @property {boolean} fetching An on-demand Extraction is in flight.
  * @property {string|null} fetchReason Why the last Extraction gave no Article.
+ * @property {number} position The Reading Position last written for this Item.
+ * @property {boolean} restoring A restore sequence is still re-applying, so
+ *   the scroll listener must not mistake a growing Article for progress.
  */
 
 /** @type {ScreenState} */
@@ -107,6 +127,8 @@ const screen = {
   imagesFromNetwork: 0,
   fetching: false,
   fetchReason: null,
+  position: 0,
+  restoring: false,
 };
 
 /** Items whose on-demand Extraction has already been tried this session. */
@@ -135,9 +157,15 @@ async function load(id) {
     screen.item = item;
     screen.publication = publication ?? null;
     screen.status = "ready";
+    // Read before anything else writes it: `markRead` and the scroll listener
+    // both touch this row, and the Reading Position we must restore is the one
+    // the reader left behind, not whatever the first frame measures.
+    const stored = clampPosition(item.readingPosition);
+    screen.position = stored;
     await markRead(item);
     if (item.hasArticle) await mountArticle(id, await db.articles.get(id));
     update();
+    scheduleRestore(id, stored);
     if (needsExtraction()) void extractNow();
   } catch (error) {
     console.warn("The Reader could not read this Item:", error);
@@ -206,6 +234,10 @@ function releaseObjectUrls() {
 
 /** Forget the Item on screen and give its object URLs back to the browser. */
 function unmount() {
+  // The reader is leaving, so the debounced Reading Position write must land
+  // now rather than after the Item it belongs to has been forgotten.
+  positionSaver.flush();
+  cancelRestore();
   releaseObjectUrls();
   screen.status = "idle";
   screen.itemId = null;
@@ -217,6 +249,7 @@ function unmount() {
   screen.imagesFromNetwork = 0;
   screen.fetching = false;
   screen.fetchReason = null;
+  screen.position = 0;
 }
 
 let installed = false;
@@ -233,7 +266,11 @@ function installListeners() {
   window.addEventListener("hashchange", () => {
     if (parseRoute(location.hash).name !== "reader") unmount();
   });
-  window.addEventListener("pagehide", releaseObjectUrls);
+  window.addEventListener("pagehide", () => {
+    positionSaver.flush();
+    releaseObjectUrls();
+  });
+  window.addEventListener("scroll", trackReadingPosition, { passive: true });
 }
 
 /**
@@ -247,6 +284,137 @@ function ensureMounted(id) {
   screen.itemId = id;
   screen.status = "loading";
   void load(id);
+}
+
+// --- Reading Position ------------------------------------------------------
+
+/**
+ * The four measurements a Reading Position is computed from, or null when the
+ * Article container is not on screen — or is on screen for a different Item,
+ * which happens for a frame when the route moves from one Item to another and
+ * lit has not yet swapped `data-item-id`.
+ * @returns {import('../reading-position.js').ScrollMetrics | null}
+ */
+function scrollMetrics() {
+  if (typeof document === "undefined") return null;
+  const el = document.getElementById(READER_SCROLL_ID);
+  if (!el) return null;
+  if (el.getAttribute("data-item-id") !== screen.itemId) return null;
+  return {
+    scrollY: window.scrollY,
+    top: el.offsetTop,
+    height: el.offsetHeight,
+    viewport: window.innerHeight,
+  };
+}
+
+/**
+ * Write the Reading Position of the Item on screen. Debounced, so dragging a
+ * finger down a 3000 px Article is one write and not two hundred; the trailing
+ * edge is what matters, because the last position is the one to come back to.
+ */
+const positionSaver = debounce((/** @type {number} */ position) => {
+  const item = screen.item;
+  if (!item) return;
+  screen.position = position;
+  item.readingPosition = position;
+  setReadingPosition(getDatabase(), item.id, position).catch((error) => {
+    console.warn("The Reading Position could not be written:", error);
+  });
+}, SAVE_DEBOUNCE_MS);
+
+/**
+ * Follow the reader down the Article. Reaching the end clears the Reading
+ * Position rather than storing 1: an Article the reader finished should open at
+ * its top next time, not at its last line.
+ */
+function trackReadingPosition() {
+  if (screen.restoring) return;
+  if (parseRoute(location.hash).name !== "reader") return;
+  const metrics = scrollMetrics();
+  if (!metrics) return;
+  const position = readingPositionOf(metrics);
+  const next = isAtEnd(position) ? 0 : position;
+  if (next === screen.position) return;
+  positionSaver.call(next);
+}
+
+/** @type {ReturnType<typeof setTimeout> | null} */
+let restoreTimer = null;
+/** The offset the last restore attempt applied, so a manual scroll wins. */
+/** @type {number | null} */
+let restoredTo = null;
+
+/** Stop re-applying a Reading Position. */
+function cancelRestore() {
+  if (restoreTimer !== null) clearTimeout(restoreTimer);
+  restoreTimer = null;
+  restoredTo = null;
+  screen.restoring = false;
+}
+
+/**
+ * Put the reader back where they were.
+ *
+ * Two frames first, for the reason ticket 09 gave for Today: `main.js` scrolls
+ * to the top on every path change and lit fills the Article in the same tick,
+ * so a restore in the same frame is undone. Then the same offset is re-applied
+ * a couple of times, because the Article's images are `loading="lazy"` and the
+ * container grows as they lay out — the first target can be short by hundreds
+ * of pixels. A reader who scrolls themselves in the meantime is left alone.
+ *
+ * @param {string} id The Item this position belongs to.
+ * @param {number} position
+ */
+function scheduleRestore(id, position) {
+  cancelRestore();
+  if (!isWorthRestoring(position)) return;
+  if (typeof requestAnimationFrame !== "function") return;
+  screen.restoring = true;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => applyRestore(id, position, 0));
+  });
+}
+
+/**
+ * @param {string} id
+ * @param {number} position
+ * @param {number} attempt Index into `RESTORE_ATTEMPTS_MS`.
+ */
+function applyRestore(id, position, attempt) {
+  restoreTimer = null;
+  if (screen.itemId !== id || parseRoute(location.hash).name !== "reader") {
+    cancelRestore();
+    return;
+  }
+  const metrics = scrollMetrics();
+  if (!metrics) {
+    cancelRestore();
+    return;
+  }
+  const drifted =
+    restoredTo !== null &&
+    Math.abs(window.scrollY - restoredTo) > RESTORE_ABANDON_PX;
+  if (drifted) {
+    // The reader took over. Their scroll is the truth from here on.
+    cancelRestore();
+    return;
+  }
+  const target = scrollTargetFor(position, metrics);
+  if (target > 0) {
+    window.scrollTo(0, target);
+    restoredTo = target;
+  }
+  const next = attempt + 1;
+  if (next >= RESTORE_ATTEMPTS_MS.length) {
+    // Hand the scroll listener back once the last attempt has settled.
+    restoreTimer = setTimeout(cancelRestore, RESTORE_SETTLE_MS);
+    return;
+  }
+  restoreTimer = setTimeout(
+    () => applyRestore(id, position, next),
+    RESTORE_ATTEMPTS_MS[next],
+  );
 }
 
 // --- On-demand Extraction --------------------------------------------------
@@ -325,17 +493,19 @@ async function extractNow() {
 // --- Actions ---------------------------------------------------------------
 
 /**
- * Flip `saved` and say so. Stored as `0 | 1` because IndexedDB cannot index a
- * boolean (see db.js); a Saved Item and its Article are never Evicted.
+ * Flip `saved` and say so. `item-state.js` owns the write, so the `0 | 1` rule
+ * (IndexedDB cannot index a boolean, see db.js) and the `savedAt` stamp the
+ * Saved screen orders by are applied in one place. A Saved Item and its
+ * Article are never Evicted.
  * @returns {Promise<void>}
  */
 async function toggleSaved() {
   const item = screen.item;
   if (!item) return;
-  const next = item.saved ? 0 : 1;
+  const next = !item.saved;
   try {
-    await getDatabase().items.update(item.id, { saved: next });
-    item.saved = /** @type {0|1} */ (next);
+    const written = await setItemSaved(getDatabase(), item.id, next);
+    item.saved = written.saved;
     showToast(t(next ? "reader.savedToast" : "reader.unsavedToast"));
   } catch (error) {
     console.warn("Saved could not be written:", error);

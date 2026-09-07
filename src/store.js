@@ -62,6 +62,14 @@ import { DEFAULT_RETENTION, planItemTrim } from "./retention.js";
  * @property {(publicationId: string, limits?: { keepPerPublication?: number }) => Promise<string[]>} trimItems
  *   Apply `planItemTrim` to one Publication and delete what falls out, with the
  *   Items' Articles and images; resolves with the deleted Item ids.
+ * @property {() => Promise<ItemRow[]>} allItems
+ *   Every stored Item. The Eviction seam (src/evict.js): the age and size
+ *   passes are global, so they cannot be answered one Publication at a time.
+ * @property {() => Promise<Map<string, number>>} articleBytesByItem
+ *   Bytes stored per Item id — its Article's HTML plus its images — which is
+ *   what `planEviction`'s size pass weighs.
+ * @property {(itemIds: string[]) => Promise<void>} deleteItems
+ *   Delete these Items with their Articles and images, in one transaction.
  * @property {(key: string) => Promise<unknown>} getMeta
  * @property {(key: string, value: unknown) => Promise<void>} setMeta
  */
@@ -84,11 +92,16 @@ const FEED_FIELDS = [
  */
 export function createSyncStore(db = getDatabase()) {
   /**
-   * Delete Items with their Articles and images.
+   * Delete Items with their Articles and images, in one transaction, so a
+   * delete interrupted halfway cannot leave an Article or an image blob
+   * without the Item that owned it. An image shared by two Articles is stored
+   * once, under whichever Item fetched it first (ticket 10), so deleting that
+   * Item takes the blob and the other Article falls back to the network for
+   * that one picture.
    * @param {string[]} itemIds
    * @returns {Promise<void>}
    */
-  async function deleteItems(itemIds) {
+  async function deleteItemsWithContent(itemIds) {
     if (itemIds.length === 0) return;
     await db.transaction("rw", [db.items, db.articles, db.images], async () => {
       await db.items.bulkDelete(itemIds);
@@ -191,8 +204,37 @@ export function createSyncStore(db = getDatabase()) {
         .equals(publicationId)
         .toArray();
       const doomed = planItemTrim(items, { keepPerPublication });
-      await deleteItems(doomed);
+      await deleteItemsWithContent(doomed);
       return doomed;
+    },
+
+    async allItems() {
+      return await db.items.toArray();
+    },
+
+    async articleBytesByItem() {
+      /** @type {Map<string, number>} */
+      const bytes = new Map();
+      /** @param {string} itemId @param {unknown} size */
+      const add = (itemId, size) => {
+        if (!itemId) return;
+        const n = Number(size);
+        if (!Number.isFinite(n) || n <= 0) return;
+        bytes.set(itemId, (bytes.get(itemId) ?? 0) + n);
+      };
+      // Streamed with `each` rather than `toArray`, so measuring the images
+      // table does not hold every blob in memory at once (ticket 12's call).
+      await db.articles.each((/** @type {ArticleRow} */ row) => {
+        add(row.itemId, row.bytes);
+      });
+      await db.images.each((/** @type {ImageRow} */ row) => {
+        add(row.itemId, row.bytes);
+      });
+      return bytes;
+    },
+
+    async deleteItems(itemIds) {
+      await deleteItemsWithContent(itemIds);
     },
 
     async getMeta(key) {

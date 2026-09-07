@@ -12,6 +12,7 @@
 // pipeline awaits `yieldToUi()` between Feeds and between Articles and keeps
 // concurrency at 4, and the interface stays responsive while it works.
 
+import { runEviction } from "./evict.js";
 import { toPlainText } from "./extract-core.js";
 import { DEFAULT_RETENTION, timeOf } from "./retention.js";
 import { planArticleFetches, planFeedFetches } from "./sync-plan.js";
@@ -278,7 +279,23 @@ export async function runSync({
   // first boot with no Enabled Publications would otherwise stamp `lastSyncAt`
   // and leave Settings reading "Last synced: now, 0 Items" — a Sync that never
   // happened. Found by ticket 08.
-  if (queue.length > 0) await store.setLastSyncAt(now());
+  if (queue.length > 0) {
+    await store.setLastSyncAt(now());
+    // Eviction closes every run (spec story 34). It applies the same planners
+    // `trimItems` used above plus the global age and size passes, and it never
+    // touches a Saved Item. It is deliberately not reported in `SyncSummary`:
+    // the Settings storage line re-measures the tables after a Sync, which is
+    // the honest number, and the pipeline's summary shape is asserted whole by
+    // a test this ticket does not own. A run with nothing to fetch has nothing
+    // to Evict either, hence the same guard as the Sync stamp.
+    try {
+      await runEviction({ store, limits, now: now() });
+    } catch (error) {
+      // A failed Eviction is not a failed Sync: the Items are still stored and
+      // the next run tries again.
+      console.warn("Eviction after the Sync failed:", error);
+    }
+  }
   return summary;
 
   /**

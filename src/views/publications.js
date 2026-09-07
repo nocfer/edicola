@@ -29,7 +29,12 @@ import {
 import { getDatabase } from "../db.js";
 import { createFetcher } from "../fetcher.js";
 import { LANG_KEY, LOCALES, t } from "../i18n.js";
+import {
+  countUnreadByPublication,
+  markPublicationRead,
+} from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
+import { parseRoute } from "../router.js";
 import { getSettingsStore } from "../settings.js";
 import { showToast, state, update } from "../state.js";
 import { syncNow } from "../sync-client.js";
@@ -78,6 +83,7 @@ const ERROR_KEYS = Object.freeze({
  * @property {import('../catalog.js').Catalog|null} catalog
  * @property {Set<string>} collapsed Keys are `country/category`.
  * @property {Set<string>} busy Publication ids with a write in flight.
+ * @property {Map<string, number>} unread Unread Items per Publication id.
  * @property {AddState} add
  */
 
@@ -91,6 +97,7 @@ const screen = {
   catalog: null,
   collapsed: new Set(),
   busy: new Set(),
+  unread: new Map(),
   add: {
     url: "",
     status: "idle",
@@ -203,6 +210,7 @@ async function load({ seed = false } = {}) {
     screen.nations = data.nations;
     screen.selectedNations = data.selectedNations;
     screen.status = "ready";
+    await loadUnread();
     if (seed) applyInferredLang(data.inferredLang);
     if (data.inferredNations) await saveNations(data.inferredNations);
   } catch (error) {
@@ -212,6 +220,22 @@ async function load({ seed = false } = {}) {
   update();
 }
 
+/**
+ * Unread counts per Publication, by indexed query (`item-state.js`): one range
+ * on the `publicationId` index per Enabled Publication, counted while
+ * streaming. Only Enabled Publications are counted — a Publication that is off
+ * takes no part in a Sync and shows no badge.
+ * @returns {Promise<void>}
+ */
+async function loadUnread() {
+  try {
+    const ids = screen.entries.filter((e) => e.enabled).map((e) => e.id);
+    screen.unread = await countUnreadByPublication(getDatabase(), ids);
+  } catch (error) {
+    console.warn("Unread counts could not be read:", error);
+  }
+}
+
 let started = false;
 
 /** Load once, the first time the screen renders. */
@@ -219,7 +243,52 @@ function ensureLoaded() {
   if (started) return;
   started = true;
   screen.status = "loading";
+  installListeners();
   void load({ seed: true });
+}
+
+let installed = false;
+/** Whether the last hash change took us off Publications. */
+let leftPublications = false;
+
+/**
+ * Re-count Unread when the reader comes back, because opening an Item in the
+ * Reader is what makes a count stale (spec story 21). Hangs off `hashchange`
+ * for the reason ticket 09 documented: while another screen is open this one
+ * is not rendered, so a view-side route check never sees the route leave.
+ */
+function installListeners() {
+  if (installed || typeof window === "undefined") return;
+  installed = true;
+  window.addEventListener("hashchange", () => {
+    const onPublications = parseRoute(location.hash).name === "publications";
+    if (!onPublications) {
+      leftPublications = true;
+      return;
+    }
+    if (!leftPublications) return;
+    leftPublications = false;
+    void loadUnread().then(() => update());
+  });
+}
+
+/**
+ * Mark every Item of one Publication Read, from its row. The count drops
+ * immediately; `item-state.js` writes the Publication's whole index range, not
+ * just what a screen happens to be showing.
+ * @param {CatalogEntry} entry
+ * @returns {Promise<void>}
+ */
+async function markAllRead(entry) {
+  try {
+    await markPublicationRead(getDatabase(), entry.id);
+    screen.unread.set(entry.id, 0);
+    showToast(t("today.markedAllRead", { name: entry.name }));
+  } catch (error) {
+    console.warn("Items could not be marked read:", error);
+    showToast(t("pubs.error.unknown"));
+  }
+  update();
 }
 
 /**
@@ -446,8 +515,8 @@ async function confirmAdd() {
 // --- Templates -------------------------------------------------------------
 
 /**
- * One Publication row: name, site domain, the honest hints, the Unread dot
- * placeholder (tickets 09 and 11 give it a count) and the switch.
+ * One Publication row: name, the Unread count, the site domain, the honest
+ * hints, "mark all read" while there is anything to mark, and the switch.
  * @param {CatalogEntry} entry
  */
 function publicationRow(entry) {
@@ -456,19 +525,36 @@ function publicationRow(entry) {
   if (!entry.inCatalog && !entry.custom) hints.push(t("pubs.notInCatalog"));
   const errorKey = entry.lastError ? ERROR_KEYS[entry.lastError] : null;
   const busy = screen.busy.has(entry.id);
+  const unread = entry.enabled ? (screen.unread.get(entry.id) ?? 0) : 0;
   return html`
     <div class="pub">
       <div class="pub__main">
         <span class="pub__name">
           ${entry.name}
           ${
-            entry.enabled
-              ? html`<span class="pub__unread" aria-hidden="true"></span>`
+            unread > 0
+              ? html`<span
+                  class="unread__count"
+                  title=${t("today.unreadCount", { count: unread })}
+                  >${unread}</span
+                >`
               : nothing
           }
         </span>
         <span class="pub__meta">${hints.join(" · ")}</span>
         ${errorKey ? html`<span class="pub__warn">${t(errorKey)}</span>` : nothing}
+        ${
+          unread > 0
+            ? html`<button
+                type="button"
+                class="btn unread__markread"
+                aria-label=${`${t("today.markAllRead")} · ${entry.name}`}
+                @click=${() => markAllRead(entry)}
+              >
+                ${t("today.markAllRead")}
+              </button>`
+            : nothing
+        }
       </div>
       ${
         entry.custom

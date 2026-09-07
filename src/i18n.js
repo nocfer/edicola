@@ -56,7 +56,22 @@ export const en = {
   "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Saved",
-  "saved.placeholder": "Items you save stay here and are never removed.",
+  "saved.loading": "Opening your Saved Items…",
+  "saved.loadError": "Saved could not be read from storage.",
+  "saved.retry": "Try again",
+  "saved.empty": "Nothing Saved yet.",
+  "saved.emptyBody":
+    "Save an Item from the Reader and it stays here. A Saved Item and its Article are never removed, however old they get or how full storage becomes.",
+  "saved.toToday": "Go to Today",
+  "saved.count": "{count} Saved",
+  "saved.savedWhen": "Saved {when}",
+  "saved.unread": "Unread",
+  "saved.summaryOnly": "Summary only",
+  "saved.unsave": "Unsave",
+  "saved.unsaveAria": "Unsave {title}",
+  "saved.unsavedToast": "Unsaved. This Item can be removed again by Retention.",
+  "saved.unsaveFailed": "That could not be unsaved.",
+  "saved.cardAria": "{title} — {publication}, saved {when}",
 
   "pubs.title": "Publications",
   "pubs.intro": "Switch on the Publications you want to read.",
@@ -325,8 +340,23 @@ export const it = {
   "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Salvati",
-  "saved.placeholder":
-    "Gli articoli che salvi restano qui e non vengono mai rimossi.",
+  "saved.loading": "Apertura dei salvati…",
+  "saved.loadError": "Impossibile leggere i salvati dall'archivio.",
+  "saved.retry": "Riprova",
+  "saved.empty": "Non hai ancora salvato nulla.",
+  "saved.emptyBody":
+    "Salva un titolo dal lettore e resta qui. Un titolo salvato e il suo articolo non vengono mai rimossi, per vecchi che siano e per quanto pieno sia l'archivio.",
+  "saved.toToday": "Vai a Oggi",
+  "saved.count": "{count} salvati",
+  "saved.savedWhen": "Salvato {when}",
+  "saved.unread": "Da leggere",
+  "saved.summaryOnly": "Solo sommario",
+  "saved.unsave": "Rimuovi",
+  "saved.unsaveAria": "Rimuovi {title} dai salvati",
+  "saved.unsavedToast":
+    "Rimosso dai salvati. Ora la conservazione può eliminarlo.",
+  "saved.unsaveFailed": "Impossibile rimuoverlo dai salvati.",
+  "saved.cardAria": "{title} — {publication}, salvato {when}",
 
   "pubs.title": "Testate",
   "pubs.intro": "Attiva le testate che vuoi leggere.",
