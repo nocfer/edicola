@@ -41,6 +41,20 @@ export const PERIODIC_SYNC_MESSAGE = "periodic-sync";
 /** @type {Promise<SyncSummary> | null} */
 let inFlight = null;
 
+/** Scope of the run in `inFlight`: null for "every Enabled Publication". */
+let inFlightScope = null;
+
+/**
+ * Stable key for a Sync's scope, so an identical request can join a run in
+ * flight while a different one queues behind it.
+ * @param {string[] | undefined} publicationIds
+ * @returns {string}
+ */
+function scopeKey(publicationIds) {
+  if (!publicationIds || publicationIds.length === 0) return "*";
+  return [...publicationIds].sort().join(",");
+}
+
 /**
  * Merge a patch into `state.sync` and redraw.
  * @param {Partial<import('./state.js').SyncState>} patch
@@ -68,9 +82,18 @@ function pageFetcher() {
  * @returns {Promise<SyncSummary>}
  */
 export function syncNow({ publicationIds } = {}) {
-  if (inFlight) return inFlight;
+  // Joining an in-flight run is only correct when it covers what the caller
+  // asked for. Enabling three Publications in a row used to Sync just the
+  // first, because calls two and three joined call one's narrower run and
+  // resolved with its summary (found by ticket 08). So: join an identical
+  // request, queue behind a different one.
+  const scope = scopeKey(publicationIds);
+  if (inFlight && inFlightScope === scope) return inFlight;
+  const previous = inFlight;
   const store = getSyncStore();
+  inFlightScope = scope;
   inFlight = (async () => {
+    if (previous) await previous.catch(() => {});
     publish({ running: true, phase: "feeds", done: 0, total: 0 });
     await requestPersistentStorage(store);
     try {
@@ -97,7 +120,12 @@ export function syncNow({ publicationIds } = {}) {
       publish({ running: false, phase: null, done: 0, total: 0 });
       throw error;
     } finally {
-      inFlight = null;
+      // Only the newest run owns the slot: a queued call has already replaced
+      // both fields, so clearing unconditionally would strand it.
+      if (inFlightScope === scope) {
+        inFlight = null;
+        inFlightScope = null;
+      }
     }
   })();
   return inFlight;

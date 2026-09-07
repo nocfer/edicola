@@ -646,3 +646,33 @@ test("a Publication that is not Enabled takes no part in a Sync", async () => {
   assert.equal(rows.size, 0);
   assert.equal(calls.length, 0);
 });
+
+test("a run with no Enabled Publications does not claim a Sync time", async () => {
+  // Regression (found by ticket 08): setLastSyncAt used to run unconditionally,
+  // so a first boot with nothing Enabled stamped a Sync that never happened and
+  // Settings read "Last synced: now, 0 Items".
+  const { store, meta } = memoryStore([]);
+  const { fetcher, calls } = scriptedFetcher({ text: {} });
+
+  const summary = await runSync({ ...deps, store, fetcher, now: fakeClock() });
+
+  assert.equal(calls.length, 0, "nothing is fetched");
+  assert.equal(summary.feedsOk, 0);
+  assert.equal(
+    meta.get("lastSyncAt"),
+    undefined,
+    "lastSyncAt is left unset so the UI can say 'never'",
+  );
+});
+
+test("a run with an Enabled Publication does claim a Sync time", async () => {
+  const { store, meta } = memoryStore([ANSA]);
+  const { fetcher } = scriptedFetcher({
+    text: { [ANSA.feedUrl]: ANSA_FEED },
+    defaultText: THIN_ARTICLE,
+  });
+
+  await runSync({ ...deps, store, fetcher, now: fakeClock() });
+
+  assert.ok(Number(meta.get("lastSyncAt")) > 0, "a real run stamps lastSyncAt");
+});

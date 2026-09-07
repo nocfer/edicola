@@ -274,7 +274,11 @@ export async function runSync({
     await yieldToUi();
   });
 
-  await store.setLastSyncAt(now());
+  // Only a run that actually had something to fetch may claim a Sync time. A
+  // first boot with no Enabled Publications would otherwise stamp `lastSyncAt`
+  // and leave Settings reading "Last synced: now, 0 Items" — a Sync that never
+  // happened. Found by ticket 08.
+  if (queue.length > 0) await store.setLastSyncAt(now());
   return summary;
 
   /**
