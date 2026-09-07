@@ -6,8 +6,9 @@ each grew its own: `src/catalog.js` carries a stopgap pair of helpers over the
 today, which is exactly why this needs doing before a third screen picks the
 wrong one.
 
-**Blocked by:** 09, 10, 11 — anything that might import from `src/catalog.js`.
-Do this when no screen ticket is in flight.
+**Blocked by:** nothing. Verified on `main`: `src/catalog.js` is imported by
+`src/views/publications.js` alone, and ticket 10 (the Reader, running in
+parallel) has been told not to import it and not to touch your three files.
 
 **Status:** ready-for-agent
 
@@ -36,3 +37,23 @@ The migration ticket 12's author specified, verbatim:
 - [ ] Existing tests still pass unchanged where they test behaviour rather than
       the helper names. Update only the tests that named the deleted functions.
 - [ ] All five gates green.
+
+## Integrator notes (read before starting)
+
+- **Ticket 10 runs in parallel** and owns `src/views/reader.js`,
+  `src/article-render.js` and `src/fetch-one.js`. It will import
+  `effectiveProxyTemplate` and `getSettingsStore` from `src/settings.js`, so
+  **keep those two exports working with those names and signatures**. Anything
+  else in that module is yours to reshape.
+- `src/sync-client.js` also imports `effectiveProxyTemplate` and
+  `getSettingsStore`. You may edit its import line if you rename something, but
+  change nothing else in that file.
+- The Language question is the substantive part of this ticket, not the
+  mechanical move. `src/i18n.js` keeps the Language in `localStorage` because
+  the pre-paint script in `index.html` must read it before any module loads, and
+  ticket 08 also wrote it to the `settings` table. Two copies can disagree.
+  Decide which is authoritative, make the other follow it, and write the
+  decision into the ticket Notes. Do not add an ADR for it.
+- This is a refactor: behaviour must not change. Prove it by running the
+  Publications screen in a browser afterwards — toggle a Publication, change the
+  Nation selection, reload, and confirm both survived.
