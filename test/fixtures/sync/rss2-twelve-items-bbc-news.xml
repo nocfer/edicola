@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Real https://feeds.bbci.co.uk/news/rss.xml fetched with curl on 2026-09-07,
+     trimmed from 32 <item> elements to the first 12 with the channel head and
+     tail intact. Twelve items exercise the Pre-fetch cap of 10 Articles per
+     Publication per Sync. -->
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+    <channel>
+        <title><![CDATA[BBC News]]></title>
+        <description><![CDATA[BBC News - News Front Page]]></description>
+        <link>https://www.bbc.co.uk/news</link>
+        <image>
+            <url>https://news.bbcimg.co.uk/nol/shared/img/bbc_news_120x60.gif</url>
+            <title>BBC News</title>
+            <link>https://www.bbc.co.uk/news</link>
+        </image>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Mon, 07 Sep 2026 12:46:51 GMT</lastBuildDate>
+        <atom:link href="https://feeds.bbci.co.uk/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <copyright><![CDATA[Copyright: (C) British Broadcasting Corporation, see https://www.bbc.co.uk/usingthebbc/terms-of-use/#15metadataandrssfeeds for terms and conditions of reuse.]]></copyright>
+        <language><![CDATA[en-gb]]></language>
+        <ttl>15</ttl>
+        <item>
+            <title><![CDATA[How anti-migrant boat protests were organised and who is behind them]]></title>
+            <description><![CDATA[Danny Thomas organised the demonstration in Dover - seemingly after weeks of preparation - and was also present in Portsmouth.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cpq0nn1l7w0o?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cpq0nn1l7w0o#0</guid>
+            <pubDate>Mon, 07 Sep 2026 11:27:53 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/0afc/live/f07ac6c0-aa5b-11f1-b109-879e35c24276.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[Jaguar Land Rover to cut 4,000 jobs over next two years]]></title>
+            <description><![CDATA[The cuts come as the carmaker struggles with Chinese competition, US tariffs, and the transition to electric vehicles.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/c36lx560jjko?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c36lx560jjko#0</guid>
+            <pubDate>Mon, 07 Sep 2026 11:51:54 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/c067/live/5d770b70-aaa3-11f1-b109-879e35c24276.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[Murder arrests over baby girl's death in woodland]]></title>
+            <description><![CDATA[Police say they have arrested two men and two women as part of their investigation.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cvgy135xl1po?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cvgy135xl1po#0</guid>
+            <pubDate>Mon, 07 Sep 2026 12:36:09 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/d032/live/aeaca780-aab1-11f1-bdcc-b5edf6495ed5.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[New videos of man at centre of 9/11 lawsuit reveal links to extremists and Saudi state]]></title>
+            <description><![CDATA[The footage and other evidence the FBI failed to share undermine Omar al-Bayoumi's 25 years of denials.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cr4vn1e207go?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cr4vn1e207go#0</guid>
+            <pubDate>Mon, 07 Sep 2026 05:31:06 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/b59c/live/875c3670-a9dd-11f1-b109-879e35c24276.png"/>
+        </item>
+        <item>
+            <title><![CDATA[Dolly Parton's sister pleads for end to 'AI garbage' posts after singer's death]]></title>
+            <description><![CDATA[Since Parton's death in late August, dozens of AI-generated songs, images and videos have appeared online.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/c1wxppnrqlqo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c1wxppnrqlqo#0</guid>
+            <pubDate>Mon, 07 Sep 2026 11:30:27 GMT</pubDate>
+            <media:thumbnail width="240" height="134" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/787a/live/cae3e7b0-aaa7-11f1-9eba-7de947fa7cd1.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[Man arrested on suspicion of murder after two people found dead at house]]></title>
+            <description><![CDATA[The bodies of a man and a woman have been discovered at a house in Blackburn and a man has been arrested.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cpd019n2pejo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cpd019n2pejo#0</guid>
+            <pubDate>Mon, 07 Sep 2026 12:32:37 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/8ee5/live/646e8020-aab2-11f1-a291-b542ee92de7c.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[Germany's far-right AfD says 'democracy demands' parties work with them after state election win]]></title>
+            <description><![CDATA[The far-right party is trying to form a government in the state after falling three seats short of a majority.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cpd0113082eo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cpd0113082eo#0</guid>
+            <pubDate>Mon, 07 Sep 2026 12:22:39 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/742c/live/a801c5d0-aa9a-11f1-ab09-7f2415c9a652.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[BBC News presenter Maryam Moshiri reveals she has blood cancer]]></title>
+            <description><![CDATA[Maryam Moshiri tells the BBC she wanted to reveal her diagnosis to raise awareness about the cancer. ]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cx2zkyl7kwyo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cx2zkyl7kwyo#0</guid>
+            <pubDate>Sun, 06 Sep 2026 22:00:36 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/869d/live/4bcc2ee0-aaae-11f1-b109-879e35c24276.png"/>
+        </item>
+        <item>
+            <title><![CDATA['The man who drugged and raped me was freed from prison and went on to kill']]></title>
+            <description><![CDATA[One of Richard Scatchard's victims says his killing of Kelly Faiers in 2023 could have been avoided.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/c74el40wpw9o?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c74el40wpw9o#0</guid>
+            <pubDate>Mon, 07 Sep 2026 01:11:40 GMT</pubDate>
+            <media:thumbnail width="240" height="134" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/ae29/live/0ca28050-aa83-11f1-b109-879e35c24276.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[New Inbetweeners film confirmed by Netflix as lead stars return]]></title>
+            <description><![CDATA[Netflix has confirmed the original stars of the coming-of-age sitcom are set to reprise their roles for the film.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/cx2z0je34y1o?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/cx2z0je34y1o#0</guid>
+            <pubDate>Mon, 07 Sep 2026 11:03:33 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/de56/live/c2d84b40-aa95-11f1-ab09-7f2415c9a652.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[Chemo hair loss doesn't define me - it's a symbol that I'm strong]]></title>
+            <description><![CDATA[The beauty and resilience of women living with cancer is celebrated though photography.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/c24jpevmgdzo?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c24jpevmgdzo#1</guid>
+            <pubDate>Mon, 07 Sep 2026 05:15:34 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/fb25/live/ef6a93a0-aa79-11f1-ada1-797c5422f980.jpg"/>
+        </item>
+        <item>
+            <title><![CDATA[How significant are AfD's historic gains for Germany and the rest of Europe?]]></title>
+            <description><![CDATA[The BBC's Europe editor Katya Adler sees the far-right win in Saxony-Anhalt state ringing alarm bells for the EU and traditional parties.]]></description>
+            <link>https://www.bbc.co.uk/news/articles/c986w38r4j5o?at_medium=RSS&amp;at_campaign=rss</link>
+            <guid isPermaLink="false">https://www.bbc.co.uk/news/articles/c986w38r4j5o#1</guid>
+            <pubDate>Mon, 07 Sep 2026 04:07:23 GMT</pubDate>
+            <media:thumbnail width="240" height="135" url="https://ichef.bbci.co.uk/ace/standard/240/cpsprodpb/a6be/live/08c19210-aa82-11f1-a291-b542ee92de7c.jpg"/>
+        </item>
+    </channel>
+</rss>
