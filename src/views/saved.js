@@ -24,7 +24,7 @@
 // single subscriber is what redraws.
 
 import { getDatabase } from "../db.js";
-import { formatRelative, t } from "../i18n.js";
+import { formatRelative, t, tCount } from "../i18n.js";
 import { savedAtOf, savedItems, setItemSaved } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { hrefFor, parseRoute } from "../router.js";
@@ -283,7 +283,7 @@ export function savedView(appState) {
         ${
           screen.items.length > 0
             ? html`<p class="saved__count" role="status">
-                  ${t("saved.count", { count: screen.items.length })}
+                  ${tCount("saved.count", screen.items.length)}
                 </p>
                 <div class="saved__list">
                   ${repeat(screen.items, (item) => item.id, savedCard)}

@@ -21,7 +21,7 @@
 // `update()` so main.js's one subscriber is what redraws.
 
 import { getDatabase } from "../db.js";
-import { formatRelative, LOCALES, t } from "../i18n.js";
+import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
 import { markPublicationRead } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
@@ -438,6 +438,9 @@ function pullIndicator() {
  * One filter chip, with its Unread count and — for a Publication with anything
  * Unread — an overflow button holding "mark all read". A long press on the chip
  * opens the same menu where the platform sends a `contextmenu` event.
+ *
+ * The wrap, not the chip, carries the pill so the pair reads as one control;
+ * that is why the pressed state is set on both (`--on` on each).
  * @param {FilterChip} chip
  */
 function filterChip(chip) {
@@ -447,7 +450,7 @@ function filterChip(chip) {
     : t("today.filterTo", { name: chip.name });
   const open = !all && screen.menuFor === chip.publicationId;
   return html`
-    <span class="today__chipwrap">
+    <span class="today__chipwrap ${chip.active ? "today__chipwrap--on" : ""}">
       <button
         type="button"
         class="chip ${chip.active ? "chip--on" : ""}"
@@ -615,9 +618,8 @@ function emptyBody(model) {
   }
   if (model.filterPublicationId) {
     return emptyState(
-      t("today.emptyFilter", {
+      tCount("today.emptyFilter", model.windowDays, {
         name: model.filterName ?? "",
-        days: model.windowDays,
       }),
     );
   }
@@ -691,7 +693,7 @@ export function todayView(appState) {
                   ${repeat(model.sections, (section) => section.key, daySection)}
                 </div>
                 <p class="today__bounded">
-                  ${t("today.bounded", { days: model.windowDays })}
+                  ${tCount("today.bounded", model.windowDays)}
                 </p>`
             : nothing
         }

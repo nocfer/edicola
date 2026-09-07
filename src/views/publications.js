@@ -28,7 +28,7 @@ import {
 } from "../catalog.js";
 import { getDatabase } from "../db.js";
 import { createFetcher } from "../fetcher.js";
-import { LANG_KEY, LOCALES, t } from "../i18n.js";
+import { LANG_KEY, LOCALES, t, tCount } from "../i18n.js";
 import {
   countUnreadByPublication,
   markPublicationRead,
@@ -601,9 +601,8 @@ function categoryGroup(country, group) {
         type="button"
         class="pubs__grouphead"
         aria-expanded=${open ? "true" : "false"}
-        aria-label=${t("pubs.groupAria", {
+        aria-label=${tCount("pubs.groupAria", group.publications.length, {
           category: label,
-          count: group.publications.length,
         })}
         @click=${() => {
           if (open) screen.collapsed.add(key);
@@ -613,8 +612,7 @@ function categoryGroup(country, group) {
       >
         <span class="pubs__grouptitle">${label}</span>
         <span class="pubs__groupcount">
-          ${t("pubs.enabledCount", {
-            enabled,
+          ${tCount("pubs.enabledCount", enabled, {
             total: group.publications.length,
           })}
         </span>
@@ -666,8 +664,7 @@ function catalogSection() {
     <p class="pubs__intro">
       ${t("pubs.intro")}
       <span class="pubs__count">
-        ${t("pubs.enabledCount", {
-          enabled,
+        ${tCount("pubs.enabledCount", enabled, {
           total: screen.entries.length,
         })}
       </span>
@@ -697,7 +694,7 @@ function findingsList() {
               <span class="pub__meta">
                 ${[
                   domainOf(finding.feedUrl),
-                  t("pubs.add.items", { count: finding.itemCount }),
+                  tCount("pubs.add.items", finding.itemCount),
                   finding.truncated ? t("pubs.truncated") : null,
                 ]
                   .filter(Boolean)

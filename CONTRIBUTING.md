@@ -136,8 +136,9 @@ before anything else.
 other gate: a merge once spliced a whole screen block inside
 `@media (prefers-reduced-motion: reduce)`, leaving the file brace-balanced and
 the Settings screen nearly unstyled. It asserts that each screen block still
-has a top-level rule, that the file is brace-balanced, and that the
-reduced-motion reset still carries its declaration. Do not delete it.
+has a top-level rule, that the file is brace-balanced, that the reduced-motion
+reset still carries its declaration, and that no selector has one of its
+properties declared twice by non-adjacent rules. Do not delete it.
 
 ## The Catalog
 
@@ -208,10 +209,14 @@ scar of a mistake already made. They apply to humans as much as to agents.
   work is not work.
 - **Re-run `npm run format` before `biome ci`.** `ci` includes formatting, and
   a formatting-only failure is the most annoying way to fail CI.
-- **After merging, look for duplicate top-level CSS selectors by hand.**
-  Several (`.btn`, `.pub`, `.switch`, `.tabbar`) arrived from different branches
-  and now shadow each other. No gate catches this: the styles test only checks
-  that a screen block has a top-level rule at all.
+- **A gate now catches the plain duplicate selector, but not the specific
+  one shadowing a general one.** The styles test fails a property declared
+  twice for the *same* selector string by two non-adjacent rules — that is what
+  the `.btn`, `.pub`, `.switch`, `.tabbar` note here used to be about, and the
+  last real case is fixed. What it cannot see is `.wrap .chip` overriding
+  `.chip--on` from 400 lines away, because the selectors differ; that stays a
+  reading job. Keep a variant with its primitive's block so the distance never
+  opens up.
 
 ## Pull requests
 

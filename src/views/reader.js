@@ -37,7 +37,7 @@ import {
 } from "../extract.js";
 import { fetchArticleNow } from "../fetch-one.js";
 import { createFetcher } from "../fetcher.js";
-import { formatDate, formatRelative, t } from "../i18n.js";
+import { formatDate, formatRelative, t, tCount } from "../i18n.js";
 import { setItemSaved, setReadingPosition } from "../item-state.js";
 import {
   clampPosition,
@@ -698,7 +698,7 @@ function articleHead() {
       >
       ${
         article
-          ? html`<span>${t("reader.words", { count: article.wordCount })}</span>`
+          ? html`<span>${tCount("reader.words", article.wordCount)}</span>`
           : nothing
       }
     </p>

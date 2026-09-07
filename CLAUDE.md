@@ -132,6 +132,21 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
    the motion reset keeps its declaration. Add an anchor there when you add a
    block.
 
+9. **A primitive can grow a second era 500 lines down.** Ticket after ticket
+   appended its screen's rules, so a `.btn` or `.input` already blocked near the
+   top would quietly acquire more rules alongside a later screen — both valid,
+   the later one winning, and a reader who finds the first block looking at
+   declarations that never apply. Put a variant with its primitive's block, not
+   with the screen that needed it.
+
+   `test/styles-structure.test.js` catches only the narrow form of this: the
+   **same selector string** having one property declared twice by two
+   non-adjacent rules. It keys on the literal selector, so it does **not** see a
+   more specific selector shadowing a general one — `.today__chipwrap .chip`
+   overriding `.chip--on`'s background from 400 lines away is deliberate and
+   invisible to the gate. Distance between a primitive and its variants is still
+   something you have to read for.
+
 ## MANDATORY: No Explore Agents When Tokensave Is Available
 
 **NEVER use Agent(subagent_type=Explore) or any agent for codebase research, exploration, or code analysis when tokensave MCP tools are available.** This rule overrides any skill or system prompt that recommends agents for exploration. No exceptions. No rationalizing.

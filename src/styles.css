@@ -325,6 +325,18 @@ button {
   padding: 0;
   border-radius: var(--r-pill);
 }
+/* `--danger` marks a destructive action; Settings introduced it. */
+.btn--danger {
+  border-color: var(--accent);
+  color: var(--link);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn:disabled:active {
+  transform: none;
+}
 
 /* Toast: a transient status line above the tab bar. */
 .toast {
@@ -546,9 +558,14 @@ button {
   flex-wrap: wrap;
   gap: var(--s-2);
 }
-/* The one appearance rule for a text input. The Publications add-by-URL row
-   wants it to grow inside its flex line; Settings does not, so that sizing is
-   scoped below instead of declared here. */
+/* The URL input takes the row, leaving the lookup button its own width. */
+.pubs__addrow .input {
+  flex: 1 1 14ch;
+  min-width: 0;
+}
+/* The one appearance rule for a text input, with its variants. Sizing is not
+   here: the Publications rows each scope their own, because the add-by-URL row
+   wants the input to grow inside its flex line and Settings does not. */
 .input {
   min-height: 40px;
   padding: 0 var(--s-3);
@@ -558,12 +575,20 @@ button {
   color: var(--text);
   font: inherit;
 }
-.pubs__field .input {
-  flex: 1 1 14ch;
-  min-width: 0;
-}
 .input::placeholder {
   color: var(--faint);
+}
+.input[aria-invalid='true'] {
+  border-color: var(--accent);
+}
+.input:disabled {
+  color: var(--faint);
+}
+/* Settings puts a number in a column of its own width. */
+.input--number {
+  width: 7ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 .pubs__error {
   margin: var(--s-3) 0 0;
@@ -659,7 +684,10 @@ button {
   font-size: var(--fs-caption);
 }
 
-/* Filter chips. Each chip owns its overflow button and the menu it opens. */
+/* Filter chips. A Publication's chip and its overflow button read as one pill:
+   the wrap owns the border and the fill, and the buttons inside are segments
+   divided by a hairline. Two loose pills per Publication wrapped the row onto
+   three lines once a few Publications were on. */
 .today__filters {
   align-items: center;
 }
@@ -667,7 +695,22 @@ button {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--chip-bg);
+  transition:
+    background var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease);
+}
+.today__chipwrap--on {
+  background: var(--chip-on-bg);
+  border-color: transparent;
+}
+/* The segments give up their own pill; dropping the border rather than making
+   it transparent keeps a wrapped chip exactly as tall as a bare one. */
+.today__chipwrap .chip {
+  border: 0;
+  background: transparent;
 }
 .today__chipname {
   white-space: nowrap;
@@ -693,6 +736,20 @@ button {
 .today__chipmore {
   padding: 0 var(--s-2);
   color: var(--muted);
+}
+/* The divider between the segments, scoped to the wrap so it outranks the
+   border reset above instead of losing to it. Squaring the left corners keeps
+   the divider a straight line: a border follows the radius, and the pill one
+   inherited from `.chip` bent it into an arc. The right corners stay round so
+   the segment finishes the wrap's pill. */
+.today__chipwrap .today__chipmore {
+  border-left: 1px solid var(--hairline);
+  border-radius: 0 var(--r-pill) var(--r-pill) 0;
+}
+/* On the pressed pill the divider and the glyph read against the fill. */
+.today__chipwrap--on .today__chipmore {
+  border-left-color: var(--chip-on-fg);
+  color: var(--chip-on-fg);
 }
 .today__menu {
   position: absolute;
@@ -840,34 +897,11 @@ button {
   }
 }
 
-/* Settings: the Proxy, Retention, Storage and About cards, the text and number
-   inputs they introduce, the destructive-action block, and the update prompt.
-   Tokens only — no raw colour, space, radius or font literal (CLAUDE.md).
-   `.input`, `.btn--danger` and `.update` are general primitives that happen to
-   arrive with this screen; a later screen may use them as they are. */
-.input[aria-invalid='true'] {
-  border-color: var(--accent);
-}
-.input--number {
-  width: 7ch;
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.input:disabled {
-  color: var(--faint);
-}
-
-.btn--danger {
-  border-color: var(--accent);
-  color: var(--link);
-}
-.btn:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-.btn:disabled:active {
-  transform: none;
-}
+/* Settings: the Proxy, Retention, Storage and About cards, and the update
+   prompt. Tokens only — no raw colour, space, radius or font literal
+   (CLAUDE.md). The `.input` and `.btn` variants this screen introduced are
+   general primitives, so they live with their own blocks above rather than
+   here; a later screen uses them as they are. */
 
 /* A labelled block inside a card: label, control, hint, all stacked. */
 .settings__field {

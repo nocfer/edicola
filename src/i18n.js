@@ -6,6 +6,10 @@
 //   tickets own their prefix. Shared chrome lives under `app.*` and `nav.*`.
 // - Every key must exist in both dictionaries; test/i18n.test.js enforces it.
 // - `{name}` placeholders are interpolated by `t(key, { name })`.
+// - Copy that carries a number and a countable noun is stored as one entry per
+//   plural category (`<key>.one`, `<key>.other`) and read with
+//   `tCount(key, count)`, which interpolates `{count}`. A key that reads
+//   correctly at every count keeps a single entry and plain `t()`.
 // - Strings never carry markup unless rendered through `unsafeHTML` or set from
 //   a `data-i18n-html` attribute (first-party copy only).
 // - The codebase is English; the `it` table below is the only Italian in src/.
@@ -34,7 +38,9 @@ export const en = {
   "today.offlineEmpty":
     "You are offline and nothing has been downloaded yet. Connect once and Edicola fills up.",
   "today.empty": "Nothing came through on the last refresh. Try again later.",
-  "today.emptyFilter": "Nothing from {name} inside the last {days} days.",
+  "today.emptyFilter.one": "Nothing from {name} inside the last day.",
+  "today.emptyFilter.other":
+    "Nothing from {name} inside the last {count} days.",
   "today.today": "Today",
   "today.yesterday": "Yesterday",
   "today.all": "All",
@@ -42,6 +48,8 @@ export const en = {
   "today.filters": "Filter by Publication",
   "today.filterTo": "Show only {name}",
   "today.filterAll": "Show every Publication",
+  // Reads correctly at every count, so it has no plural forms and is
+  // fetched with plain t(). Same in Italian.
   "today.unreadCount": "{count} unread",
   "today.unread": "Unread",
   "today.moreAria": "More actions for {name}",
@@ -51,8 +59,10 @@ export const en = {
   "today.pull": "Pull to refresh",
   "today.release": "Release to refresh",
   "today.refreshing": "Refreshing…",
-  "today.bounded":
-    "Today keeps the last {days} days. Older Items stay on their Publication.",
+  "today.bounded.one":
+    "Today keeps the last day. Older Items stay on their Publication.",
+  "today.bounded.other":
+    "Today keeps the last {count} days. Older Items stay on their Publication.",
   "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Saved",
@@ -63,7 +73,8 @@ export const en = {
   "saved.emptyBody":
     "Save an Item from the Reader and it stays here. A Saved Item and its Article are never removed, however old they get or how full storage becomes.",
   "saved.toToday": "Go to Today",
-  "saved.count": "{count} Saved",
+  "saved.count.one": "{count} Saved",
+  "saved.count.other": "{count} Saved",
   "saved.savedWhen": "Saved {when}",
   "saved.unread": "Unread",
   "saved.summaryOnly": "Summary only",
@@ -81,11 +92,13 @@ export const en = {
   "pubs.placeholder": "The Catalog is empty. Add a Publication by URL below.",
   "pubs.nations": "Nations",
   "pubs.needNation": "At least one Nation must stay selected.",
-  "pubs.enabledCount": "{enabled} of {total} on",
+  "pubs.enabledCount.one": "{count} of {total} on",
+  "pubs.enabledCount.other": "{count} of {total} on",
   "pubs.truncated": "full text fetched from the site",
   "pubs.notInCatalog": "no longer in the Catalog",
   "pubs.toggleAria": "Switch {name} on or off",
-  "pubs.groupAria": "{category}, {count} Publications",
+  "pubs.groupAria.one": "{category}, {count} Publication",
+  "pubs.groupAria.other": "{category}, {count} Publications",
   "pubs.syncStarted": "Syncing {name}…",
   "pubs.remove": "Remove",
   "pubs.removedToast": "{name} removed.",
@@ -106,7 +119,8 @@ export const en = {
   "pubs.add.find": "Find Feeds",
   "pubs.add.looking": "Looking for Feeds…",
   "pubs.add.found": "Feeds found",
-  "pubs.add.items": "{count} Items",
+  "pubs.add.items.one": "{count} Item",
+  "pubs.add.items.other": "{count} Items",
   "pubs.add.use": "Use this Feed",
   "pubs.add.cancel": "Cancel",
   "pubs.add.confirm": "Add Publication",
@@ -180,7 +194,8 @@ export const en = {
   "settings.retention.save": "Save",
   "settings.retention.reset": "Restore defaults",
   "settings.retention.saved": "Retention saved",
-  "settings.retention.evicted": "Retention saved — {count} Items removed",
+  "settings.retention.evicted.one": "Retention saved — {count} Item removed",
+  "settings.retention.evicted.other": "Retention saved — {count} Items removed",
   "settings.retention.evictionPending":
     "Retention saved. The smaller limits apply at the next Sync.",
 
@@ -198,7 +213,8 @@ export const en = {
   "settings.storage.persistent.unknown": "Not asked yet",
   "settings.storage.savedItems": "Saved Items",
   "settings.storage.tables": "By table",
-  "settings.storage.rows": "{rows} rows",
+  "settings.storage.rows.one": "{count} row",
+  "settings.storage.rows.other": "{count} rows",
   "settings.storage.measure": "Measure",
   "settings.storage.measuring": "Measuring…",
   "settings.storage.table.publications": "Publications",
@@ -230,7 +246,6 @@ export const en = {
   "settings.about": "About",
   "settings.about.version": "Version",
   "settings.about.schema": "Database schema",
-  "settings.about.shell": "Shell",
   "settings.error": "That did not work. Try again.",
 
   "sync.title": "Sync",
@@ -241,7 +256,8 @@ export const en = {
   "sync.feeds": "Feeds {done} of {total}",
   "sync.articles": "Articles {done} of {total}",
   "sync.summary": "{items} Items, {articles} Articles, {images} images",
-  "sync.failed": "{count} Feeds could not be reached",
+  "sync.failed.one": "{count} Feed could not be reached",
+  "sync.failed.other": "{count} Feeds could not be reached",
   "sync.error": "Sync could not finish. Check your connection.",
 
   "reader.title": "Reader",
@@ -255,7 +271,8 @@ export const en = {
   "reader.original": "Open original",
   "reader.originalAria": "Open the original on {publication}",
   "reader.source": "From {publication}",
-  "reader.words": "{count} words",
+  "reader.words.one": "{count} word",
+  "reader.words.other": "{count} words",
   "reader.save": "Save",
   "reader.saved": "Saved",
   "reader.saveAria": "Save this Item",
@@ -318,7 +335,8 @@ export const it = {
     "Sei offline e non è ancora stato scaricato nulla. Collegati una volta e l'edicola si riempie.",
   "today.empty":
     "Nell'ultimo aggiornamento non è arrivato nulla. Riprova più tardi.",
-  "today.emptyFilter": "Niente da {name} negli ultimi {days} giorni.",
+  "today.emptyFilter.one": "Niente da {name} nell'ultimo giorno.",
+  "today.emptyFilter.other": "Niente da {name} negli ultimi {count} giorni.",
   "today.today": "Oggi",
   "today.yesterday": "Ieri",
   "today.all": "Tutte",
@@ -335,8 +353,10 @@ export const it = {
   "today.pull": "Trascina per aggiornare",
   "today.release": "Rilascia per aggiornare",
   "today.refreshing": "Aggiornamento…",
-  "today.bounded":
-    "Oggi conserva gli ultimi {days} giorni. I titoli più vecchi restano sulla loro testata.",
+  "today.bounded.one":
+    "Oggi conserva l'ultimo giorno. I titoli più vecchi restano sulla loro testata.",
+  "today.bounded.other":
+    "Oggi conserva gli ultimi {count} giorni. I titoli più vecchi restano sulla loro testata.",
   "today.cardAria": "{title} — {publication}, {when}",
 
   "saved.title": "Salvati",
@@ -347,7 +367,8 @@ export const it = {
   "saved.emptyBody":
     "Salva un titolo dal lettore e resta qui. Un titolo salvato e il suo articolo non vengono mai rimossi, per vecchi che siano e per quanto pieno sia l'archivio.",
   "saved.toToday": "Vai a Oggi",
-  "saved.count": "{count} salvati",
+  "saved.count.one": "{count} salvato",
+  "saved.count.other": "{count} salvati",
   "saved.savedWhen": "Salvato {when}",
   "saved.unread": "Da leggere",
   "saved.summaryOnly": "Solo sommario",
@@ -367,11 +388,13 @@ export const it = {
     "Il catalogo è vuoto. Aggiungi una testata da URL qui sotto.",
   "pubs.nations": "Paesi",
   "pubs.needNation": "Almeno un paese deve restare selezionato.",
-  "pubs.enabledCount": "{enabled} di {total} attive",
+  "pubs.enabledCount.one": "{count} di {total} attiva",
+  "pubs.enabledCount.other": "{count} di {total} attive",
   "pubs.truncated": "il testo completo viene scaricato dal sito",
   "pubs.notInCatalog": "non è più nel catalogo",
   "pubs.toggleAria": "Attiva o disattiva {name}",
-  "pubs.groupAria": "{category}, {count} testate",
+  "pubs.groupAria.one": "{category}, {count} testata",
+  "pubs.groupAria.other": "{category}, {count} testate",
   "pubs.syncStarted": "Sincronizzazione di {name}…",
   "pubs.remove": "Rimuovi",
   "pubs.removedToast": "{name} rimossa.",
@@ -392,7 +415,8 @@ export const it = {
   "pubs.add.find": "Cerca i feed",
   "pubs.add.looking": "Ricerca dei feed…",
   "pubs.add.found": "Feed trovati",
-  "pubs.add.items": "{count} titoli",
+  "pubs.add.items.one": "{count} titolo",
+  "pubs.add.items.other": "{count} titoli",
   "pubs.add.use": "Usa questo feed",
   "pubs.add.cancel": "Annulla",
   "pubs.add.confirm": "Aggiungi testata",
@@ -466,7 +490,9 @@ export const it = {
   "settings.retention.save": "Salva",
   "settings.retention.reset": "Ripristina i predefiniti",
   "settings.retention.saved": "Conservazione salvata",
-  "settings.retention.evicted":
+  "settings.retention.evicted.one":
+    "Conservazione salvata — {count} titolo rimosso",
+  "settings.retention.evicted.other":
     "Conservazione salvata — {count} titoli rimossi",
   "settings.retention.evictionPending":
     "Conservazione salvata. I limiti più bassi valgono dalla prossima sincronizzazione.",
@@ -485,7 +511,8 @@ export const it = {
   "settings.storage.persistent.unknown": "Non ancora richiesto",
   "settings.storage.savedItems": "Articoli salvati",
   "settings.storage.tables": "Per tabella",
-  "settings.storage.rows": "{rows} righe",
+  "settings.storage.rows.one": "{count} riga",
+  "settings.storage.rows.other": "{count} righe",
   "settings.storage.measure": "Misura",
   "settings.storage.measuring": "Misurazione…",
   "settings.storage.table.publications": "Testate",
@@ -517,7 +544,6 @@ export const it = {
   "settings.about": "Informazioni",
   "settings.about.version": "Versione",
   "settings.about.schema": "Schema del database",
-  "settings.about.shell": "Shell",
   "settings.error": "Non ha funzionato. Riprova.",
 
   "sync.title": "Sincronizzazione",
@@ -528,7 +554,8 @@ export const it = {
   "sync.feeds": "Feed {done} di {total}",
   "sync.articles": "Articoli {done} di {total}",
   "sync.summary": "{items} titoli, {articles} articoli, {images} immagini",
-  "sync.failed": "{count} feed non raggiungibili",
+  "sync.failed.one": "{count} feed non raggiungibile",
+  "sync.failed.other": "{count} feed non raggiungibili",
   "sync.error": "Sincronizzazione non completata. Controlla la connessione.",
 
   "reader.title": "Lettura",
@@ -542,7 +569,8 @@ export const it = {
   "reader.original": "Apri l'originale",
   "reader.originalAria": "Apri l'originale su {publication}",
   "reader.source": "Da {publication}",
-  "reader.words": "{count} parole",
+  "reader.words.one": "{count} parola",
+  "reader.words.other": "{count} parole",
   "reader.save": "Salva",
   "reader.saved": "Salvato",
   "reader.saveAria": "Salva questo titolo",
@@ -652,12 +680,53 @@ export function setLang(next) {
  * @returns {string}
  */
 export function t(key, params) {
-  const table = DICTIONARIES[lang] || en;
-  let s = key in table ? table[key] : key in en ? en[key] : key;
+  let s = lookUp(key) ?? key;
   if (params) {
     for (const k in params) s = s.split(`{${k}}`).join(String(params[k]));
   }
   return s;
+}
+
+/**
+ * The string a key carries in the current Language, falling back to English,
+ * or null when neither dictionary has it. Presence and value come back
+ * together so `tCount` can tell an absent plural form from a translated one.
+ * @param {string} key
+ * @returns {string | null}
+ */
+function lookUp(key) {
+  const table = DICTIONARIES[lang] || en;
+  if (key in table) return table[key];
+  if (key in en) return en[key];
+  return null;
+}
+
+/** @type {Record<string, Intl.PluralRules>} */
+const pluralRules = {};
+
+/**
+ * Translate a counted key, choosing the plural form the current Language wants
+ * for `count`. The dictionary holds `<key>.one` and `<key>.other`; `{count}`
+ * is interpolated, and `params` supplies any other placeholder.
+ *
+ * Falls back through `.other` to the bare key, so a key that carries no forms
+ * (because it reads the same at every count) still resolves, and a
+ * half-translated dictionary prints the wrong number rather than the key.
+ * @param {string} key
+ * @param {number} count
+ * @param {Record<string, string|number>} [params]
+ * @returns {string}
+ */
+export function tCount(key, count, params) {
+  const locale = LOCALES[lang] || LOCALES.en;
+  if (!pluralRules[locale]) pluralRules[locale] = new Intl.PluralRules(locale);
+  const category = pluralRules[locale].select(count);
+  const form = [`${key}.${category}`, `${key}.other`].find(
+    (candidate) => lookUp(candidate) !== null,
+  );
+  // No form at all falls through to the bare key, which `t` resolves — copy
+  // that reads the same at every count, or a key that is simply missing.
+  return t(form ?? key, { ...params, count });
 }
 
 /**

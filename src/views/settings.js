@@ -13,7 +13,7 @@
 import { html, nothing } from "../render.js";
 import { APP_VERSION, getDatabase, META_KEYS, SCHEMA_VERSION } from "../db.js";
 import { DEFAULT_PROXY_SERVICE, DEFAULT_PROXY_TEMPLATE } from "../fetcher.js";
-import { formatRelative, LANGS, LOCALES, t } from "../i18n.js";
+import { formatRelative, LANGS, LOCALES, t, tCount } from "../i18n.js";
 import { hrefFor } from "../router.js";
 import { DEFAULT_RETENTION } from "../retention.js";
 import {
@@ -214,7 +214,7 @@ function saveRetention() {
       const evicted = await runEvictionIfAvailable(saved);
       showToast(
         evicted
-          ? t("settings.retention.evicted", { count: evicted.deleted.length })
+          ? tCount("settings.retention.evicted", evicted.deleted.length)
           : t("settings.retention.evictionPending"),
       );
       measureStorage();
@@ -341,7 +341,7 @@ function syncStatusLine(sync) {
     images: summary.imagesStored,
   });
   if (summary.feedsFailed === 0) return line;
-  return `${line} — ${t("sync.failed", { count: summary.feedsFailed })}`;
+  return `${line} — ${tCount("sync.failed", summary.feedsFailed)}`;
 }
 
 /**
@@ -671,7 +671,7 @@ function storageCard(state) {
                 ${t(`settings.storage.table.${entry.table}`)}
               </span>
               <span class="settings__table-rows">
-                ${t("settings.storage.rows", { rows: entry.rows })}
+                ${tCount("settings.storage.rows", entry.rows)}
               </span>
               <span class="settings__table-bytes">
                 ${formatBytes(entry.bytes, locale)}
