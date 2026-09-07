@@ -1,0 +1,58 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Daring Fireball",
+  "home_page_url": "https://daringfireball.net/",
+  "feed_url": "https://daringfireball.net/feeds/json",
+  "authors": [
+    {
+      "url": "https://twitter.com/gruber",
+      "name": "John Gruber"
+    }
+  ],
+  "icon": "https://daringfireball.net/graphics/apple-touch-icon.png",
+  "favicon": "https://daringfireball.net/graphics/favicon-64.png",
+  "items": [
+    {
+      "title": "Meta AI Has a Native Mac App Now, and It Seems Decent",
+      "date_published": "2026-09-06T20:44:27Z",
+      "date_modified": "2026-09-06T20:48:23Z",
+      "id": "https://daringfireball.net/linked/2026/09/06/meta-ai-mac-app",
+      "url": "https://daringfireball.net/linked/2026/09/06/meta-ai-mac-app",
+      "external_url": "https://9to5mac.com/2026/08/19/meta-ai-is-now-available-as-a-more-capable-desktop-app-for-mac/",
+      "authors": [
+        {
+          "name": "John Gruber"
+        }
+      ],
+      "content_html": "\n<p>Zac Hall, writing for 9to5Mac on August 19:</p>\n\n<blockquote>\n  <p>The <a href=\"https://ai.meta.com/meta-ai/assistant/\">new Meta AI desktop app</a> is version 1.0 beta at launch and\nweighs just 16MB once installed. Based on initial inspection, it\nruns natively on Apple silicon Macs with macOS 15 or later, using\nan AppKit and SwiftUI shell with WebKit for richer chat content.\nIn other words, this is not an Electron app or a repackaged iPad\nrelease.</p>\n\n<p>It includes Mac-specific hooks, making the desktop experience more\nrobust than the Meta AI mobile app. Quick Invoke uses Option-Space\nto place a compact Meta AI composer over whatever you are doing. A\nseparate dictation feature lets you hold a shortcut, speak, and\nhave the resulting words typed into any app, from Mail and\ndocuments to code editors.</p>\n\n<p>Meta AI can also attach another Mac window to a conversation. With\nScreen Recording and Accessibility permission, the app reads the\nwindow’s visible text and captures a screenshot for the next\nquestion. This is context gathering rather than computer control\nfor now.</p>\n</blockquote>\n\n<p>Passes the Settings window sniff test too — it actually has a Settings window.</p>\n\n<p>Meta, institutionally, seems more keen on native Mac apps <a href=\"https://daringfireball.net/2025/11/meta_whatsapp_windows_shitty_web_app\">than they are native Windows apps</a>.</p>\n\n<p class=\"x-netnewswire-hide\" style=\"padding-top: 1.5em;\"><em>Link: <strong><a href=\"https://9to5mac.com/2026/08/19/meta-ai-is-now-available-as-a-more-capable-desktop-app-for-mac/\">9to5mac.com/2026/08/19/meta-ai-is-now-available-as-a-more…</a></strong></em></p>\n"
+    },
+    {
+      "title": "WorkOS: How to Give an Agent a Task Instead of a Token",
+      "date_published": "2026-09-06T19:06:27Z",
+      "date_modified": "2026-09-06T19:06:28Z",
+      "id": "https://daringfireball.net/linked/2026/09/06/workos-agent-task",
+      "url": "https://daringfireball.net/linked/2026/09/06/workos-agent-task",
+      "external_url": "https://workos.com/blog/delegated-access-for-ai-agents?utm_source=daringfireball&utm_medium=newsletter&utm_campaign=q32026",
+      "authors": [
+        {
+          "name": "John Gruber"
+        }
+      ],
+      "content_html": "\n<p>My thanks to WorkOS for once again sponsoring Daring Fireball. Give an agent an access token and it spreads: into the context window, into tool call logs, into notes it keeps between steps. Each copy works from anywhere, long after the fact.</p>\n\n<p><a href=\"https://workos.com/docs/pipes/relay?utm_source=daringfireball&amp;utm_medium=newsletter&amp;utm_campaign=q32026&amp;utm_content=docs\">Relay</a> keeps the credential at WorkOS. Your agent names the user, WorkOS attaches that token, refreshes it, and releases it only to allowlisted hosts. A hijacked agent session is a live process you can kill.</p>\n\n<p><a href=\"https://workos.com/blog/delegated-access-for-ai-agents?utm_source=daringfireball&amp;utm_medium=newsletter&amp;utm_campaign=q32026\">Learn how it works</a> at WorkOS’s blog.</p>\n\n<p class=\"x-netnewswire-hide\" style=\"padding-top: 1.5em;\"><em>Link: <strong><a href=\"https://workos.com/blog/delegated-access-for-ai-agents?utm_source=daringfireball&utm_medium=newsletter&utm_campaign=q32026\">workos.com/blog/delegated-access-for-ai-agents?utm_source…</a></strong></em></p>\n"
+    },
+    {
+      "title": "Matt Haughey: ‘The Car Industry A/B Tested Selling a Car With and Without CarPlay and the Results Are Not Shocking’",
+      "date_published": "2026-09-06T19:04:12Z",
+      "date_modified": "2026-09-06T22:24:49Z",
+      "id": "https://daringfireball.net/linked/2026/09/06/haughey-chevy-honda-carplay",
+      "url": "https://daringfireball.net/linked/2026/09/06/haughey-chevy-honda-carplay",
+      "external_url": "https://a.wholelottanothing.org/the-car-industry-a-b-tested-selling-the-same-car-with-and-without-carplay-and-the-results-are-not-shocking/",
+      "authors": [
+        {
+          "name": "John Gruber"
+        }
+      ],
+      "content_html": "\n<p>Matt Haughey:</p>\n\n<blockquote>\n  <p>One case in point is the Honda Prologue EV. It’s a partnership\nbetween Honda and Chevrolet, where the Prologue is basically a\nChevy Blazer EV with Honda badges, slight visual differences in\nthe sheetmetal and interior, but all the underpinnings are\nstraight up Chevy. Even though the keys say Honda on a Prologue,\nit’s a General Motors key design with a Honda logo over it.</p>\n\n<p>But one big difference the Prologue has from the Blazer it is\nbased on is this: it includes Apple CarPlay and Android Auto\nintegration. [...]</p>\n\n<p>For the years these cars were sold together, the Honda outsold the\nBlazer by 43%, 73%, and 166% in each time period. Today in 2026,\npeople are buying a Honda Prologue over one and a half times more\noften than the Chevy Blazer EV the Prologue is based on.</p>\n</blockquote>\n\n<p>It’s not a perfect test. It’s reasonable to argue that Honda has a better brand and reputation than Chevrolet, and is just plain better at selling cars. But the trendline over the last three years is pretty stark.</p>\n\n<p class=\"x-netnewswire-hide\" style=\"padding-top: 1.5em;\"><em>Link: <strong><a href=\"https://a.wholelottanothing.org/the-car-industry-a-b-tested-selling-the-same-car-with-and-without-carplay-and-the-results-are-not-shocking/\">a.wholelottanothing.org/the-car-industry-a-b-tested-selling…</a></strong></em></p>\n"
+    }
+  ]
+}

@@ -1,0 +1,75 @@
+<!-- DERIVED FIXTURE: the real Repubblica.it RSS below, with three C0 control characters (U+000B, U+000C, U+001F) inserted into the first item's description to reproduce a CMS copy-paste defect. Everything else is verbatim. -->
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" version="2.0">
+  <channel>
+    <language>it-it</language>
+    <title>Repubblica.it</title>
+    <link>https://repubblica.it</link>
+    <description>Repubblica.it: Il quotidiano online in tempo reale</description>
+    <atom:link href="https://www.repubblica.it/rss/homepage/rss2.0.xml" rel="self" type="application/rss+xml"/>
+    <copyright>Copyright 2026 - GEDI Gruppo Editoriale S.p.A.</copyright>
+    <ttl>30</ttl>
+    <category domain="https://www.repubblica.it">/repubblica/economia</category>
+    <category domain="https://www.repubblica.it">/repubblica/politica</category>
+    <category domain="https://www.repubblica.it">/repubblica/esteri</category>
+    <category domain="https://www.repubblica.it">/repubblica/commenti</category>
+    <category domain="https://firenze.repubblica.it">/rep-firenze/cronaca</category>
+    <category domain="https://www.repubblica.it">/repubblica/cronaca</category>
+    <category domain="https://roma.repubblica.it">/rep-roma/cronaca</category>
+    <category domain="https://www.repubblica.it">/repubblica/cultura</category>
+    <category domain="https://www.repubblica.it">/repubblica/politica/rubriche/spin-off</category>
+    <category domain="https://www.repubblica.it">/repubblica/rubriche/circo-massimo</category>
+    <category domain="https://www.repubblica.it">/repubblica/economia/rubriche/l-editoriale</category>
+    <category domain="https://www.repubblica.it">/repubblica/sport/formulauno</category>
+    <category domain="https://firenze.repubblica.it">/rep-firenze/sport</category>
+    <category domain="https://www.repubblica.it">/repubblica/sport/calcio/serie-a/juventus</category>
+    <category domain="https://www.repubblica.it">/repubblica/sport/rubriche/monday-s-net</category>
+    <category domain="https://www.repubblica.it">/repubblica/sport/rubriche/la-finestra-sul-cortile</category>
+    <category domain="https://www.repubblica.it">/repubblica/spettacoli/dossier/mostra-del-cinema-di-venezia</category>
+    <category domain="https://d.repubblica.it">/d/culture/dossier/mostra-cinema-venezia</category>
+    <pubDate>Mon, 07 Sep 2026 10:02:15 +0200</pubDate>
+    <lastBuildDate>Mon, 07 Sep 2026 10:02:15 +0200</lastBuildDate>
+    <item>
+      <title>Pensione anticipata a 64 anni, con il ricalcolo l’assegno perde il 10%. Le simulazioni</title>
+      <link>https://www.repubblica.it/economia/2026/09/07/news/pensione_anticipata_64_anni_requisiti_assegno_simulazioni_cosa_cambia-425569591/</link>
+      <description><![CDATA[La Cgil simula la proposta della Lega per i lavoratori del sistema misto: con 25 anni di contributi molti restano sotto la soglia minima. E dal 2027 salgono anche età e requisiti]]></description>
+      <author>repubblicawww@repubblica.it (Redazione Repubblica.it)</author>
+      <category domain="/repubblica/economia">Economia</category>
+      <pubDate>Mon, 07 Sep 2026 07:49:58 +0000</pubDate>
+      <guid isPermaLink="false">rep-locali:repubblica:425569591</guid>
+      <dcterms:modified>2026-09-07T07:49:58Z</dcterms:modified>
+    </item>
+<item>
+      <title>Il governo Meloni e il consenso perduto</title>
+      <link>https://www.repubblica.it/politica/rubriche/spin-off/2026/09/07/news/meloni_consenso_perduto_governo-425569574/</link>
+      <description><![CDATA[Se la stabilità è stata uno dei principali risultati rivendicati dal governo, come rivendicato dalla premier alla festa di Bari, nei prossimi mesi la sfida sarà recuperare quella parte dell’elettorato di destra che Futuro Nazionale è riuscito a conquistare]]></description>
+      <author>repubblicawww@repubblica.it (Redazione Repubblica.it)</author>
+      <category domain="/repubblica/politica">Politica</category>
+      <category domain="/repubblica/politica/rubriche/spin-off">spin off</category>
+      <pubDate>Mon, 07 Sep 2026 07:47:54 +0000</pubDate>
+      <guid isPermaLink="false">rep-locali:repubblica:425569574</guid>
+      <dcterms:modified>2026-09-07T07:47:54Z</dcterms:modified>
+    </item>
+<item>
+      <title>“Imperium”, Loznitsa riscopre l’Urss che nessuno voleva vedere</title>
+      <link>https://www.repubblica.it/spettacoli/dossier/mostra-del-cinema-di-venezia/2026/09/07/news/imperium_loznitsa_venezia_recensione-425569495/</link>
+      <description><![CDATA[ll grande cineasta del repertorio rimonta i filmati italiani dimenticati per mezzo secolo: tre ore dentro l’Unione Sovietica, da Mosca alla Siberia, tra vita quotidiana, lavoro e popoli dell’Impero]]></description>
+      <author>repubblicawww@repubblica.it (Redazione Repubblica.it)</author>
+      <category domain="/repubblica/spettacoli/dossier/mostra-del-cinema-di-venezia">Mostra del cinema di Venezia</category>
+      <pubDate>Mon, 07 Sep 2026 07:08:56 +0000</pubDate>
+      <guid isPermaLink="false">rep-locali:repubblica:425569495</guid>
+      <dcterms:modified>2026-09-07T07:08:56Z</dcterms:modified>
+    </item>
+<item>
+      <title>Ribaltone Fiorentina: esonerato Grosso, ritorna Vanoli</title>
+      <link>https://firenze.repubblica.it/sport/2026/09/07/news/fiorentina_calcio_serie_a_grosso_vanoli-425569380/</link>
+      <description><![CDATA[Oggi, lunedì, l’annuncio ufficiale e il primo allenamento per il tecnico che era stato sostituito dopo la salvezza della scorsa stagione]]></description>
+      <author>repubblicawww@repubblica.it (Redazione Repubblica.it)</author>
+      <category domain="/repubblica/sport/calcio/serie-a">Serie A</category>
+      <category domain="/repubblica/sport/calcio/serie-a/fiorentina">Fiorentina</category>
+      <category domain="/rep-firenze/sport">Sport</category>
+      <pubDate>Mon, 07 Sep 2026 05:32:38 +0000</pubDate>
+      <guid isPermaLink="false">rep-locali:rep-firenze:425569380</guid>
+      <dcterms:modified>2026-09-07T05:32:38Z</dcterms:modified>
+    </item>
+  </channel>
+</rss>

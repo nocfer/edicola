@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"
+	xmlns:content="http://purl.org/rss/1.0/modules/content/"
+	xmlns:wfw="http://wellformedweb.org/CommentAPI/"
+	xmlns:dc="http://purl.org/dc/elements/1.1/"
+	xmlns:atom="http://www.w3.org/2005/Atom"
+	xmlns:sy="http://purl.org/rss/1.0/modules/syndication/"
+	xmlns:slash="http://purl.org/rss/1.0/modules/slash/"
+	>
+
+<channel>
+	<title>WordPress News</title>
+	<atom:link href="https://wordpress.org/news/feed/" rel="self" type="application/rss+xml" />
+	<link>https://wordpress.org/news</link>
+	<description>The latest news about WordPress and the WordPress community</description>
+	<lastBuildDate>Fri, 28 Aug 2026 13:56:48 +0000</lastBuildDate>
+	<language>en-US</language>
+	<sy:updatePeriod>
+	hourly	</sy:updatePeriod>
+	<sy:updateFrequency>
+	1	</sy:updateFrequency>
+	<generator>https://wordpress.org/?v=7.2-alpha-63481</generator>
+
+<image>
+	<url>https://s.w.org/favicon.ico?2</url>
+	<title>WordPress News</title>
+	<link>https://wordpress.org/news</link>
+	<width>32</width>
+	<height>32</height>
+</image> 
+<site xmlns="com-wordpress:feed-additions:1">14607090</site>	<item>
+		<title>WordPress Signs the Open Weights and American AI Leadership Letter</title>
+		<link>https://wordpress.org/news/2026/08/open-weight/</link>
+		
+		<dc:creator><![CDATA[Mary Hubbard]]></dc:creator>
+		<pubDate>Thu, 27 Aug 2026 17:00:32 +0000</pubDate>
+				<category><![CDATA[General]]></category>
+		<category><![CDATA[policy]]></category>
+		<guid isPermaLink="false">https://wordpress.org/news/?p=21341</guid>
+
+					<description><![CDATA[We’re proud to announce that WordPress has signed Open Weights and American AI Leadership, an open letter asking US policymakers to not place early restrictions on open weight AI models. These are artificial intelligence models that anyone can download, inspect, modify, and run on their own infrastructure. The letter was published on July 24, 2026, [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<p class="wp-block-paragraph">We’re proud to announce that WordPress has signed <a href="https://www.microsoft.com/en-us/corporate-responsibility/topics/open-weight/">Open Weights and American AI Leadership</a>, an open letter asking US policymakers to not place early restrictions on open weight AI models. These are artificial intelligence models that anyone can download, inspect, modify, and run on their own infrastructure. The letter was published on July 24, 2026, and more than 270 companies and organizations have added their names. Its argument will be familiar to anyone who works in open source: technology gets better and safer when more people can study it and build on it.</p>
+
+
+
+<p class="wp-block-paragraph">That belief is the foundation WordPress is built on. Anyone can run the software, look at how it works, change it to suit their needs, and share what they make. Those freedoms are why WordPress has become a foundational part of the open web and why people trust it with their work. Open weight models bring that same kind of access to AI. A model that anyone can download and adapt becomes something people can shape around their own work and improve for everyone who comes after them.</p>
+
+
+
+<blockquote class="wp-block-quote is-layout-flow wp-block-quote-is-layout-flow">
+<p class="wp-block-paragraph">The next generation of innovation won&#8217;t come from models alone. It will come from millions of people building with them. Open weights help make that possible. WordPress is proud to support the Open Weights and American AI Leadership letter.<br><br><em>&#8211; WordPress Executive Director, Mary Hubbard</em></p>
+</blockquote>
+
+
+
+<h2 class="wp-block-heading">Requests to US Policymakers</h2>
+
+
+
+<p class="wp-block-paragraph">The requests in the letter are practical ones. As signatories, we ask policymakers to expand access to computing power for startups and researchers, to invest in shared resources like public datasets and evaluation tools, and to keep more than one kind of model available rather than narrowing the field to a handful of closed systems. We also ask that common development practices, such as using one model&#8217;s output to improve another, not be treated as theft by default. Each of these requests follows the pattern that has made open source software dependable for decades, where many people test, improve, and secure the same technology in public view.</p>
+
+
+
+<p class="wp-block-paragraph">For more than 20 years, WordPress has run on the idea that the people using a technology should be free to shape it. AI is becoming part of how people publish, and open weight models are one way that freedom carries forward. Keeping them available gives the next generation of builders, the people <a href="https://wordpress.org/education/">now learning WordPress</a>, the same starting point that open source gave everyone before them.</p>
+
+
+
+<div class="wp-block-buttons is-content-justification-left is-layout-flex wp-container-core-buttons-is-layout-b192c3d7 wp-block-buttons-is-layout-flex">
+<div class="wp-block-button"><a class="wp-block-button__link wp-element-button" href="https://www.microsoft.com/en-us/corporate-responsibility/topics/open-weight/">Read the Letter</a></div>
+</div>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">21341</post-id>	</item>
+<item>
+		<title>WordPress 7.0.4 Release</title>
+		<link>https://wordpress.org/news/2026/08/wordpress-7-0-4-release/</link>
+		
+		<dc:creator><![CDATA[John Blackbourn]]></dc:creator>
+		<pubDate>Wed, 12 Aug 2026 14:45:53 +0000</pubDate>
+				<category><![CDATA[Releases]]></category>
+		<category><![CDATA[Security]]></category>
+		<category><![CDATA[minor-releases]]></category>
+		<category><![CDATA[releases]]></category>
+		<guid isPermaLink="false">https://wordpress.org/news/?p=21371</guid>
+
+					<description><![CDATA[WordPress 7.0.4 is now available WordPress 7.0.4 is now available which features a security fix. Because this is a security release, it is recommended that you update your sites immediately. You can update to WordPress 7.0.4 by downloading it from WordPress.org, or visiting your site&#8217;s Dashboard → Updates and clicking Update Now. Sites that support [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<h1 class="wp-block-heading">WordPress 7.0.4 is now available</h1>
+
+
+
+<p class="wp-block-paragraph">WordPress 7.0.4 is now available which features a security fix. Because this is a security release, it is recommended that you update your sites immediately.</p>
+
+
+
+<p class="wp-block-paragraph">You can update to WordPress 7.0.4 by <a href="https://wordpress.org/wordpress-7.0.4.zip">downloading it from WordPress.org</a>, or visiting your site&#8217;s Dashboard → Updates and clicking <strong>Update Now</strong>. Sites that support automatic background updates will begin updating shortly.</p>
+
+
+
+<p class="wp-block-paragraph">For more information, please visit the <a href="https://wordpress.org/documentation/wordpress-version/version-7-0-4/">WordPress 7.0.4 HelpHub site</a>.</p>
+
+
+
+<h2 class="wp-block-heading">Security update included in this release</h2>
+
+
+
+<p class="wp-block-paragraph">The security team would like to thank the team at <a href="https://pwn.ai/">pwn.ai</a> for responsibly reporting the following vulnerability and allowing it to be fixed in this release:</p>
+
+
+
+<ul class="wp-block-list">
+<li>Authenticated Author+ remote code execution via malicious file upload on sites that use Imagick and Ghostscript.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">Backports</h2>
+
+
+
+<p class="wp-block-paragraph">As a courtesy, these fixes are being backported through to the 4.7 branch and the 7.1 RC3 release that&#8217;s due later today. As a reminder, <strong>only the most recent version of WordPress is actively supported</strong>. The backports are in progress and will ship as they become ready.</p>
+
+
+
+<h2 class="wp-block-heading">CVE and GHSA references</h2>
+
+
+
+<p class="wp-block-paragraph">Further details can be found in the advisory: <a href="https://github.com/WordPress/wordpress-develop/security/advisories/GHSA-8vr3-7mxf-gx8w">CVE-2026-65640 / GHSA-8vr3-7mxf-gx8w</a>.</p>
+
+
+
+<h2 class="wp-block-heading">Thank you to these WordPress contributors</h2>
+
+
+
+<p class="wp-block-paragraph">This release was led by John Blackbourn, with significant input from Dennis Snell and Jeremy Felt. In addition, WordPress 7.0.4 and its backports would not have been possible without the valuable contributions of the following people:</p>
+
+
+
+<p class="wp-block-paragraph"><a href="https://profiles.wordpress.org/aaroncampbell">Aaron D. Campbell</a>, <a href="https://profiles.wordpress.org/jorbin">Aaron Jorbin</a>, <a href="https://profiles.wordpress.org/adamsilverstein">Adam Silverstein</a>, <a href="https://profiles.wordpress.org/wildworks">Aki Hamano</a>, <a href="https://profiles.wordpress.org/xknown">Alex Concha</a>, <a href="https://profiles.wordpress.org/barry">Barry</a>, <a href="https://profiles.wordpress.org/dmsnell">Dennis Snell</a>, <a href="https://profiles.wordpress.org/ehtis">Ehtisham Siddiqui</a>, <a href="https://profiles.wordpress.org/jeremyfelt">Jeremy Felt</a>, <a href="https://profiles.wordpress.org/johnbillion">John Blackbourn</a>, <a href="https://profiles.wordpress.org/jonsurrell/">Jon Surrell</a>, <a href="https://profiles.wordpress.org/desrosj">Jonathan Desrosiers</a>, <a href="https://profiles.wordpress.org/lancewillett">Lance Willett</a>, <a href="https://profiles.wordpress.org/tyxla">Marin Atanasov</a>, <a href="https://profiles.wordpress.org/batmoo">Mohammad Jangda</a>, <a href="https://profiles.wordpress.org/sergeybiryukov">Sergey Biryukov</a>, <a href="https://profiles.wordpress.org/vortfu">vortfu</a>, <a href="https://profiles.wordpress.org/westonruter">Weston Ruter</a>, and representatives from WP Engine.</p>
+
+
+
+<p class="wp-block-paragraph"></p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">21371</post-id>	</item>
+<item>
+		<title>WordPress 7.0.2 Release</title>
+		<link>https://wordpress.org/news/2026/07/wordpress-7-0-2-release/</link>
+		
+		<dc:creator><![CDATA[John Blackbourn]]></dc:creator>
+		<pubDate>Fri, 17 Jul 2026 18:45:54 +0000</pubDate>
+				<category><![CDATA[Releases]]></category>
+		<category><![CDATA[Security]]></category>
+		<category><![CDATA[minor-releases]]></category>
+		<category><![CDATA[releases]]></category>
+		<guid isPermaLink="false">https://wordpress.org/news/?p=21167</guid>
+
+					<description><![CDATA[WordPress 7.0.2 is now available. The 7.0.2 security release addresses one critical and one high severity security issue. Because this is a security release, it is recommended that you update your sites immediately. Due to the severity, the WordPress.org team have enabled forced updates via the auto-update system for sites running affected versions. To manually [&#8230;]]]></description>
+										<content:encoded><![CDATA[
+<h2 class="wp-block-heading">WordPress 7.0.2 is now available.</h2>
+
+
+
+<p class="wp-block-paragraph">The 7.0.2 security release addresses one critical and one high severity security issue.</p>
+
+
+
+<p class="wp-block-paragraph">Because this is a security release, <strong>it is recommended that you update your sites immediately.</strong> Due to the severity, the WordPress.org team have enabled forced updates via the auto-update system for sites running affected versions.</p>
+
+
+
+<p class="wp-block-paragraph">To manually update you can visit your WordPress Dashboard, click “Updates”, and then click “Update Now”, or you can <a href="https://wordpress.org/wordpress-7.0.2.zip">download WordPress 7.0.2 from WordPress.org</a>. On sites that support automatic background updates, the update process will begin automatically.</p>
+
+
+
+<h2 class="wp-block-heading">Security updates included in this release</h2>
+
+
+
+<p class="wp-block-paragraph">The security team would like to thank the following people for responsibly <a href="https://hackerone.com/wordpress">reporting</a> vulnerabilities and allowing them to be fixed in this release:</p>
+
+
+
+<ul class="wp-block-list">
+<li>A facilitated SQL injection issue reported as a team by TF1T, dtro, and haongo </li>
+
+
+
+<li>A REST API batch-route confusion and SQL injection issue leading to Remote Code Execution reported by Adam Kues at <a href="https://slcyber.io"><u>Assetnote / Searchlight Cyber</u></a></li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">For more information on this release, please visit the <a href="https://wordpress.org/documentation/wordpress-version/version-7-0-2/">HelpHub site</a>.</p>
+
+
+
+<h2 class="wp-block-heading">Backports</h2>
+
+
+
+<ul class="wp-block-list">
+<li>WordPress 6.9 is affected by both vulnerabilities. Version 6.9.5 has been released containing fixes for both.</li>
+
+
+
+<li>WordPress 6.8 is only affected by the first vulnerability. Version 6.8.6 has been released containing a fix.</li>
+
+
+
+<li>The beta release of WordPress 7.1 is affected by both vulnerabilities. Version 7.1 beta2 has been released containing fixes for both.</li>
+
+
+
+<li>Versions of WordPress prior to 6.8 are not affected.</li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">CVE and GHSA references</h2>
+
+
+
+<ul class="wp-block-list">
+<li><a href="https://github.com/WordPress/wordpress-develop/security/advisories/GHSA-fpp7-x2x2-2mjf"><code>CVE-2026-60137</code> / <code>GHSA-fpp7-x2x2-2mjf</code></a></li>
+
+
+
+<li><a href="https://github.com/WordPress/wordpress-develop/security/advisories/GHSA-ff9f-jf42-662q"><code>CVE-2026-63030</code> / <code>GHSA-ff9f-jf42-662q</code></a></li>
+</ul>
+
+
+
+<h2 class="wp-block-heading">Thank you to these WordPress contributors</h2>
+
+
+
+<p class="wp-block-paragraph">This release was led by <a href="https://profiles.wordpress.org/johnbillion/">John Blackbourn</a> and <a href="https://profiles.wordpress.org/barry/">Barry Abrahamson</a>. In addition to the security researchers mentioned above, WordPress 7.0.2 would not have been possible without the significant contributions of the following people: <a href="https://profiles.wordpress.org/jorbin">Aaron Jorbin</a>, <a href="https://profiles.wordpress.org/xknown">Alex Concha</a>, <a href="https://profiles.wordpress.org/annezazu">annezazu</a>, <a href="https://profiles.wordpress.org/Barry">Barry</a>, <a href="https://profiles.wordpress.org/davidbaumwald">David Baumwald</a>, <a href="https://profiles.wordpress.org/ocean90">Dominik Schilling</a>, <a href="https://profiles.wordpress.org/ehtis">Ehtisham Siddiqui</a>, <a href="https://profiles.wordpress.org/joedolson">Joe Dolson</a>, <a href="https://profiles.wordpress.org/joehoyle">Joe Hoyle</a>, <a href="https://profiles.wordpress.org/johnbillion">John Blackbourn</a>, <a href="https://profiles.wordpress.org/desrosj">Jonathan Desrosiers</a>, <a href="https://profiles.wordpress.org/clorith">Marius L. J.</a>, <a href="https://profiles.wordpress.org/Matt">Matt Mullenweg</a>, <a href="https://profiles.wordpress.org/batmoo">Mohammad Jangda</a>, <a href="https://profiles.wordpress.org/peterwilsoncc">Peter Wilson</a>, <a href="https://profiles.wordpress.org/sergeybiryukov">Sergey Biryukov</a>, <a href="https://profiles.wordpress.org/vortfu">vortfu</a>, <a href="https://profiles.wordpress.org/westonruter">Weston Ruter</a>, plus representatives from Altis, Automattic, Bluehost, Cloudflare, GoDaddy, Hostinger, and WP Engine.</p>
+
+
+
+<p class="wp-block-paragraph"></p>
+]]></content:encoded>
+					
+		
+		
+		<post-id xmlns="com-wordpress:feed-additions:1">21167</post-id>	</item>
+	</channel>
+</rss>
