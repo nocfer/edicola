@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-474f25a8";
+const CACHE = "edicola-9f82e4f4";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.
@@ -34,6 +34,9 @@ const SHELL = [
   "./src/store.js",
   "./src/sync.js",
   "./src/sync-client.js",
+  "./src/catalog.js",
+  // The Catalog itself: without it the Publications screen is empty offline.
+  "./data/catalog.json",
 ];
 
 // CDN hosts whose pinned modules the app loads at runtime (lit-html, and later

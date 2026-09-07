@@ -376,6 +376,233 @@ button {
   text-align: right;
 }
 
+/* Publications: the Nation chips, the Category groups, one row per Publication
+   with its switch, and the add-by-URL form. */
+.pubs__intro {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  align-items: baseline;
+}
+.pubs__count {
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+.pubs__nation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.pubs__nationtitle {
+  margin: var(--s-3) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+}
+.pubs__group {
+  padding: var(--s-3) var(--s-4);
+}
+
+/* Group header: the whole row is the collapse control. */
+.pubs__grouphead {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-1) 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.pubs__grouptitle {
+  flex: 1;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pubs__groupcount {
+  color: var(--faint);
+  font-size: var(--fs-caption);
+  font-variant-numeric: tabular-nums;
+}
+.pubs__chevron {
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+.pubs__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+/* One Publication: name and hints on the left, the switch on the right. */
+.pub {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-top: 1px solid var(--hairline);
+}
+.pub:first-child {
+  border-top: 0;
+}
+.pub__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pub__name {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-weight: 600;
+}
+/* Unread dot placeholder: tickets 09 and 11 drive it from the Unread count. */
+.pub__unread {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+  flex: none;
+}
+.pub__meta {
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+.pub__warn {
+  color: var(--link);
+  font-size: var(--fs-caption);
+}
+.pub__remove {
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* Switch: a two-state control the reader taps to Enable a Publication. */
+.switch {
+  flex: none;
+  position: relative;
+  width: 48px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--chip-bg);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease);
+}
+.switch__knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-pill);
+  background: var(--muted);
+  transition:
+    transform var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease);
+}
+.switch--on {
+  background: var(--accent);
+  border-color: transparent;
+}
+.switch--on .switch__knob {
+  background: var(--accent-ink);
+  transform: translateX(18px);
+}
+.switch:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Add by URL. */
+.pubs__hint {
+  margin: 0 0 var(--s-3);
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+.pubs__subtitle {
+  margin: var(--s-4) 0 0;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.pubs__addrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+.input {
+  flex: 1 1 14ch;
+  min-width: 0;
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.input::placeholder {
+  color: var(--faint);
+}
+.pubs__error {
+  margin: var(--s-3) 0 0;
+  color: var(--link);
+  font-size: var(--fs-caption);
+}
+.pubs__draft {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+.pubs__field {
+  flex: 1 1 16ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+/* The input is the field's whole width; without this it grows down the column. */
+.pubs__field .input {
+  flex: none;
+  width: 100%;
+}
+.pubs__field--short {
+  flex: 0 1 9ch;
+}
+.pubs__field--short .input {
+  text-align: center;
+}
+.pubs__fieldlabel {
+  color: var(--muted);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+}
+.pubs__actions {
+  flex: 1 1 100%;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
