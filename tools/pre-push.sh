@@ -14,7 +14,7 @@ cd "$root"
 echo "› pre-push: running CI gates locally…"
 
 echo "  [1/4] tests (node --test)"
-node --test >/dev/null
+npm test --silent >/dev/null
 
 echo "  [2/4] service-worker cache stamp (stamp:check)"
 npm run --silent stamp:check

@@ -41,7 +41,7 @@ that repo is the reference implementation.
 - Run locally: `npm start` (Python static server on :8000) and open the page.
   ES modules won't load from `file://`.
 - Test: `npm test` (Node's built-in runner). Parsing and Extraction tests inject
-  a DOM (linkedom, fetched on demand) and run against `test/fixtures/`
+  a DOM (jsdom, installed on demand by `npm test` via `tools/ensure-test-deps.mjs`; helper in `tools/testing/dom.js`) and run against `test/fixtures/`
   (ADR-0010).
 - Lint + format: `npm run lint` / `npm run format` (Biome; CSS, HTML, SVG are
   excluded on purpose).

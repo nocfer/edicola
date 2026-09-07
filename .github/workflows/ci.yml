@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: 22
       - name: Run tests
-        run: node --test
+        run: npm test
       - name: Service-worker cache version is up to date
         run: npm run stamp:check
       - name: Lint + format (Biome)
