@@ -22,6 +22,7 @@
 
 import { getDatabase } from "../db.js";
 import { formatRelative, LOCALES, t } from "../i18n.js";
+import { markPublicationRead } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
@@ -214,11 +215,7 @@ async function markAllRead(chip) {
   screen.menuFor = null;
   if (!publicationId) return;
   try {
-    await getDatabase()
-      .items.where("publicationId")
-      .equals(publicationId)
-      .filter((/** @type {ItemRow} */ item) => !item.read)
-      .modify({ read: true });
+    await markPublicationRead(getDatabase(), publicationId);
     // Reflect it in the rows already in memory so the chip count drops now,
     // instead of after the next reload.
     for (const item of screen.items) {
@@ -335,6 +332,7 @@ function watchRouteForScroll() {
   }
   if (!leftToday) return;
   leftToday = false;
+  void refreshReadState();
   const y = screen.scrollY;
   if (y <= 0) return;
   requestAnimationFrame(() => {
@@ -342,6 +340,33 @@ function watchRouteForScroll() {
       if (parseRoute(location.hash).name === "today") window.scrollTo(0, y);
     });
   });
+}
+
+/**
+ * Refresh the fields the reader owns on the rows already in memory, so the
+ * Unread chips are right after a trip to the Reader (spec story 21: Unread
+ * counts update on read). The rows are mutated in place rather than replaced,
+ * so `repeat`'s keys and the list's height do not move and the scroll restore
+ * above is not fought.
+ * @returns {Promise<void>}
+ */
+async function refreshReadState() {
+  if (screen.items.length === 0) return;
+  try {
+    const ids = screen.items.map((item) => item.id);
+    const rows = await getDatabase().items.bulkGet(ids);
+    let changed = false;
+    rows.forEach((/** @type {ItemRow | undefined} */ row, i) => {
+      const item = screen.items[i];
+      if (!row || !item) return;
+      if (item.read !== row.read || item.saved !== row.saved) changed = true;
+      item.read = row.read;
+      item.saved = row.saved;
+    });
+    if (changed) update();
+  } catch (error) {
+    console.warn("Read state could not be refreshed:", error);
+  }
 }
 
 // --- Templates -------------------------------------------------------------

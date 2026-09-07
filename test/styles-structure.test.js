@@ -54,6 +54,8 @@ const SCREEN_ANCHORS = [
   ".settings__subtitle",
   ".input",
   ".update",
+  ".saved__card",
+  ".unread__count",
 ];
 
 test("every screen block has its rules at the top level, not inside an at-rule", () => {
