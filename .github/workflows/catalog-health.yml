@@ -1,0 +1,91 @@
+name: Catalog health
+
+# Weekly fetch of every Feed in data/catalog.json. Publishers move, rename and
+# drop Feeds without notice; this job notices for us. On failure it opens one
+# issue labelled needs-triage (or refreshes the open one) with the result table
+# from tools/check-catalog.mjs --fetch. When everything passes again it closes
+# that issue. Independent of ci.yml, which stays network-free.
+on:
+  schedule:
+    - cron: "17 6 * * 1" # Mondays, 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: catalog-health
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch every Catalog Feed
+        id: check
+        shell: bash
+        run: |
+          set +e
+          node tools/check-catalog.mjs --fetch | tee catalog-health.txt
+          echo "exit=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Catalog health"
+            echo
+            cat catalog-health.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open or update the triage issue
+        if: steps.check.outputs.exit != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          failing=$(grep -oE '^[0-9]+ feeds failing' catalog-health.txt | grep -oE '^[0-9]+' | head -n1)
+          failing=${failing:-unknown}
+          title="Catalog health: ${failing} feeds failing"
+          {
+            echo "The weekly Feed check found ${failing} failing Feed(s) in \`data/catalog.json\`."
+            echo
+            echo "Run: ${RUN_URL}"
+            echo
+            echo "For each failure: find the Publication's new advertised Feed URL and update the entry, or remove the entry and list the Publication under omissions in \`docs/catalog.md\`. See \`docs/catalog.md\` for the rules."
+            echo
+            echo '```'
+            cat catalog-health.txt
+            echo '```'
+          } > body.md
+          gh label create needs-triage --description "Maintainer needs to evaluate this issue" --color d93f0b --force
+          existing=$(gh issue list --state open --label needs-triage --search '"Catalog health:" in:title' --json number,title \
+            --jq '[.[] | select(.title | startswith("Catalog health:"))] | sort_by(.number) | .[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue edit "$existing" --title "$title" --body-file body.md
+            gh issue comment "$existing" --body "Re-checked on $(date -u +%Y-%m-%d): ${failing} feeds failing. Body updated with the latest table. ${RUN_URL}"
+            echo "Updated issue #$existing"
+          else
+            gh issue create --title "$title" --body-file body.md --label needs-triage
+          fi
+
+      - name: Close the triage issue when every Feed passes
+        if: steps.check.outputs.exit == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        shell: bash
+        run: |
+          for n in $(gh issue list --state open --label needs-triage --search '"Catalog health:" in:title' --json number,title \
+            --jq '.[] | select(.title | startswith("Catalog health:")) | .number'); do
+            gh issue close "$n" --comment "Every Catalog Feed passed on $(date -u +%Y-%m-%d). ${RUN_URL}"
+          done
+
+      - name: Fail the job when Feeds fail
+        if: steps.check.outputs.exit != '0'
+        run: exit 1
