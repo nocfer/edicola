@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-998337e4";
+const CACHE = "edicola-474f25a8";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.
@@ -104,6 +104,21 @@ function cacheFirst(request) {
       }),
   );
 }
+
+// Periodic Background Sync (Chromium, installed apps only; ADR-0007 treats it
+// as an enhancement that is never relied upon). The worker cannot parse a Feed
+// or sanitize HTML — no DOMParser, no DOMPurify — so it does not sync itself.
+// It only wakes any open client, whose page thread runs syncIfStale().
+self.addEventListener("periodicsync", (event) => {
+  if (event.tag !== "edicola-sync") return;
+  event.waitUntil(
+    self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        client.postMessage({ type: "periodic-sync" });
+      }
+    }),
+  );
+});
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;

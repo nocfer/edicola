@@ -10,6 +10,7 @@ import { html, nothing, render } from "./render.js";
 import { state, subscribe, update } from "./state.js";
 import { applyStaticI18n, getLang, initLang, setLang } from "./i18n.js";
 import { hidesTabBar, startRouter } from "./router.js";
+import { initSyncClient, syncIfStale } from "./sync-client.js";
 import { todayView } from "./views/today.js";
 import { savedView } from "./views/saved.js";
 import { publicationsView } from "./views/publications.js";
@@ -129,4 +130,16 @@ lightQuery.addEventListener("change", () => {
 // Signal a healthy boot to the self-heal watchdog in index.html: if the module
 // graph linked and this startup ran, we are not in the bricked-Shell state the
 // watchdog guards against.
+// Sync wiring lives at boot, not in a view: the last-Sync time and the
+// "refresh if stale" rule are app-level, and Today (which mounts after this)
+// must not be the only screen that starts them. initSyncClient() restores
+// lastSyncAt from the database and listens for the service worker's
+// periodic-sync wake-up; syncIfStale() refreshes when the last Sync is older
+// than fifteen minutes. Both no-op with no Enabled Publications, and a
+// rejection here must never brick the boot the watchdog is about to bless.
+initSyncClient();
+syncIfStale().catch((error) => {
+  console.warn("Startup sync skipped:", error);
+});
+
 window.__edicolaBooted = true;
