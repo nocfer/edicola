@@ -85,7 +85,10 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
 - **Sync runs on the page thread, chunked and yielding** (no Web Worker: `DOMParser` and DOMPurify are unavailable in workers), on open (if the last Sync is
   older than 15 min) or on demand. Concurrency 4, round-robin across Enabled
   Publications, newest first, one retry then mark Summary-only. Pre-fetch 10
-  Articles per Publication per Sync, keep 50 Items per Publication.
+  Articles per Publication per Sync, keep 50 Items per Publication. Those
+  numbers are **Retention defaults the reader can change**, and `sync-client.js`
+  passes the stored limits into `runSync` — a Sync that ignores them makes the
+  whole Retention card decorative, which is a bug that shipped once.
 - **Persistent storage** is requested on first Sync
   (`navigator.storage.persist()`).
 
@@ -108,6 +111,26 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
    servers with `(cmd &)`.
 5. **`position:fixed` overlays don't compose with full-page capture.** Capture
    with a fixed viewport and `captureBeyondViewport:false`.
+
+6. **A re-stamped Shell now WAITS, so running twice is not enough.** The service
+   worker no longer calls `skipWaiting()` on install (ADR-0008: the reader is
+   asked first), so after `npm run stamp` a primed profile keeps serving the old
+   `CACHE` however many times you reload — the new worker sits in
+   `registration.waiting`. Use a **throwaway profile** after any stamp, or
+   accept the update through the prompt. This is the old stale-Shell trap in a
+   new shape and it has cost two agents a full round of verification.
+
+7. **`tools/stamp-sw.mjs` parses the `SHELL` array by quote characters**, so a
+   comment containing an apostrophe inside that array silently breaks the stamp.
+   Keep comments in `SHELL` apostrophe-free.
+
+8. **Balanced braces do not mean correct CSS nesting.** A merge once spliced a
+   whole screen block between the universal selector's opening brace and its
+   declaration inside `@media (prefers-reduced-motion: reduce)`. Every gate
+   passed and the screen rendered unstyled. `test/styles-structure.test.js`
+   guards this now: it asserts each screen block has top-level rules and that
+   the motion reset keeps its declaration. Add an anchor there when you add a
+   block.
 
 ## MANDATORY: No Explore Agents When Tokensave Is Available
 
