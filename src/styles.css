@@ -1,0 +1,369 @@
+/* ==========================================================================
+   §1 — TOKEN LAYER. The only legal values: every rule below references these
+   and no rule re-types a raw colour, space, radius, font or duration where a
+   token exists. Themes change tokens, never rules (CLAUDE.md): the single
+   theme-scoped selector in this file is the `:root[data-theme='light']` block.
+   Dark is the default on bare `:root`.
+   ========================================================================== */
+:root {
+  /* --- Colour (dark) ----------------------------------------------------- */
+  --scheme: dark;
+  --bg: #121110; /* page background */
+  --surface: #1a1816; /* header bars, tab bar */
+  --card: #1f1c1a; /* cards, list rows */
+  --card-shadow: none; /* card elevation (light theme only) */
+  --hairline: rgba(255, 255, 255, 0.08); /* borders */
+  --text: #f3efe9;
+  --muted: #a39c93; /* secondary text */
+  --faint: #7d766f; /* captions, inactive tabs */
+  --accent: #e0563a; /* newsstand red: primary action, active tab */
+  --accent-ink: #fff8f3; /* text on accent fills */
+  --link: #ff8a6a; /* accent as text */
+  --chip-bg: rgba(255, 255, 255, 0.06);
+  --chip-on-bg: var(--text);
+  --chip-on-fg: var(--bg);
+  --focus: #ffb59e;
+  --toast-bg: var(--text);
+  --toast-fg: var(--bg);
+  --tabbar-bg: rgba(26, 24, 22, 0.92);
+
+  /* --- Typography (system stacks, no bundled fonts) ---------------------- */
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --fs-caption: 0.8125rem;
+  --fs-body: 1rem;
+  --fs-lead: 1.125rem;
+  --fs-title: 1.75rem;
+  --lh-body: 1.5;
+  --lh-tight: 1.15;
+
+  /* --- Spacing: 4px scale ------------------------------------------------ */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+
+  /* --- Radii ------------------------------------------------------------- */
+  --r-pill: 999px; /* chips, icon buttons */
+  --r-control: 12px; /* buttons, inputs */
+  --r-card: 16px; /* cards, list rows */
+
+  /* --- Layout ------------------------------------------------------------ */
+  --measure: 720px; /* max content column */
+  --tabbar-h: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+
+  /* --- Motion ------------------------------------------------------------ */
+  --dur-fast: 0.12s;
+  --dur: 0.2s;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Light theme: ONLY the tokens change. */
+:root[data-theme='light'] {
+  --scheme: light;
+  --bg: #faf7f2;
+  --surface: #fffdf9;
+  --card: #ffffff;
+  --card-shadow: 0 2px 10px -6px rgba(60, 40, 20, 0.18);
+  --hairline: rgba(28, 25, 23, 0.09);
+  --text: #1c1917;
+  --muted: #6b645d;
+  --faint: #928a82;
+  --accent: #c8422a;
+  --accent-ink: #fff8f3;
+  --link: #a83a24;
+  --chip-bg: rgba(28, 25, 23, 0.05);
+  --chip-on-bg: var(--text);
+  --chip-on-fg: var(--bg);
+  --focus: #c8422a;
+  --toast-bg: var(--text);
+  --toast-fg: var(--bg);
+  --tabbar-bg: rgba(255, 253, 249, 0.92);
+}
+
+/* ==========================================================================
+   §2 — BASE
+   ========================================================================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: var(--scheme);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--link);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.ico {
+  display: block;
+  flex: none;
+}
+
+/* Boot fallback shown until main.js renders the first screen. */
+.boot {
+  margin: var(--s-8) auto;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ==========================================================================
+   §3 — APP FRAME
+   ========================================================================== */
+.app {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--safe-top) 0 var(--safe-bottom);
+}
+/* Room for the fixed tab bar; toggled by main.js so the Reader reclaims it. */
+.app--with-tabbar {
+  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+  padding: var(--s-4);
+}
+
+.screen__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 44px;
+}
+
+.screen__title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  line-height: var(--lh-tight);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.screen__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* ==========================================================================
+   §4 — PRIMITIVES
+   ========================================================================== */
+
+/* Tab bar: fixed to the bottom, one link per tab, the active one in accent. */
+.tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-around;
+  height: calc(var(--tabbar-h) + var(--safe-bottom));
+  padding: 0 var(--s-2) var(--safe-bottom);
+  background: var(--tabbar-bg);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--hairline);
+}
+.tabbar[hidden] {
+  display: none;
+}
+.tabbar__tab {
+  flex: 1;
+  max-width: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-1);
+  color: var(--faint);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  border-radius: var(--r-control);
+  transition: color var(--dur-fast) var(--ease);
+}
+.tabbar__tab:hover {
+  text-decoration: none;
+  color: var(--muted);
+}
+.tabbar__tab[aria-current='page'] {
+  color: var(--accent);
+}
+
+/* Card: the surface for content blocks and list rows. */
+.card {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  box-shadow: var(--card-shadow);
+  padding: var(--s-4);
+}
+.card__title {
+  margin: 0 0 var(--s-3);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Row inside a card: label on the left, control on the right; wraps on narrow. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2) var(--s-4);
+}
+.row__label {
+  font-weight: 500;
+}
+
+/* Chip: a pill for filters and segmented choices. `.chip--on` is the pressed one. */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--chip-bg);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.chip--on {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+  border-color: transparent;
+}
+.chip--muted {
+  color: var(--muted);
+  cursor: default;
+}
+.seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+/* Button: default is a quiet control; `--primary` is the accent fill;
+   `--icon` is a circular hit target for a single glyph. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 40px;
+  padding: 0 var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--card);
+  color: var(--text);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease),
+    transform var(--dur-fast) var(--ease);
+}
+.btn:hover {
+  text-decoration: none;
+}
+.btn:active {
+  transform: scale(0.98);
+}
+.btn--primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-ink);
+}
+.btn--icon {
+  width: 40px;
+  padding: 0;
+  border-radius: var(--r-pill);
+}
+
+/* Toast: a transient status line above the tab bar. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+  z-index: 20;
+  transform: translateX(-50%);
+  max-width: calc(100vw - var(--s-8));
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-control);
+  background: var(--toast-bg);
+  color: var(--toast-fg);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  box-shadow: var(--card-shadow);
+}
+
+/* Empty state: centred copy with an optional action. */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-4);
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+}
+.empty__text {
+  margin: 0;
+  max-width: 36ch;
+  color: var(--muted);
+  font-size: var(--fs-lead);
+  line-height: var(--lh-body);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+  }
+}
