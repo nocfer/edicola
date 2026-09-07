@@ -64,7 +64,7 @@ follow.
 27. As a reader, I want the app to mark an Item Saved so that it and its Article are never Evicted, so that I can keep something indefinitely.
 28. As a reader, I want a Saved screen listing everything I have Saved, so that I can find it later.
 29. As a reader, I want Sync to happen when I open the app if the last Sync is older than fifteen minutes, so that I do not have to remember to refresh.
-30. As a reader, I want Sync to run in the background of the page without freezing the interface, so that I can start reading while it works.
+30. As a reader, I want Sync to run without freezing the interface, so that I can start reading while it works.
 31. As a reader on a supporting browser, I want the app to refresh opportunistically while closed, so that Today is fresher when I open it, without depending on it.
 
 ### Storage and settings
@@ -99,7 +99,7 @@ follow.
 
 - No backend (ADR-0001). One fetcher handles all content requests: direct fetch first, then the configured Proxy. The default Proxy is a public one; Settings exposes it and lets the reader override it.
 - Feed autodiscovery: given a site URL, fetch the page and read the alternate-link hints for RSS, Atom and JSON Feed; offer the candidates found.
-- Sync: triggered on open when the last Sync is older than 15 minutes, and on pull to refresh. Runs in a Web Worker. Order is round-robin across Enabled Publications, newest Items first. Concurrency 4. One retry on failure, then the Item is marked Summary-only and Sync moves on.
+- Sync: triggered on open when the last Sync is older than 15 minutes, and on pull to refresh. Runs on the page thread, yielding between Items so the UI stays responsive (workers lack `DOMParser`). Order is round-robin across Enabled Publications, newest Items first. Concurrency 4. One retry on failure, then the Item is marked Summary-only and Sync moves on.
 - Pre-fetch caps, all adjustable in Settings: 10 Articles per Publication per Sync; 50 Items kept per Publication.
 - Periodic Background Sync is registered where available and never relied upon (ADR-0007). The service worker does not intercept content requests.
 

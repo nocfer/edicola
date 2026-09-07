@@ -5,7 +5,7 @@ status: accepted
 
 The service worker precaches the Shell, runtime-caches pinned esm.sh modules
 cache-first, and does not intercept Feed, Original or Proxy requests at all.
-Sync runs from the page (in a Web Worker) when the app opens or on demand, and
+Sync runs on the page thread when the app opens or on demand, yielding between Items (a Web Worker was rejected: `DOMParser` and DOMPurify are unavailable there, and both parsing and Extraction need them), and
 Periodic Background Sync is registered only as an opportunistic enhancement
 where the browser supports it. We chose this over service-worker-driven sync
 because content belongs in the database (ADR-0003), background sync is

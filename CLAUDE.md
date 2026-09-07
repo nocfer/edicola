@@ -82,7 +82,7 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
 - **Routing is hash-based**: `#/` Today, `#/item/:id` Reader, `#/saved`,
   `#/publications`, `#/settings`. The Reader is a full-screen push that hides
   the tab bar.
-- **Sync runs in a Web Worker** from the page, on open (if the last Sync is
+- **Sync runs on the page thread, chunked and yielding** (no Web Worker: `DOMParser` and DOMPurify are unavailable in workers), on open (if the last Sync is
   older than 15 min) or on demand. Concurrency 4, round-robin across Enabled
   Publications, newest first, one retry then mark Summary-only. Pre-fetch 10
   Articles per Publication per Sync, keep 50 Items per Publication.
