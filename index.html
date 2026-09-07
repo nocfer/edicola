@@ -105,20 +105,19 @@
     </script>
     <script type="module" src="./src/main.js"></script>
     <script>
-      // Register the service worker (offline / install) and refresh the view
-      // automatically when a new version takes over. updateViaCache:'none'
+      // Register the service worker (offline / install). updateViaCache:'none'
       // makes the browser always revalidate sw.js from the network instead of
       // honoring its HTTP max-age, so a shipped fix reaches clients on the next
-      // visit even if an upstream cache set a long TTL. Ticket 12 replaces the
-      // automatic reload with an update prompt (ADR-0008).
+      // visit even if an upstream cache set a long TTL.
+      //
+      // There is deliberately NO automatic reload on `controllerchange` here
+      // (ADR-0008): a new Shell must never swap itself in mid-article. sw.js
+      // waits instead of calling skipWaiting(), src/update.js notices the
+      // waiting worker and shows the update prompt, and only the reader's
+      // confirmation activates it and reloads every tab together. Registration
+      // stays in this classic script so it happens even if the modules fail to
+      // link and the self-heal watchdog above has to step in.
       if ('serviceWorker' in navigator) {
-        let refreshing = false;
-        const hadController = !!navigator.serviceWorker.controller;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (refreshing || !hadController) return;
-          refreshing = true;
-          window.location.reload();
-        });
         const loaded = new Promise((resolve) => window.addEventListener('load', resolve));
         loaded.then(() => {
           navigator.serviceWorker

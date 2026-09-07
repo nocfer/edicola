@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-474f25a8";
+const CACHE = "edicola-30ae993e";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.
@@ -34,6 +34,9 @@ const SHELL = [
   "./src/store.js",
   "./src/sync.js",
   "./src/sync-client.js",
+  "./src/settings.js",
+  "./src/storage-usage.js",
+  "./src/update.js",
 ];
 
 // CDN hosts whose pinned modules the app loads at runtime (lit-html, and later
@@ -42,13 +45,13 @@ const SHELL = [
 // because each fetched sub-module is cached on the way in.
 const CDN_HOSTS = ["esm.sh"];
 
+// Pre-cache the Shell and then WAIT. `skipWaiting()` is deliberately absent
+// (ADR-0008): a new worker sits in `registration.waiting` until the reader
+// confirms the update prompt, which posts `{ type: 'skip-waiting' }` below.
+// A first install has no existing controller, so it activates immediately
+// anyway and the very first visit is not held up.
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((cache) => cache.addAll(SHELL))
-      .then(() => self.skipWaiting()),
-  );
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
 });
 
 self.addEventListener("activate", (event) => {
@@ -68,6 +71,13 @@ self.addEventListener("activate", (event) => {
 // (see index.html), so the first online load leaves a complete offline cache.
 self.addEventListener("message", (event) => {
   const data = event.data;
+  // The reader confirmed the update prompt (src/update.js posts this exact
+  // type). Activate now; `clients.claim()` in `activate` fires
+  // `controllerchange` in every open tab, which is what reloads them together.
+  if (data?.type === "skip-waiting") {
+    self.skipWaiting();
+    return;
+  }
   if (data?.type !== "warm-cdn" || !Array.isArray(data.urls)) return;
   const urls = data.urls.filter((u) => {
     try {

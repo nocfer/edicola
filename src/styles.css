@@ -376,6 +376,195 @@ button {
   text-align: right;
 }
 
+/* Settings: the Proxy, Retention, Storage and About cards, the text and number
+   inputs they introduce, the destructive-action block, and the update prompt.
+   Tokens only — no raw colour, space, radius or font literal (CLAUDE.md).
+   `.input`, `.btn--danger` and `.update` are general primitives that happen to
+   arrive with this screen; a later screen may use them as they are. */
+.input {
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.input::placeholder {
+  color: var(--faint);
+}
+.input[aria-invalid='true'] {
+  border-color: var(--accent);
+}
+.input--number {
+  width: 7ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.input:disabled {
+  color: var(--faint);
+}
+
+.btn--danger {
+  border-color: var(--accent);
+  color: var(--link);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.btn:disabled:active {
+  transform: none;
+}
+
+/* A labelled block inside a card: label, control, hint, all stacked. */
+.settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+.settings__label {
+  font-weight: 500;
+}
+.settings__input {
+  width: 100%;
+}
+.settings__about,
+.settings__hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+.settings__about {
+  margin-bottom: var(--s-3);
+}
+.settings__code {
+  overflow-wrap: anywhere;
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-control);
+  background: var(--chip-bg);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+}
+.settings__error,
+.settings__ok {
+  margin: 0;
+  font-size: var(--fs-caption);
+}
+.settings__error {
+  color: var(--link);
+}
+.settings__ok {
+  color: var(--text);
+}
+.settings__value {
+  color: var(--muted);
+  text-align: right;
+}
+.settings__value--mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* Retention: one limit per row, its default under the label. */
+.settings__limit {
+  margin-top: var(--s-3);
+}
+.settings__default {
+  display: block;
+  color: var(--faint);
+  font-size: var(--fs-caption);
+  font-weight: 400;
+}
+.settings__number {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.settings__unit {
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+/* Storage: the per-table breakdown. */
+.settings__subtitle {
+  margin: var(--s-4) 0 var(--s-2);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.settings__tables {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.settings__table {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-1) 0;
+  font-size: var(--fs-caption);
+}
+.settings__table-name {
+  flex: 1;
+  color: var(--text);
+}
+.settings__table-rows {
+  color: var(--faint);
+}
+.settings__table-bytes {
+  min-width: 8ch;
+  color: var(--muted);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.settings__danger {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--hairline);
+}
+
+/* Update prompt (ADR-0008): sits above the tab bar like the toast, but stays
+   until the reader answers, so it is a card rather than a transient line. */
+.update {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+  z-index: 20;
+  transform: translateX(-50%);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+  width: calc(100% - var(--s-8));
+  max-width: calc(var(--measure) - var(--s-8));
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-card);
+  background: var(--card);
+  box-shadow: var(--card-shadow);
+}
+.update__text {
+  flex: 1 1 12ch;
+  font-weight: 600;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

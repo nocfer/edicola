@@ -153,23 +153,71 @@ export function createDatabase(name = DB_NAME) {
 let handle = null;
 
 /**
+ * What `meta` held when the database opened, before this boot stamped it.
+ * @typedef {object} StampedVersions
+ * @property {string | null} appVersion `APP_VERSION` of the Shell that wrote
+ *   the database last, or null on a first run.
+ * @property {number | null} schemaVersion
+ */
+
+/** @type {Promise<StampedVersions> | null} */
+let versionsBeforeStamp = null;
+
+/**
  * The app's one database handle, opened lazily. Stamps `schemaVersion` and
- * `appVersion` into `meta` on the first call so ADR-0008's version guard has
- * something to compare against.
+ * `appVersion` into `meta` on Dexie's `ready` event so ADR-0008's version guard
+ * has something to compare against, and reads the previous values first so the
+ * guard can still see them (see `readVersionsBeforeStamp`).
  * @returns {EdicolaDb}
  */
 export function getDatabase() {
   if (!handle) {
     const db = createDatabase();
-    db.on("ready", () =>
-      db.meta.bulkPut([
+    /** @type {(value: StampedVersions) => void} */
+    let settle = () => {};
+    versionsBeforeStamp = new Promise((resolve) => {
+      settle = resolve;
+    });
+    // Dexie waits for a promise returned from `ready` before letting any other
+    // query through, so the read below always sees the pre-stamp values.
+    db.on("ready", async () => {
+      /** @type {StampedVersions} */
+      let previous = { appVersion: null, schemaVersion: null };
+      try {
+        const rows = await db.meta.bulkGet([
+          META_KEYS.appVersion,
+          META_KEYS.schemaVersion,
+        ]);
+        previous = {
+          appVersion: /** @type {any} */ (rows[0]?.value ?? null),
+          schemaVersion: /** @type {any} */ (rows[1]?.value ?? null),
+        };
+      } finally {
+        settle(previous);
+      }
+      await db.meta.bulkPut([
         { key: META_KEYS.schemaVersion, value: SCHEMA_VERSION },
         { key: META_KEYS.appVersion, value: APP_VERSION },
-      ]),
-    );
+      ]);
+    });
     handle = db;
   }
   return handle;
+}
+
+/**
+ * The `appVersion` and `schemaVersion` the database carried *before* this boot
+ * stamped the running versions in. ADR-0008's version guard (`src/update.js`)
+ * compares `appVersion` with the running `APP_VERSION`: a stored version that is
+ * newer means this Shell is stale and one reload should pick up the newer one.
+ *
+ * Resolves when the database opens, so `await` it rather than reading `meta`
+ * directly — by then the stamp has already overwritten those rows.
+ * @returns {Promise<StampedVersions>}
+ */
+export function readVersionsBeforeStamp() {
+  getDatabase();
+  return /** @type {Promise<StampedVersions>} */ (versionsBeforeStamp);
 }
 
 /**

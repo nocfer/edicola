@@ -13,6 +13,7 @@ import {
 } from "./extract.js";
 import { parseFeed } from "./feed.js";
 import { createFetcher } from "./fetcher.js";
+import { effectiveProxyTemplate, getSettingsStore } from "./settings.js";
 import { state, update } from "./state.js";
 import { getSyncStore } from "./store.js";
 import { runSync } from "./sync.js";
@@ -50,15 +51,26 @@ function publish(patch) {
 }
 
 /**
- * The fetcher the page uses: the browser's `fetch`, the default Proxy and
- * `navigator.onLine` as the offline tiebreaker (ADR-0001). Ticket 12 will pass
- * the reader's own Proxy template from the `settings` table.
- * @returns {import('./fetcher.js').Fetcher}
+ * The fetcher the page uses: the browser's `fetch`, the reader's Proxy and
+ * `navigator.onLine` as the offline tiebreaker (ADR-0001). The template comes
+ * from the `settings` table on every run, so a Proxy saved in Settings takes
+ * effect on the next Sync without a reload; a missing or invalid row falls back
+ * to the shipped default (`effectiveProxyTemplate`).
+ * @returns {Promise<import('./fetcher.js').Fetcher>}
  */
-function pageFetcher() {
+async function pageFetcher() {
+  let proxyTemplate;
+  try {
+    proxyTemplate = effectiveProxyTemplate(
+      await (await getSettingsStore()).getProxyTemplate(),
+    );
+  } catch {
+    proxyTemplate = effectiveProxyTemplate("");
+  }
   return createFetcher({
     fetch: (input, init) => globalThis.fetch(input, init),
     onLine: () => navigator.onLine,
+    proxyTemplate,
   });
 }
 
@@ -76,7 +88,7 @@ export function syncNow({ publicationIds } = {}) {
     try {
       const summary = await runSync({
         store,
-        fetcher: pageFetcher(),
+        fetcher: await pageFetcher(),
         parseFeed,
         extractArticle: extractArticleInBrowser,
         sanitizeSummary: sanitizeSummaryInBrowser,
