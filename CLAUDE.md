@@ -7,6 +7,14 @@ and everything already fetched reads with no connection. Vocabulary lives in
 architectural decision is recorded in `docs/adr/` — read the ones touching your
 area before editing, and flag a conflict instead of silently overriding.
 
+**The conventions are written down twice.** This file and `CONTRIBUTING.md`
+describe the same gates, the same CSS rules and the same test guarantees for two
+different readers, so changing one of those behaviours means editing **both** in
+the same commit. Review once found `CONTRIBUTING.md` still telling contributors
+to hunt duplicate CSS selectors by hand because "no gate catches this", one
+commit after a gate started catching it. Grep `CONTRIBUTING.md` for whatever you
+just changed here, and the reverse.
+
 The skeleton, tooling and conventions are inherited from
 [SkyHue](https://github.com/nocfer/skyhue). When in doubt about a convention,
 that repo is the reference implementation.
