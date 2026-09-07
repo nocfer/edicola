@@ -33,6 +33,33 @@
  */
 
 /**
+ * The Settings screen's own state (ticket 12). `proxyDraft` and
+ * `retentionDraft` are what the inputs hold; the non-draft fields are what the
+ * `settings` table holds, so "Save" is enabled exactly when they differ.
+ *
+ * @typedef {object} SettingsState
+ * @property {boolean} loaded  the `settings` table has been read once
+ * @property {string} proxyTemplate  the stored override; "" = the default Proxy
+ * @property {string} proxyDraft  what the Proxy input holds
+ * @property {import('./settings.js').ProxyTestResult|null} proxyTest  last "Test" result
+ * @property {boolean} proxyTesting  a "Test" is in flight
+ * @property {import('./retention.js').RetentionLimits|null} retention  stored limits
+ * @property {import('./retention.js').RetentionLimits|null} retentionDraft  edited limits
+ * @property {import('./storage-usage.js').StorageUsage|null} storage  last measurement
+ * @property {boolean} storageMeasuring  a measurement is in flight
+ * @property {number} enabledPublications  how many Publications are Enabled
+ * @property {boolean} busy  a save or a destructive action is running
+ */
+
+/**
+ * A new Shell waiting to take over (ADR-0008), published by `update.js`.
+ *
+ * @typedef {object} UpdateState
+ * @property {boolean} available  a worker is waiting and the reader was told
+ * @property {boolean} applying  the reader confirmed; the reload is on its way
+ */
+
+/**
  * @typedef {object} State
  * @property {Route} route   the current screen, kept in sync by the router
  * @property {ThemePreference} theme  the reader's preference, not the resolved theme
@@ -40,6 +67,8 @@
  * @property {boolean} online  mirrors `navigator.onLine`
  * @property {string|null} toast  transient message shown by the `.toast` primitive
  * @property {SyncState} sync  progress and result of the last Sync
+ * @property {SettingsState} settings  the Settings screen's own state
+ * @property {UpdateState} appUpdate  a waiting Shell, and whether it is being applied
  */
 
 /** @type {State} */
@@ -57,6 +86,20 @@ export const state = {
     lastSyncAt: null,
     lastSummary: null,
   },
+  settings: {
+    loaded: false,
+    proxyTemplate: "",
+    proxyDraft: "",
+    proxyTest: null,
+    proxyTesting: false,
+    retention: null,
+    retentionDraft: null,
+    storage: null,
+    storageMeasuring: false,
+    enabledPublications: 0,
+    busy: false,
+  },
+  appUpdate: { available: false, applying: false },
 };
 
 /** @type {Array<() => void>} */

@@ -8,9 +8,10 @@
 
 import { html, nothing, render } from "./render.js";
 import { state, subscribe, update } from "./state.js";
-import { applyStaticI18n, getLang, initLang, setLang } from "./i18n.js";
+import { applyStaticI18n, getLang, initLang, setLang, t } from "./i18n.js";
 import { hidesTabBar, startRouter } from "./router.js";
 import { initSyncClient, syncIfStale } from "./sync-client.js";
+import { applyUpdate, dismissUpdate, initUpdates } from "./update.js";
 import { todayView } from "./views/today.js";
 import { savedView } from "./views/saved.js";
 import { publicationsView } from "./views/publications.js";
@@ -92,13 +93,49 @@ function updateTabBar(/** @type {import('./router.js').Route} */ route) {
   }
 }
 
+/**
+ * The update prompt (ADR-0008): a new Shell is announced here and applied only
+ * when the reader says so. Rendered beside the toast because it belongs to the
+ * app frame, not to a screen — a reader on any tab must see it.
+ */
+function updatePrompt() {
+  if (!state.appUpdate.available) return nothing;
+  return html`
+    <div class="update" role="alert">
+      <span class="update__text">${t("settings.update.available")}</span>
+      <button
+        type="button"
+        class="btn btn--primary update__apply"
+        ?disabled=${state.appUpdate.applying}
+        @click=${() => {
+          void applyUpdate();
+        }}
+      >
+        ${
+          state.appUpdate.applying
+            ? t("settings.update.applying")
+            : t("settings.update.reload")
+        }
+      </button>
+      <button
+        type="button"
+        class="btn update__later"
+        ?disabled=${state.appUpdate.applying}
+        @click=${dismissUpdate}
+      >
+        ${t("settings.update.later")}
+      </button>
+    </div>
+  `;
+}
+
 /** The store's sole subscriber: every `update()` redraws through here. */
 function renderApp() {
   applyTheme(state.theme);
   applyLang(state.lang);
   const view = SCREENS[state.route.name] || notFoundView;
   render(
-    html`${view(state)}${
+    html`${view(state)}${updatePrompt()}${
       state.toast
         ? html`<div class="toast" role="status">${state.toast}</div>`
         : nothing
@@ -127,9 +164,6 @@ lightQuery.addEventListener("change", () => {
   if (state.theme === "system") update();
 });
 
-// Signal a healthy boot to the self-heal watchdog in index.html: if the module
-// graph linked and this startup ran, we are not in the bricked-Shell state the
-// watchdog guards against.
 // Sync wiring lives at boot, not in a view: the last-Sync time and the
 // "refresh if stale" rule are app-level, and Today (which mounts after this)
 // must not be the only screen that starts them. initSyncClient() restores
@@ -142,4 +176,13 @@ syncIfStale().catch((error) => {
   console.warn("Startup sync skipped:", error);
 });
 
+// Safe updates (ADR-0008): watch for a waiting service worker so the reader is
+// asked before a new Shell takes over, and compare this Shell's APP_VERSION
+// with the one stamped in the database so a stale Shell reloads itself once.
+// Both are opportunistic and never throw into the boot path.
+initUpdates();
+
+// Signal a healthy boot to the self-heal watchdog in index.html: if the module
+// graph linked and this startup ran, we are not in the bricked-Shell state the
+// watchdog guards against.
 window.__edicolaBooted = true;

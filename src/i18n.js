@@ -94,6 +94,102 @@ export const en = {
   "settings.language.en": "English",
   "settings.language.it": "Italiano",
 
+  "settings.proxy": "Proxy",
+  "settings.proxy.about":
+    "Feeds and Articles are fetched from the publisher directly whenever it allows it, and through a relay when it does not. Nothing else leaves your device.",
+  "settings.proxy.default": "Default relay",
+  "settings.proxy.defaultNote":
+    "The default relay is a small community service and can go away without notice. It also rewrites every response to text/plain, which Edicola parses anyway. Running your own is one click.",
+  "settings.proxy.inUse": "In use",
+  "settings.proxy.usingDefault": "The default relay",
+  "settings.proxy.usingCustom": "Your own relay",
+  "settings.proxy.custom": "Your own relay",
+  "settings.proxy.hint":
+    "A full URL containing {url}, where the address to fetch goes.",
+  "settings.proxy.save": "Save",
+  "settings.proxy.useDefault": "Use the default",
+  "settings.proxy.test": "Test",
+  "settings.proxy.testing": "Testing…",
+  "settings.proxy.testOk": "Works: a real Feed came back ({bytes}).",
+  "settings.proxy.testDirect":
+    "That Feed was reachable without a relay, so the relay was not tested.",
+  "settings.proxy.testFailed": "No Feed came back ({kind}).",
+  "settings.proxy.saved": "Proxy saved",
+  "settings.proxy.selfHost": "How to run your own relay",
+  "settings.proxy.invalid.missing-placeholder":
+    "The template must contain {url}.",
+  "settings.proxy.invalid.malformed": "That is not a valid address.",
+  "settings.proxy.invalid.insecure-scheme":
+    "Use https. Plain http only works on localhost.",
+
+  "settings.retention": "Retention",
+  "settings.retention.about":
+    "How much Edicola keeps. Saved Items are never removed, whatever these say.",
+  "settings.retention.maxAgeDays": "Days kept",
+  "settings.retention.maxTotalBytes": "Total size cap",
+  "settings.retention.maxImageBytesPerArticle": "Images per Article",
+  "settings.retention.keepPerPublication": "Items per Publication",
+  "settings.retention.prefetchPerPublication": "Pre-fetch per Publication",
+  "settings.retention.unit.days": "days",
+  "settings.retention.unit.bytes": "MB",
+  "settings.retention.unit.items": "Items",
+  "settings.retention.default": "default {value}",
+  "settings.retention.save": "Save",
+  "settings.retention.reset": "Restore defaults",
+  "settings.retention.saved": "Retention saved",
+  "settings.retention.evicted": "Retention saved — {count} Items removed",
+  "settings.retention.evictionPending":
+    "Retention saved. The smaller limits apply at the next Sync.",
+
+  "settings.storage": "Storage",
+  "settings.storage.about":
+    "Everything Edicola stores lives in one database on this device (ADR-0003). The browser reports a padded total for the whole site; the breakdown is measured from the rows.",
+  "settings.storage.used": "Reported by the browser",
+  "settings.storage.quota": "Available to this site",
+  "settings.storage.content": "Measured content",
+  "settings.storage.unknown": "Unknown",
+  "settings.storage.persistent": "Persistent storage",
+  "settings.storage.persistent.granted": "Granted",
+  "settings.storage.persistent.denied": "Not granted yet",
+  "settings.storage.persistent.unsupported": "Not supported here",
+  "settings.storage.persistent.unknown": "Not asked yet",
+  "settings.storage.savedItems": "Saved Items",
+  "settings.storage.tables": "By table",
+  "settings.storage.rows": "{rows} rows",
+  "settings.storage.measure": "Measure",
+  "settings.storage.measuring": "Measuring…",
+  "settings.storage.table.publications": "Publications",
+  "settings.storage.table.items": "Items",
+  "settings.storage.table.articles": "Articles",
+  "settings.storage.table.images": "Images",
+  "settings.storage.table.settings": "Settings",
+  "settings.storage.table.meta": "Meta",
+  "settings.storage.clear": "Clear all content",
+  "settings.storage.clear.hint":
+    "Removes every Item, Article and image. Your Enabled Publications and these settings stay.",
+  "settings.storage.clear.confirm":
+    "Remove every Item, Article and image? Your Enabled Publications and settings stay. Saved Items go too.",
+  "settings.storage.clear.done": "Content cleared",
+  "settings.storage.reset": "Reset app",
+  "settings.storage.reset.hint":
+    "Deletes the database and every preference, then reloads. The app itself stays installed and still opens offline.",
+  "settings.storage.reset.confirm":
+    "Delete everything, including your Enabled Publications, Saved Items and settings? This cannot be undone.",
+
+  "settings.sync.noPublications": "No Publications enabled yet",
+  "settings.sync.choose": "Choose Publications",
+
+  "settings.update.available": "New version available",
+  "settings.update.reload": "Reload",
+  "settings.update.applying": "Updating…",
+  "settings.update.later": "Later",
+
+  "settings.about": "About",
+  "settings.about.version": "Version",
+  "settings.about.schema": "Database schema",
+  "settings.about.shell": "Shell",
+  "settings.error": "That did not work. Try again.",
+
   "sync.title": "Sync",
   "sync.now": "Sync now",
   "sync.running": "Syncing…",
@@ -199,6 +295,103 @@ export const it = {
   "settings.language": "Lingua",
   "settings.language.en": "English",
   "settings.language.it": "Italiano",
+
+  "settings.proxy": "Proxy",
+  "settings.proxy.about":
+    "I feed e gli articoli vengono scaricati direttamente dall'editore quando è possibile, e attraverso un relay quando non lo è. Nient'altro lascia questo dispositivo.",
+  "settings.proxy.default": "Relay predefinito",
+  "settings.proxy.defaultNote":
+    "Il relay predefinito è un piccolo servizio della comunità e può sparire senza preavviso. Riscrive anche ogni risposta in text/plain, che Edicola interpreta comunque. Metterne in piedi uno tuo richiede un clic.",
+  "settings.proxy.inUse": "In uso",
+  "settings.proxy.usingDefault": "Il relay predefinito",
+  "settings.proxy.usingCustom": "Il tuo relay",
+  "settings.proxy.custom": "Il tuo relay",
+  "settings.proxy.hint":
+    "Un indirizzo completo che contiene {url}, dove va la pagina da scaricare.",
+  "settings.proxy.save": "Salva",
+  "settings.proxy.useDefault": "Usa il predefinito",
+  "settings.proxy.test": "Prova",
+  "settings.proxy.testing": "Prova in corso…",
+  "settings.proxy.testOk": "Funziona: è arrivato un feed vero ({bytes}).",
+  "settings.proxy.testDirect":
+    "Quel feed era raggiungibile senza relay, quindi il relay non è stato provato.",
+  "settings.proxy.testFailed": "Nessun feed è arrivato ({kind}).",
+  "settings.proxy.saved": "Proxy salvato",
+  "settings.proxy.selfHost": "Come gestire il tuo relay",
+  "settings.proxy.invalid.missing-placeholder":
+    "Il modello deve contenere {url}.",
+  "settings.proxy.invalid.malformed": "Non è un indirizzo valido.",
+  "settings.proxy.invalid.insecure-scheme":
+    "Usa https. Il semplice http funziona solo su localhost.",
+
+  "settings.retention": "Conservazione",
+  "settings.retention.about":
+    "Quanto Edicola conserva. Gli articoli salvati non vengono mai rimossi, qualunque cosa dicano questi limiti.",
+  "settings.retention.maxAgeDays": "Giorni conservati",
+  "settings.retention.maxTotalBytes": "Spazio massimo totale",
+  "settings.retention.maxImageBytesPerArticle": "Immagini per articolo",
+  "settings.retention.keepPerPublication": "Titoli per testata",
+  "settings.retention.prefetchPerPublication": "Pre-scaricati per testata",
+  "settings.retention.unit.days": "giorni",
+  "settings.retention.unit.bytes": "MB",
+  "settings.retention.unit.items": "titoli",
+  "settings.retention.default": "predefinito {value}",
+  "settings.retention.save": "Salva",
+  "settings.retention.reset": "Ripristina i predefiniti",
+  "settings.retention.saved": "Conservazione salvata",
+  "settings.retention.evicted":
+    "Conservazione salvata — {count} titoli rimossi",
+  "settings.retention.evictionPending":
+    "Conservazione salvata. I limiti più bassi valgono dalla prossima sincronizzazione.",
+
+  "settings.storage": "Spazio",
+  "settings.storage.about":
+    "Tutto ciò che Edicola conserva vive in un solo database su questo dispositivo (ADR-0003). Il browser dichiara un totale arrotondato per tutto il sito; il dettaglio è misurato sulle righe.",
+  "settings.storage.used": "Dichiarato dal browser",
+  "settings.storage.quota": "Disponibile per questo sito",
+  "settings.storage.content": "Contenuti misurati",
+  "settings.storage.unknown": "Non disponibile",
+  "settings.storage.persistent": "Spazio persistente",
+  "settings.storage.persistent.granted": "Concesso",
+  "settings.storage.persistent.denied": "Non ancora concesso",
+  "settings.storage.persistent.unsupported": "Non supportato qui",
+  "settings.storage.persistent.unknown": "Non ancora richiesto",
+  "settings.storage.savedItems": "Articoli salvati",
+  "settings.storage.tables": "Per tabella",
+  "settings.storage.rows": "{rows} righe",
+  "settings.storage.measure": "Misura",
+  "settings.storage.measuring": "Misurazione…",
+  "settings.storage.table.publications": "Testate",
+  "settings.storage.table.items": "Titoli",
+  "settings.storage.table.articles": "Articoli",
+  "settings.storage.table.images": "Immagini",
+  "settings.storage.table.settings": "Impostazioni",
+  "settings.storage.table.meta": "Meta",
+  "settings.storage.clear": "Cancella i contenuti",
+  "settings.storage.clear.hint":
+    "Rimuove ogni titolo, articolo e immagine. Le testate attive e queste impostazioni restano.",
+  "settings.storage.clear.confirm":
+    "Rimuovere ogni titolo, articolo e immagine? Le testate attive e le impostazioni restano. Anche gli articoli salvati vengono rimossi.",
+  "settings.storage.clear.done": "Contenuti cancellati",
+  "settings.storage.reset": "Reimposta l'app",
+  "settings.storage.reset.hint":
+    "Cancella il database e ogni preferenza, poi ricarica. L'app resta installata e si apre ancora offline.",
+  "settings.storage.reset.confirm":
+    "Cancellare tutto, comprese le testate attive, gli articoli salvati e le impostazioni? L'operazione è definitiva.",
+
+  "settings.sync.noPublications": "Nessuna testata ancora attiva",
+  "settings.sync.choose": "Scegli le testate",
+
+  "settings.update.available": "Nuova versione disponibile",
+  "settings.update.reload": "Ricarica",
+  "settings.update.applying": "Aggiornamento…",
+  "settings.update.later": "Più tardi",
+
+  "settings.about": "Informazioni",
+  "settings.about.version": "Versione",
+  "settings.about.schema": "Schema del database",
+  "settings.about.shell": "Shell",
+  "settings.error": "Non ha funzionato. Riprova.",
 
   "sync.title": "Sincronizzazione",
   "sync.now": "Sincronizza ora",
