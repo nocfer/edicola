@@ -548,7 +548,7 @@ function publicationRow(entry) {
             ? html`<button
                 type="button"
                 class="btn unread__markread"
-                aria-label=${t("today.moreAria", { name: entry.name })}
+                aria-label=${`${t("today.markAllRead")} · ${entry.name}`}
                 @click=${() => markAllRead(entry)}
               >
                 ${t("today.markAllRead")}
