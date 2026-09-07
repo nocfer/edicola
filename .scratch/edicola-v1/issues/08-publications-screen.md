@@ -7,7 +7,7 @@ inferred from browser locale on first run. A "Add by URL" form at the bottom
 runs feed autodiscovery and creates a Custom Publication. Toggles persist and
 drive which Publications Sync.
 
-**Blocked by:** 01, 02 (discoverFeeds), 06 (catalog), 07 (db/store).
+**Blocked by:** 01, 02 (discoverFeeds), 06 (catalog), 07 (db/store). All merged into `main`.
 
 **Status:** ready-for-agent
 
@@ -25,3 +25,28 @@ styles under a `/* Publications */` block in `styles.css`. May add
 - [ ] Strings in `en` and `it`; the i18n parity test still passes.
 - [ ] CDP screenshots of the screen in both themes and both Languages, including the add-by-URL result state.
 - [ ] Gates green, stamp run.
+
+## Integrator notes (read before starting)
+
+- **`src/settings.js` does not exist and ticket 12 owns it.** Persist your
+  Nation selection and Language choice through the `settings` table using the
+  store, and keep the read/write in **one small pair of helpers at the top of
+  `src/catalog.js`** (for example `readSelectedNations` / `writeSelectedNations`).
+  Ticket 12 will move them into `src/settings.js` later. Do not create
+  `src/settings.js` and do not restructure `src/views/settings.js`.
+- **`items.saved` is stored as `0 | 1`, not a boolean** — IndexedDB cannot index
+  a boolean and the schema indexes it. Same for any other indexed flag you add.
+- **Item ids are `publicationId + ":" + feedItemId`.** Feed-level ids collide
+  across Publications; never key on the raw Feed id.
+- **A Custom Publication needs an `id`** that cannot collide with a Catalog
+  slug. Derive it from the Feed URL (for example `custom:` plus a hash) and say
+  what you chose in your Notes.
+- **Known wrinkle you may fix if it is cheap, otherwise report it:** with no
+  Enabled Publications, the boot-time `syncIfStale()` still writes `lastSyncAt`,
+  so Settings reads "Last synced: now, 0 Items". Enabling a Publication should
+  make the next Sync do real work regardless.
+- The Catalog is at `data/catalog.json` (30 verified Publications, 15 IT and
+  15 GB). `tools/check-catalog.mjs` exports `validateCatalog`, `CATEGORIES` and
+  `feedKind`; reuse rather than re-deriving. `data/catalog.json` is **not** in
+  the `SHELL` array yet — add it, since the app cannot show the Catalog offline
+  without it, then run `npm run stamp`.
