@@ -9,6 +9,12 @@
 // reads it and it does not survive a reload, so it stays out of `state.js`.
 // Every mutation still ends in a bare `update()`, so the single subscriber in
 // main.js is what redraws (CLAUDE.md).
+//
+// The Nation selection *is* a reader preference, so it goes through the one
+// settings layer (`src/settings.js`: `getNations` / `setNations`) and is handed
+// to `loadPublications` as data. This screen is that row's only writer. The
+// Language it may seed on first run belongs to `localStorage['edicola.lang']`
+// (`src/i18n.js`), which is the app's single copy of it.
 
 import {
   addCustomPublication,
@@ -19,13 +25,12 @@ import {
   loadPublications,
   removeCustomPublication,
   setPublicationEnabled,
-  writeLanguage,
-  writeSelectedNations,
 } from "../catalog.js";
 import { getDatabase } from "../db.js";
 import { createFetcher } from "../fetcher.js";
 import { LANG_KEY, LOCALES, t } from "../i18n.js";
 import { html, nothing, repeat } from "../render.js";
+import { getSettingsStore } from "../settings.js";
 import { showToast, state, update } from "../state.js";
 import { syncNow } from "../sync-client.js";
 import { emptyState, screenHeader } from "./layout.js";
@@ -154,6 +159,27 @@ function inCatalogOrder(nations) {
   return screen.nations.filter((country) => nations.includes(country));
 }
 
+// --- The Nation selection (the one setting this screen owns) ---------------
+
+/**
+ * The stored Nation selection; `[]` when the reader has never chosen, which is
+ * the first-run signal `loadPublications` seeds from.
+ * @returns {Promise<string[]>}
+ */
+async function readNations() {
+  return await (await getSettingsStore()).getNations();
+}
+
+/**
+ * Persist the Nation selection. The store refuses an empty list, so every
+ * caller has already checked that at least one Nation stays selected.
+ * @param {readonly string[]} nations
+ * @returns {Promise<void>}
+ */
+async function saveNations(nations) {
+  await (await getSettingsStore()).setNations(nations);
+}
+
 // --- Loading ---------------------------------------------------------------
 
 /**
@@ -169,6 +195,7 @@ async function load({ seed = false } = {}) {
     const data = await loadPublications(db, {
       languages: navigator.languages ? [...navigator.languages] : [],
       catalog: screen.catalog ?? undefined,
+      selectedNations: await readNations(),
     });
     screen.catalog = data.catalog;
     screen.categories = data.catalog.categories || [];
@@ -177,7 +204,7 @@ async function load({ seed = false } = {}) {
     screen.selectedNations = data.selectedNations;
     screen.status = "ready";
     if (seed) applyInferredLang(data.inferredLang);
-    await writeLanguage(db, state.lang);
+    if (data.inferredNations) await saveNations(data.inferredNations);
   } catch (error) {
     console.warn("Catalog could not be loaded:", error);
     if (screen.status !== "ready") screen.status = "error";
@@ -197,8 +224,11 @@ function ensureLoaded() {
 
 /**
  * Apply the Language the browser locale suggests (ADR-0006), but only on first
- * run and only while the reader has not chosen one: `edicola.lang` is written
- * the moment they pick a Language in Settings.
+ * run and only while the reader has not chosen one. `edicola.lang` in
+ * localStorage is the app's single copy of the Language and is written the
+ * moment they pick one in Settings, so its absence is exactly "not chosen yet";
+ * `update({ lang })` then flows through main.js's `applyLang`, which calls
+ * `setLang` and so writes that key. Nothing is stored in the database.
  * @param {import('../state.js').Lang|null} inferred
  */
 function applyInferredLang(inferred) {
@@ -278,7 +308,7 @@ async function toggleNation(country) {
   screen.selectedNations = inCatalogOrder(next);
   update();
   try {
-    await writeSelectedNations(getDatabase(), screen.selectedNations);
+    await saveNations(screen.selectedNations);
   } catch (error) {
     console.warn("Nation selection could not be saved:", error);
   }
@@ -293,7 +323,7 @@ async function ensureNationSelected(country) {
   if (!country || screen.selectedNations.includes(country)) return;
   screen.selectedNations = inCatalogOrder([...screen.selectedNations, country]);
   try {
-    await writeSelectedNations(getDatabase(), screen.selectedNations);
+    await saveNations(screen.selectedNations);
   } catch (error) {
     console.warn("Nation selection could not be saved:", error);
   }

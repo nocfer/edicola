@@ -20,6 +20,7 @@ import {
   effectiveProxyTemplate,
   EVICTING_FIELDS,
   MIB,
+  normalizeNations,
   normalizeRetention,
   normalizeSettings,
   PROXY_PLACEHOLDER,
@@ -54,6 +55,11 @@ import {
 
 test("the defaults shown are DEFAULT_RETENTION, unchanged", () => {
   assert.equal(DEFAULT_SETTINGS.retention, DEFAULT_RETENTION);
+  assert.deepEqual(
+    DEFAULT_SETTINGS.nations,
+    [],
+    "no Nation is chosen until the reader chooses",
+  );
   assert.deepEqual(normalizeRetention(null), { ...DEFAULT_RETENTION });
   assert.deepEqual(normalizeRetention(undefined), { ...DEFAULT_RETENTION });
   assert.deepEqual(normalizeRetention({}), { ...DEFAULT_RETENTION });
@@ -387,6 +393,7 @@ test("an empty settings table reads back as the defaults", async () => {
   assert.deepEqual(await store.read(), {
     proxyTemplate: "",
     retention: { ...DEFAULT_RETENTION },
+    nations: [],
   });
 });
 
@@ -440,6 +447,65 @@ test("an invalid template is stored as empty, so the default applies", async () 
     effectiveProxyTemplate(await store.getProxyTemplate()),
     DEFAULT_PROXY_TEMPLATE,
   );
+});
+
+// --- The Nation selection -------------------------------------------------
+
+test("a Nation selection is cleaned up rather than trusted", () => {
+  assert.deepEqual(normalizeNations(["gb", " it "]), ["GB", "IT"]);
+  assert.deepEqual(normalizeNations(["GB", "GB"]), ["GB"], "deduplicated");
+  assert.deepEqual(normalizeNations(["GB", "", 7, null, "GBR"]), ["GB"]);
+  assert.deepEqual(normalizeNations("GB"), [], "not an array");
+  assert.deepEqual(normalizeNations(undefined), []);
+  assert.deepEqual(
+    normalizeNations(["ZZ"]),
+    ["ZZ"],
+    "a Nation the Catalog has dropped still reads back; the screen filters it",
+  );
+  const input = ["gb"];
+  normalizeNations(input);
+  assert.deepEqual(input, ["gb"], "never mutates its input");
+});
+
+test("no Nation is selected until the reader chooses, which is the first-run signal", async () => {
+  const store = createSettingsStore(/** @type {any} */ (fakeDb()));
+  assert.deepEqual(await store.getNations(), []);
+});
+
+test("the Nation selection round-trips through its own row", async () => {
+  const db = fakeDb();
+  const store = createSettingsStore(/** @type {any} */ (db));
+  assert.deepEqual(await store.setNations(["GB", "it"]), ["GB", "IT"]);
+  assert.deepEqual(await store.getNations(), ["GB", "IT"]);
+  assert.deepEqual(
+    db.rows.get(SETTINGS_KEYS.nations).value,
+    ["GB", "IT"],
+    "stored under the documented key",
+  );
+  assert.deepEqual(
+    (await store.read()).retention,
+    { ...DEFAULT_RETENTION },
+    "the other settings are untouched",
+  );
+});
+
+test("an empty Nation selection is refused, not stored", async () => {
+  const db = fakeDb();
+  const store = createSettingsStore(/** @type {any} */ (db));
+  await store.setNations(["GB"]);
+  await assert.rejects(() => store.setNations([]), RangeError);
+  await assert.rejects(() => store.setNations(["nonsense"]), RangeError);
+  assert.deepEqual(
+    await store.getNations(),
+    ["GB"],
+    "the previous choice survives a refused write",
+  );
+});
+
+test("a corrupt Nation row reads back as no choice at all", async () => {
+  const db = fakeDb([{ key: SETTINGS_KEYS.nations, value: "GB,IT" }]);
+  const store = createSettingsStore(/** @type {any} */ (db));
+  assert.deepEqual(await store.getNations(), []);
 });
 
 test("clear drops every stored setting", async () => {

@@ -4,8 +4,10 @@
 // add-by-URL lookup against real Feed and HTML fixtures.
 //
 // Nothing here touches Dexie or the network: the database is a small fake with
-// the two tables the screen uses, and the fetcher is scripted per URL, which is
-// what keeps `src/catalog.js` importable and testable under Node.
+// the one table the module uses, and the fetcher is scripted per URL, which is
+// what keeps `src/catalog.js` importable and testable under Node. The Nation
+// selection is a setting, so it arrives as a parameter and leaves as
+// `inferredNations`; `test/settings.test.js` covers the row it lives in.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -25,13 +27,8 @@ import {
   mergeCatalog,
   nationsOf,
   normalizeFeedInput,
-  readLanguage,
-  readSelectedNations,
   removeCustomPublication,
   setPublicationEnabled,
-  SETTING_KEYS,
-  writeLanguage,
-  writeSelectedNations,
 } from "../src/catalog.js";
 
 const FIXTURES = fileURLToPath(new URL("./fixtures/feeds/", import.meta.url));
@@ -100,14 +97,11 @@ function row(overrides) {
 }
 
 /**
- * The two tables `src/catalog.js` uses, over plain Maps, with the handful of
+ * The one table `src/catalog.js` uses, over a plain Map, with the handful of
  * Dexie methods it calls.
  */
-function fakeDb(rows = [], settings = {}) {
+function fakeDb(rows = []) {
   const publications = new Map(rows.map((r) => [r.id, { ...r }]));
-  const settingRows = new Map(
-    Object.entries(settings).map(([key, value]) => [key, { key, value }]),
-  );
   const table = (map) => ({
     get: async (key) => map.get(key),
     put: async (value) => {
@@ -120,9 +114,7 @@ function fakeDb(rows = [], settings = {}) {
   });
   return {
     publications: table(publications),
-    settings: table(settingRows),
     _publications: publications,
-    _settings: settingRows,
   };
 }
 
@@ -334,29 +326,7 @@ test("the Nation and Language are guessed from the Feed's declared language", ()
   });
 });
 
-// --- The settings seam ------------------------------------------------------
-
-test("the Nation selection round-trips through the settings table", async () => {
-  const db = fakeDb();
-  assert.equal(await readSelectedNations(db), null);
-  await writeSelectedNations(db, ["GB", "IT"]);
-  assert.deepEqual(await readSelectedNations(db), ["GB", "IT"]);
-  assert.equal(
-    db._settings.get(SETTING_KEYS.selectedNations).value.length,
-    2,
-    "stored under the documented key",
-  );
-  await assert.rejects(() => writeSelectedNations(db, []), RangeError);
-});
-
-test("the Language round-trips and rejects nonsense", async () => {
-  const db = fakeDb();
-  assert.equal(await readLanguage(db), null);
-  await writeLanguage(db, "it");
-  assert.equal(await readLanguage(db), "it");
-  await writeLanguage(db, /** @type {any} */ ("de"));
-  assert.equal(await readLanguage(db), null);
-});
+// --- Resolving the Nation selection -----------------------------------------
 
 test("first run seeds the Nation selection from the browser locale", async () => {
   const db = fakeDb();
@@ -366,28 +336,36 @@ test("first run seeds the Nation selection from the browser locale", async () =>
   });
   assert.deepEqual(data.selectedNations, ["IT", "GB"]);
   assert.equal(data.inferredLang, "it");
-  assert.deepEqual(await readSelectedNations(db), ["IT", "GB"]);
+  assert.deepEqual(
+    data.inferredNations,
+    ["IT", "GB"],
+    "handed back for the caller to persist",
+  );
   assert.deepEqual(data.nations, ["IT", "GB"]);
   assert.equal(data.entries.length, 3);
 });
 
-test("a later run reads the saved Nations and infers nothing", async () => {
-  const db = fakeDb([], { [SETTING_KEYS.selectedNations]: ["GB"] });
+test("a later run uses the saved Nations and infers nothing", async () => {
+  const db = fakeDb();
   const data = await loadPublications(db, {
     languages: ["it-IT"],
     catalog: CATALOG,
+    selectedNations: ["GB"],
   });
   assert.deepEqual(data.selectedNations, ["GB"]);
+  assert.equal(data.inferredNations, null, "nothing to persist");
   assert.equal(data.inferredLang, null);
 });
 
 test("a saved Nation the Catalog no longer has falls back to the inference", async () => {
-  const db = fakeDb([], { [SETTING_KEYS.selectedNations]: ["ZZ"] });
+  const db = fakeDb();
   const data = await loadPublications(db, {
     languages: ["en-GB"],
     catalog: CATALOG,
+    selectedNations: ["ZZ"],
   });
   assert.deepEqual(data.selectedNations, ["GB"]);
+  assert.deepEqual(data.inferredNations, ["GB"]);
   assert.equal(data.inferredLang, null, "the reader's Language is left alone");
 });
 

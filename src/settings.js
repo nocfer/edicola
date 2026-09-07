@@ -10,10 +10,17 @@
 // resolves the app's one handle through a lazy dynamic import of `db.js`, so
 // importing this module never pulls the Dexie CDN bundle into Node.
 //
-// Two rows live in the `settings` table, one per key in `SETTINGS_KEYS`:
-// `proxyTemplate` (a string; "" means "use the default") and `retention` (a
-// RetentionLimits object). Anything missing or out of bounds reads back as the
-// default, so a hand-edited row can never brick the screen.
+// Three rows live in the `settings` table, one per key in `SETTINGS_KEYS`:
+// `proxyTemplate` (a string; "" means "use the default"), `retention` (a
+// RetentionLimits object) and `nations` (the Nation selection the Publications
+// screen shows). Anything missing or out of bounds reads back as the default,
+// so a hand-edited row can never brick the screen.
+//
+// The interface Language is deliberately *not* here. It lives in
+// `localStorage['edicola.lang']` alone (`src/i18n.js`), because the pre-paint
+// script in `index.html` has to set `<html lang>` before any module loads and
+// only synchronous storage can serve that; a second copy in this table would be
+// a copy nothing reads and everything could contradict.
 
 import { createFetcher, DEFAULT_PROXY_TEMPLATE } from "./fetcher.js";
 import { DEFAULT_RETENTION } from "./retention.js";
@@ -24,6 +31,7 @@ import { DEFAULT_RETENTION } from "./retention.js";
 export const SETTINGS_KEYS = Object.freeze({
   proxyTemplate: "proxyTemplate",
   retention: "retention",
+  nations: "nations",
 });
 
 /** The placeholder a Proxy template must carry (ADR-0001). */
@@ -47,12 +55,17 @@ export const PROXY_TEST_MAX_BYTES = 256 * 1024;
  * @typedef {object} Settings
  * @property {string} proxyTemplate The reader's override; "" = the default.
  * @property {RetentionLimits} retention
+ * @property {string[]} nations The Nations whose Publications the Catalog
+ *   shows, as upper-case ISO 3166-1 alpha-2 codes. Empty means the reader has
+ *   never chosen: that absence is the first-run signal the Publications screen
+ *   seeds from the browser locale (ADR-0006).
  */
 
 /** @type {Readonly<Settings>} */
 export const DEFAULT_SETTINGS = Object.freeze({
   proxyTemplate: "",
   retention: DEFAULT_RETENTION,
+  nations: [],
 });
 
 /**
@@ -247,6 +260,31 @@ export function retentionEquals(a, b) {
   return RETENTION_FIELDS.every((field) => a[field] === b[field]);
 }
 
+/** A Nation code as it is stored: ISO 3166-1 alpha-2, upper case. */
+const NATION_PATTERN = /^[A-Z]{2}$/;
+
+/**
+ * A clean Nation selection from whatever was stored or typed: upper-case ISO
+ * 3166-1 alpha-2 codes, in the given order, without duplicates and without
+ * anything that is not a Nation code. Never throws and never returns the input
+ * array, so a caller cannot mutate what is stored. An empty result means the
+ * reader has not chosen yet — see `Settings.nations`.
+ * @param {unknown} value
+ * @returns {string[]}
+ */
+export function normalizeNations(value) {
+  if (!Array.isArray(value)) return [];
+  /** @type {string[]} */
+  const out = [];
+  for (const item of value) {
+    if (typeof item !== "string") continue;
+    const code = item.trim().toUpperCase();
+    if (!NATION_PATTERN.test(code) || out.includes(code)) continue;
+    out.push(code);
+  }
+  return out;
+}
+
 /**
  * Normalize a whole stored settings object.
  * @param {Partial<Settings> | null | undefined} stored
@@ -258,6 +296,7 @@ export function normalizeSettings(stored) {
   return {
     proxyTemplate: check.valid ? check.template : "",
     retention: normalizeRetention(source.retention),
+    nations: normalizeNations(source.nations),
   };
 }
 
@@ -360,6 +399,12 @@ export async function testProxyTemplate(template, deps = {}) {
  * @property {(template: string) => Promise<string>} setProxyTemplate
  * @property {() => Promise<RetentionLimits>} getRetention
  * @property {(limits: Partial<RetentionLimits>) => Promise<RetentionLimits>} setRetention
+ * @property {() => Promise<string[]>} getNations
+ *   The Nation selection; `[]` when the reader has never chosen.
+ * @property {(nations: readonly string[]) => Promise<string[]>} setNations
+ *   Persist the selection. Throws `RangeError` on a list that normalizes to
+ *   nothing: at least one Nation must stay selected, and an empty row would
+ *   also erase the first-run signal.
  * @property {() => Promise<void>} clear
  *   Drop every stored setting, so the defaults apply again.
  */
@@ -386,13 +431,15 @@ export function createSettingsStore(db) {
 
   /** @returns {Promise<Settings>} */
   async function read() {
-    const [proxyTemplate, retention] = await Promise.all([
+    const [proxyTemplate, retention, nations] = await Promise.all([
       getValue(SETTINGS_KEYS.proxyTemplate),
       getValue(SETTINGS_KEYS.retention),
+      getValue(SETTINGS_KEYS.nations),
     ]);
     return normalizeSettings({
       proxyTemplate: /** @type {any} */ (proxyTemplate),
       retention: /** @type {any} */ (retention),
+      nations: /** @type {any} */ (nations),
     });
   }
 
@@ -412,6 +459,16 @@ export function createSettingsStore(db) {
           SETTINGS_KEYS.retention,
           normalizeRetention(patch.retention),
         );
+      }
+      if ("nations" in patch) {
+        const nations = normalizeNations(patch.nations);
+        // An empty selection is refused rather than stored: the Catalog needs
+        // at least one Nation to show, and `[]` is how "never chosen" is told
+        // apart from a real choice.
+        if (nations.length === 0) {
+          throw new RangeError("At least one Nation must stay selected");
+        }
+        await putValue(SETTINGS_KEYS.nations, nations);
       }
       return await read();
     },
@@ -434,6 +491,14 @@ export function createSettingsStore(db) {
         ...limits,
       });
       return (await this.write({ retention: next })).retention;
+    },
+
+    async getNations() {
+      return (await read()).nations;
+    },
+
+    async setNations(nations) {
+      return (await this.write({ nations: [...nations] })).nations;
     },
 
     async clear() {
