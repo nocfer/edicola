@@ -986,10 +986,8 @@ function actionBar(card) {
           title: card.title,
         })}
         title=${t(isSaved ? "today.savedAction" : "today.save")}
-        @click=${async () => {
-          await toggleItemSaved(item);
-          update();
-        }}
+        @click=${(/** @type {Event} */ event) =>
+          toggleItemSaved(item, event.currentTarget)}
       >
         ${bookmarkIcon(isSaved)}
       </button>

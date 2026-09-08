@@ -494,15 +494,15 @@ async function extractNow() {
 // --- Actions ---------------------------------------------------------------
 
 /**
- * Flip `saved` and redraw. The write, the toast and the `0 | 1` rule live in
- * `item-actions.js`, shared with Feed mode's action bar; this screen only has
- * to say which Item and ask for a redraw.
+ * Flip `saved`. The optimistic flip, the pop, the redraw, the write and the
+ * toast all live in `item-actions.js`, shared with Feed mode's action bar;
+ * this screen only has to say which Item and which control was tapped.
+ * @param {Event} event
  * @returns {Promise<void>}
  */
-async function toggleSaved() {
+async function toggleSaved(event) {
   if (!screen.item) return;
-  await toggleItemSaved(screen.item);
-  update();
+  await toggleItemSaved(screen.item, event.currentTarget);
 }
 
 /**

@@ -92,6 +92,15 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
 - **Theming changes tokens, never rules.** The only theme-scoped selector is the
   token block `:root[data-theme='light'] { --… }`. No raw colour, space, radius
   or font literal where a token exists.
+- **Durations and easings are tokens too, and JS reads them through
+  `src/motion.js`, never as literals.** The Motion group in §1 of `styles.css`
+  is the only place a duration or a curve is written; `motionToken(name)` reads
+  it back so a WAAPI animation and the CSS transition of the same thing cannot
+  drift. **Every WAAPI animation takes an explicit reduced-motion branch**: the
+  `prefers-reduced-motion` block in `styles.css` zeroes `transition-duration`
+  and `el.animate()` ignores it completely, so `prefersReducedMotion()` is
+  asked in JS and verified by forcing the query on. No motion library
+  (ADR-0012).
 - **Routing is hash-based**: `#/` Today, `#/item/:id` Reader,
   `#/story/:publicationId` Story player, `#/saved`, `#/publications`,
   `#/settings`. The Reader and the Story player are full-screen pushes that

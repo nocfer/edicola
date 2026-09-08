@@ -87,10 +87,33 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
 
-  /* --- Motion ------------------------------------------------------------ */
+  /* --- Motion ------------------------------------------------------------
+     On bare :root and never in the light block: motion does not change between
+     dark and light. Both springs are solved once and written out as linear()
+     ramps, so there is no spring solver at runtime. JS reads these through
+     src/motion.js rather than re-typing the numbers (ADR-0012). Keep every
+     duration and easing here, with its primitive, not beside the screen block
+     that needed it. */
   --dur-fast: 0.12s;
   --dur: 0.2s;
+  --dur-slow: 0.54s; /* Story open / close */
+  --dur-pop: 0.42s; /* Save, ring tap */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Stiffness 190, damping 26. Settles without ever crossing 1, so nothing
+     that carries text overshoots and snaps back. */
+  --ease-spring: linear(0, 0.0396, 0.1311, 0.2448,
+    0.3627, 0.4745, 0.5747, 0.6612, 0.7339, 0.7936,
+    0.8418, 0.8801, 0.9101, 0.9333, 0.951, 0.9644,
+    0.9745, 0.9819, 0.9874, 0.9913, 0.9942, 0.9962,
+    0.9975, 0.9985, 0.9991);
+  /* Stiffness 320, damping 20. Peaks at 1.12 and settles: the only overshoot
+     in the system, reserved for what the finger is touching and never for
+     arriving content. */
+  --ease-pop: linear(0, 0.1163, 0.367, 0.6385,
+    0.8639, 1.0164, 1.0966, 1.1202, 1.1077, 1.0781,
+    1.0453, 1.0178, 0.9989, 0.9887, 0.9856, 0.9869,
+    0.9904, 0.9943, 0.9977, 1, 1.0013, 1.0017,
+    1.0016, 1.0012, 1.0007);
 }
 
 /* Light theme: ONLY the tokens change. */
