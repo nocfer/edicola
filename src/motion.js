@@ -16,6 +16,11 @@
 // `sequencer()` joined them for ticket 05 rather than becoming a file of its
 // own: a state change that waits on an animation needs a guard, the guard is
 // pure, and a new module here would be a fourth Shell file for twenty lines.
+//
+// Both of those apply to the third primitive as well, so `withViewTransition`
+// lives here too: it wraps a redraw in a View Transition where the browser has
+// one, and where it does not — or where the reader asked for less motion — the
+// redraw simply happens. It knows nothing about which screen called it.
 
 /** How long a reduced-motion cross-fade lasts, in ms: `--dur-fast`. */
 const REDUCED_MS = 120;
@@ -45,6 +50,35 @@ export function motionToken(name) {
   return getComputedStyle(document.documentElement)
     .getPropertyValue(name)
     .trim();
+}
+
+/**
+ * Run a redraw inside a View Transition, so the old and the new render
+ * cross-fade instead of cutting (ADR-0012, primitive 3). Where
+ * `document.startViewTransition` is missing the redraw just happens, exactly
+ * as it does today — a caller never has to check, and the render path never
+ * depends on the API being there.
+ *
+ * `mutate` has to change the DOM synchronously, which in this app it always
+ * does: `update()` in state.js notifies its listeners inline and lit's
+ * `render` commits inline, so `withViewTransition(() => update({ … }))` wraps
+ * a whole redraw without either module knowing about it.
+ *
+ * Reduced motion **skips** the transition rather than shortening it. The
+ * cross-fade is a UA animation on the `::view-transition` pseudo tree, so the
+ * `transition-duration: 0s` reset in styles.css does not reach it and there is
+ * nothing to shorten — cutting straight to the new render is the honest
+ * answer.
+ *
+ * @param {() => void} mutate The DOM change to transition between.
+ * @returns {void}
+ */
+export function withViewTransition(mutate) {
+  if (prefersReducedMotion() || !document.startViewTransition) {
+    mutate();
+    return;
+  }
+  document.startViewTransition(mutate);
 }
 
 /**

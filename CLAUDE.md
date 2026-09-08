@@ -102,7 +102,11 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   `prefers-reduced-motion` block in `styles.css` zeroes `transition-duration`
   and `el.animate()` ignores it completely, so `prefersReducedMotion()` is
   asked in JS and verified by forcing the query on. No motion library
-  (ADR-0012).
+  (ADR-0012). A redraw that should cross-dissolve rather than cut goes through
+  `withViewTransition(mutate)` from the same module: `update()` notifies inline
+  and lit commits inline, so wrapping the write wraps the whole redraw, and it
+  skips the transition under reduced motion because the `::view-transition`
+  pseudo tree is a UA animation the stylesheet's reset does not reach.
 - **Routing is hash-based**: `#/` Today, `#/item/:id` Reader,
   `#/story/:publicationId` Story player, `#/saved`, `#/publications`,
   `#/settings`. The Reader and the Story player are full-screen pushes that

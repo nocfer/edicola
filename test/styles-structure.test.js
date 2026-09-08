@@ -275,6 +275,26 @@ test("every motion token JS reads is declared on bare :root", () => {
   }
 });
 
+test("the View Transition pseudo tree is retimed at the top level", () => {
+  // `withViewTransition` hands the cross-dissolve to the browser, which times
+  // it at 250ms of its own unless this rule says otherwise — and then the
+  // dissolve and the pill sliding under it run on two different durations.
+  // Nothing else fails when this rule stops applying: the transition still
+  // plays, just not on the token. It is checked here rather than through
+  // SCREEN_ANCHORS because `leadsWith` builds a regex out of the selector and
+  // `(root)` in one is a capture group, not two literal brackets.
+  const rule = RULES.find((r) =>
+    r.selector.includes("::view-transition-old(root)"),
+  );
+  assert.ok(rule, "no rule times the ::view-transition pseudo tree");
+  assert.equal(
+    rule.inAtRule,
+    false,
+    `the ::view-transition rule is nested inside an at-rule (line ${rule.line})`,
+  );
+  assert.match(rule.body, /animation-duration:\s*var\(--dur\)/);
+});
+
 test("the reduced-motion reset still carries its declaration", () => {
   // The splice replaced this rule's body, silently disabling the reset.
   const block =

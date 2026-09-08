@@ -789,8 +789,15 @@ button {
 
 /* The View Mode toggle: two icon chips reading as one control, so the pair owns
    the pill and the halves sit inside it. 44px wide each keeps both a touch
-   target while the pair still fits beside the title and the refresh button. */
+   target while the pair still fits beside the title and the refresh button.
+
+   The fill is ONE pill on the group, not a background each half paints for
+   itself, so switching mode slides it instead of moving a hard edge (D4). It
+   is a ::before rather than an element because nothing but the group's own
+   class decides where it sits, and the transition is a plain CSS one, so the
+   reduced-motion reset below already zeroes it. */
 .today__modes {
+  position: relative;
   flex: none;
   flex-wrap: nowrap;
   gap: 2px;
@@ -799,7 +806,23 @@ button {
   border-radius: var(--r-pill);
   background: var(--chip-bg);
 }
+.today__modes::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  width: 44px;
+  border-radius: var(--r-pill);
+  background: var(--chip-on-bg);
+  transition: transform var(--dur) var(--ease);
+}
+/* One segment plus the 2px gap: the pill lands exactly on the other half. */
+.today__modes--feed::before {
+  transform: translateX(calc(100% + 2px));
+}
 .today__mode {
+  position: relative;
   justify-content: center;
   width: 44px;
   min-height: 38px;
@@ -809,7 +832,6 @@ button {
   color: var(--muted);
 }
 .today__mode.chip--on {
-  background: var(--chip-on-bg);
   color: var(--chip-on-fg);
 }
 
@@ -1087,6 +1109,27 @@ button {
 .today__bounded {
   padding: var(--s-2) 0;
   text-align: center;
+}
+
+/* The cross-dissolve `withViewTransition` puts a redraw inside (ADR-0012,
+   primitive 3): List becoming Feed today, Today becoming the Reader later. The
+   UA's own default is 250ms of its own choosing, which would leave the dissolve
+   and the pill that slides under it on two different durations — so the pseudo
+   tree takes the same tokens as every other transition in the file. The two
+   fades sit on the old and new pseudo-elements, along with the plus-lighter
+   blend the browser adds; the group is here too because it is the animation
+   that decides when the whole pseudo tree goes away, and left at 250ms it held
+   a finished dissolve on screen for another 50ms.
+
+   There is no reduced-motion rule for this and there must not be one: the
+   pseudo tree is a UA animation, the reset below reaches only transitions, and
+   `withViewTransition` answers the query in JS by skipping the transition
+   altogether. */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease);
 }
 
 @media (prefers-reduced-motion: reduce) {
