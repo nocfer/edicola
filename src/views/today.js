@@ -49,6 +49,7 @@ import {
   screenHeader,
   shareIcon,
 } from "./layout.js";
+import { rememberRingRect } from "./story.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
@@ -285,13 +286,21 @@ function setViewMode(viewMode) {
  * instead — and tapping the ring that is already the filter clears it, because
  * Feed mode has no "All" chip to go back to.
  * @param {Ring} ring
+ * @param {Event} event
  */
-function tapRing(ring) {
+function tapRing(ring, event) {
   if (ring.state === "none") {
     setFilter(ring.active ? null : ring.publicationId);
     return;
   }
   screen.menuFor = null;
+  // The player grows out of this ring, and the player is a route: `navigate`
+  // unmounts Today, so the disc has to be measured here, while it still exists.
+  // The reasoning, and the view-transition-name alternative that was rejected,
+  // are on `rememberRingRect`.
+  const button = /** @type {HTMLElement} */ (event.currentTarget);
+  const disc = button.querySelector(".feed__ringtile");
+  rememberRingRect(disc?.getBoundingClientRect() ?? null);
   navigate("story", { id: ring.publicationId });
 }
 
@@ -991,7 +1000,7 @@ function publicationRing(ring) {
         class="feed__ringbtn"
         aria-label=${label}
         aria-pressed=${ring.active ? "true" : "false"}
-        @click=${() => tapRing(ring)}
+        @click=${(/** @type {Event} */ event) => tapRing(ring, event)}
         @contextmenu=${(/** @type {Event} */ event) => {
           event.preventDefault();
           toggleMenu(ring.publicationId);

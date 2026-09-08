@@ -27,12 +27,23 @@
 // against 14.6-15.6 over the dark one. The design has no light-theme Story
 // artboard and this is the answer to that gap, not an omission to fill in. See
 // .scratch/feed-view-mode/spec.md, "the finding that matters".
+//
+// **The player grows out of the ring that opened it, and the ring is a route
+// away.** By the time this panel exists Today has been unmounted, so there is
+// nothing left to measure — see `rememberRingRect` below for the two ways out
+// of that and why this one was taken.
 
 import { revokeObjectUrls } from "../article-render.js";
 import { resolveCoverSources } from "../cover.js";
 import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, t, tCount } from "../i18n.js";
 import { markItemSeen } from "../item-state.js";
+import {
+  growFrom,
+  motionToken,
+  prefersReducedMotion,
+  sequencer,
+} from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
 import { state, update } from "../state.js";
 import { goBack, hrefFor, navigate } from "../router.js";
@@ -46,6 +57,13 @@ import { emptyState, screenHeader } from "./layout.js";
 
 /** Vertical travel (CSS px) that counts as a swipe rather than a stray touch. */
 const SWIPE_PX = 60;
+
+/** How far a leaving Frame travels against the direction of the tap (D2). */
+const LEAVE_PX = 18;
+/** How far the arriving Frame comes from, on the same axis and the same sign. */
+const ENTER_PX = 22;
+/** How far content rises into a panel that is still growing (D1). */
+const RISE_PX = 10;
 
 /**
  * This screen's transient state, the same module-level shape Today and
@@ -110,7 +128,12 @@ async function load(publicationId) {
     console.warn("The Story could not be read:", error);
     screen.status = "error";
   }
+  // `update()` renders synchronously, so the panel is in the document on the
+  // next line and the grow can measure it. This is the one place the open can
+  // start from: `storyView` runs on every redraw, and `ensureLoaded` short
+  // circuits on all of them but the first of a visit.
   update();
+  if (screen.status === "ready" && onStory()) playOpen();
 }
 
 /**
@@ -145,6 +168,195 @@ function ensureLoaded(publicationId) {
   void load(publicationId);
 }
 
+// --- Motion (D1 open and close, D2 Frame advance) --------------------------
+
+/**
+ * The tapped ring's rect, measured in Today before the navigation unmounted
+ * it, and spent by the next open.
+ * @type {DOMRect | null}
+ */
+let ringRect = null;
+
+/**
+ * The open animation, kept so that closing can run it backwards.
+ * @type {Animation | null}
+ */
+let openAnim = null;
+
+/** The guard over the Frame swap an out-animation still owes (D2). */
+const swaps = sequencer();
+
+/**
+ * Remember which ring the reader tapped, in viewport coordinates. Today calls
+ * this immediately before `navigate`.
+ *
+ * **Why a rect and not a `view-transition-name`.** The player is a route, so
+ * the ring is unmounted the moment Today stops rendering and there is nothing
+ * left for `growFrom` to measure. Matching view-transition-names on the ring
+ * and the panel is the prettier answer and the browser would do the geometry
+ * for us — but it needs both ends inside one `document.startViewTransition`
+ * callback, which means Today has to still be rendering that ring while the
+ * Story renders its panel. It is not: this app renders one screen at a time
+ * into one root, `startViewTransition` is not wired up yet (ADR-0012 leaves
+ * that to the List to Feed ticket), and where the API is missing the fallback
+ * is no animation at all rather than this one. A `DOMRect` is four numbers
+ * that survive the navigation, needs no new primitive, and gives close its
+ * reverse for free. Cheap beats pretty here.
+ *
+ * @param {DOMRect | null} rect
+ */
+export function rememberRingRect(rect) {
+  ringRect = rect;
+}
+
+/**
+ * A duration token in the milliseconds `el.animate()` counts in — CSS writes
+ * seconds, WAAPI does not.
+ * @param {string} name
+ * @returns {number}
+ */
+function ms(name) {
+  return Number.parseFloat(motionToken(name)) * 1000;
+}
+
+/** The panel currently on screen, or null before the first render of one. */
+function panelElement() {
+  return /** @type {HTMLElement | null} */ (document.querySelector(".story"));
+}
+
+/**
+ * Grow the player out of the ring that opened it (D1): `--dur-slow` on
+ * `--ease-spring`, from the ring disc's rect and `--r-pill` to full bleed and
+ * square corners.
+ *
+ * The Cover colour and the clip are set inline for the length of the grow and
+ * handed back to the stylesheet on `finished`. Inline rather than a class,
+ * because lit-html patches the class attribute on every redraw and would take
+ * it away mid-flight; temporary rather than permanent, because the settled
+ * player is `--scrim-ink` in both themes by ticket 03's decision and only the
+ * growing disc is the Publication's colour. Without the colour the panel is a
+ * neutral rectangle for the first frame, which is the flash the brief forbids;
+ * without the clip the Frame's photo pokes out of the pill's corners.
+ */
+function playOpen() {
+  const panel = panelElement();
+  const origin = ringRect;
+  ringRect = null;
+  if (!panel?.animate) return;
+  panel.style.backgroundColor = `var(--cover-${currentReel().coverIndex})`;
+  panel.style.overflow = "hidden";
+  // A reader who typed the URL has no ring behind them, and `growFrom` takes
+  // the same cross-fade it takes under reduced motion rather than growing out
+  // of the top-left corner.
+  openAnim = growFrom(origin, panel, {
+    duration: ms("--dur-slow"),
+    easing: motionToken("--ease-spring"),
+  });
+  openAnim.finished
+    .then(() => {
+      panel.style.backgroundColor = "";
+      panel.style.overflow = "";
+    })
+    .catch(() => {});
+  arrive(panel);
+}
+
+/**
+ * The Frame's content arriving just behind the panel: opacity and a 10px rise
+ * over `--dur-arrive`, delayed `--delay-arrive` so it lands inside a box that
+ * is already most of the way open instead of travelling with it.
+ *
+ * Every direct child, because the panel has no single inner wrapper and adding
+ * one for this would be markup that exists only for an animation.
+ * @param {HTMLElement} panel
+ */
+function arrive(panel) {
+  if (prefersReducedMotion()) return;
+  for (const child of Array.from(panel.children)) {
+    child.animate(
+      [
+        { opacity: 0, transform: `translateY(${RISE_PX}px)` },
+        { opacity: 1, transform: "none" },
+      ],
+      {
+        duration: ms("--dur-arrive"),
+        delay: ms("--delay-arrive"),
+        easing: motionToken("--ease"),
+        fill: "both",
+      },
+    );
+  }
+}
+
+/**
+ * Move the Frame out against the direction of travel, swap, and bring the next
+ * one in with it (D2).
+ *
+ * The swap goes through `update()` rather than through `textContent`: the demo
+ * mutates the DOM because it has no store, and here the out-animation finishing
+ * is what changes the state. lit-html then patches `.story__frame` in place —
+ * the template in that slot never changes, and the pips' `repeat` is keyed by
+ * position — so the in-animation runs on the same node the out-animation left,
+ * and nothing is thrown away mid-flight.
+ *
+ * @param {number} dir -1 or 1, the direction the reader is travelling.
+ * @param {() => void} swap Applies the new position to the store.
+ */
+function advance(dir, swap) {
+  const body = panelElement()?.querySelector(".story__frame");
+  // A tap landing mid-transition commits the swap the running animation still
+  // owes before opening its own, and `token` stops that animation's own
+  // `finished` from swapping a Frame it no longer speaks for.
+  const token = swaps.start(swap);
+  if (!body?.animate) {
+    swaps.commit(token);
+    return;
+  }
+  const reduced = prefersReducedMotion();
+  for (const running of body.getAnimations()) running.cancel();
+  const out = reduced
+    ? body.animate([{ opacity: 1 }, { opacity: 0 }], {
+        duration: ms("--dur-fast"),
+        fill: "both",
+      })
+    : body.animate(
+        [
+          { opacity: 1, transform: "none" },
+          { opacity: 0, transform: `translateX(${-LEAVE_PX * dir}px)` },
+        ],
+        {
+          duration: ms("--dur"),
+          easing: motionToken("--ease-exit"),
+          fill: "both",
+        },
+      );
+  out.finished
+    .then(() => {
+      if (!swaps.commit(token)) return;
+      const next = panelElement()?.querySelector(".story__frame");
+      if (!next) return;
+      if (reduced) {
+        next.animate([{ opacity: 0 }, { opacity: 1 }], {
+          duration: ms("--dur-fast"),
+          fill: "both",
+        });
+        return;
+      }
+      next.animate(
+        [
+          { opacity: 0, transform: `translateX(${ENTER_PX * dir}px)` },
+          { opacity: 1, transform: "none" },
+        ],
+        {
+          duration: ms("--dur-frame"),
+          easing: motionToken("--ease-spring"),
+          fill: "both",
+        },
+      );
+    })
+    .catch(() => {});
+}
+
 // --- Advancing, and marking Seen ------------------------------------------
 
 /** Whether the gestures and the key bindings should be active right now. */
@@ -153,12 +365,27 @@ function onStory() {
 }
 
 /**
- * Show the Frame at `index`, or the end panel when the reel runs out. Advance
- * is always something the reader did: there is no timer anywhere in this file.
- * @param {number} index
+ * Move one Frame in `dir`, or show the end panel when the reel runs out.
+ * Advance is always something the reader did: there is no timer anywhere in
+ * this file.
+ *
+ * A step rather than a destination, because the destination is only knowable
+ * after the settle on the first line. Two taps 90ms apart both read
+ * `screen.index`, and until the first tap's out-animation has finished that
+ * index is still the Frame the reader is leaving — so both taps aimed at the
+ * same Frame and the reader advanced once for two taps. The demo commits on
+ * the line above the same arithmetic for the same reason.
+ *
+ * The store change is then handed to `advance` rather than made here, because
+ * the new Frame must not appear until the old one has left (D2). Running off
+ * the end is not a Frame change, so it redraws immediately: the Frame under the
+ * end panel is the one that was already showing.
+ * @param {number} dir -1 or 1.
  * @param {number} total
  */
-function goTo(index, total) {
+function step(dir, total) {
+  swaps.settle();
+  const index = screen.index + dir;
   if (index < 0) return;
   if (index >= total) {
     // Past the last Frame the reel ends on a panel, not on a dead tap.
@@ -166,9 +393,11 @@ function goTo(index, total) {
     update();
     return;
   }
-  screen.index = index;
-  screen.done = false;
-  update();
+  advance(dir, () => {
+    screen.index = index;
+    screen.done = false;
+    update();
+  });
 }
 
 /**
@@ -211,6 +440,9 @@ function installListeners() {
     revoke(screen.objectUrls);
     screen.objectUrls = [];
     screen.status = "idle";
+    // The handle belongs to a panel that has just left the document; keeping it
+    // would let the next close reverse an animation of the wrong Story.
+    openAnim = null;
   });
   window.addEventListener("pagehide", () => {
     revoke(screen.objectUrls);
@@ -221,8 +453,8 @@ function installListeners() {
     if (!onStory()) return;
     const total = currentReel().frames.length;
     if (event.key === "Escape") close();
-    else if (event.key === "ArrowRight") goTo(screen.index + 1, total);
-    else if (event.key === "ArrowLeft") goTo(screen.index - 1, total);
+    else if (event.key === "ArrowRight") step(1, total);
+    else if (event.key === "ArrowLeft") step(-1, total);
     else return;
     event.preventDefault();
   });
@@ -255,9 +487,36 @@ function installListeners() {
   );
 }
 
-/** Leave the player: back to the feed, at the scroll position it kept. */
+/**
+ * Leave the player: back to the feed, at the scroll position it kept.
+ *
+ * The panel plays its own opening backwards rather than a second animation
+ * with inverted keyframes, so an open interrupted halfway closes from where it
+ * actually got to and still lands on the ring it came from. The content
+ * cross-fades out first, over `--dur-fast`, and the route change waits for
+ * `finished` — leaving on the tap would take the panel out of the document
+ * before it had shrunk anywhere.
+ */
 function close() {
-  goBack();
+  const anim = openAnim;
+  openAnim = null;
+  if (!anim) {
+    goBack();
+    return;
+  }
+  const panel = panelElement();
+  for (const child of Array.from(panel?.children ?? [])) {
+    child.animate([{ opacity: 1 }, { opacity: 0 }], {
+      duration: ms("--dur-fast"),
+      easing: motionToken("--ease"),
+      fill: "both",
+    });
+  }
+  anim.reverse();
+  // Read after `reverse()`: an animation that had finished hands out a fresh
+  // `finished` promise when it starts playing again, and the settled one would
+  // resolve on the spot.
+  anim.finished.then(goBack, goBack);
 }
 
 /** The visible Read button and the swipe up both land here. */
@@ -331,10 +590,18 @@ function chevron(direction) {
 }
 
 /**
- * Position pips: one segment per Frame, filled up to the current one. They are
- * a position indicator and never animate, because nothing in this player
- * advances by itself. A pip row is not readable on its own at six segments, so
- * the "Frame 3 of 6" line beside it carries the same fact in words.
+ * Position pips: one segment per Frame, filled up to the current one.
+ *
+ * A pip fills in response to a tap and never ahead of one. Nothing in this
+ * player advances by itself, which is still the reason, but it is no longer
+ * true that they do not animate: the arriving pip fills over `--dur-frame`,
+ * the same span the arriving Frame takes. The rule that makes the two
+ * inseparable is that the fill is a CSS transition on `--on`, and this template
+ * puts `--on` where the store says the position is — so the pip cannot report a
+ * Frame that has not landed, whatever a tap does mid-transition.
+ *
+ * A pip row is not readable on its own at six segments, so the "Frame 3 of 6"
+ * line beside it carries the same fact in words.
  * @param {number} index
  * @param {number} total
  */
@@ -452,14 +719,14 @@ function advanceControls(total) {
       class="story__zone story__zone--back"
       aria-hidden="true"
       tabindex="-1"
-      @click=${() => goTo(screen.index - 1, total)}
+      @click=${() => step(-1, total)}
     ></button>
     <button
       type="button"
       class="story__zone story__zone--next"
       aria-hidden="true"
       tabindex="-1"
-      @click=${() => goTo(screen.index + 1, total)}
+      @click=${() => step(1, total)}
     ></button>
     <button
       type="button"
@@ -467,7 +734,7 @@ function advanceControls(total) {
       aria-label=${t("story.previous")}
       title=${t("story.previous")}
       ?disabled=${screen.index === 0}
-      @click=${() => goTo(screen.index - 1, total)}
+      @click=${() => step(-1, total)}
     >
       ${chevron("left")}
     </button>
@@ -476,7 +743,7 @@ function advanceControls(total) {
       class="btn btn--tap story__nav story__nav--next"
       aria-label=${t("story.next")}
       title=${t("story.next")}
-      @click=${() => goTo(screen.index + 1, total)}
+      @click=${() => step(1, total)}
     >
       ${chevron("right")}
     </button>

@@ -12,6 +12,10 @@
 //      `transition-duration` under `prefers-reduced-motion`, which covers CSS
 //      transitions and nothing else — a WAAPI animation ignores that rule
 //      entirely. Every caller of `el.animate()` has to ask.
+//
+// `sequencer()` joined them for ticket 05 rather than becoming a file of its
+// own: a state change that waits on an animation needs a guard, the guard is
+// pure, and a new module here would be a fourth Shell file for twenty lines.
 
 /** How long a reduced-motion cross-fade lasts, in ms: `--dur-fast`. */
 const REDUCED_MS = 120;
@@ -54,20 +58,24 @@ export function motionToken(name) {
  * Under reduced motion this is a cross-fade of the same length as
  * `--dur-fast`: the panel still opens, it just does not travel.
  *
- * @param {Element} origin The element the panel grows out of.
+ * @param {Element | DOMRect | null} origin The element the panel grows out of,
+ *   or a rect measured earlier. A rect is what the Story player passes: it is a
+ *   route, so the ring that opened it is unmounted before the panel exists and
+ *   only the measurement survives the navigation. `null` means there is nothing
+ *   to grow out of — a reader who typed the URL — and takes the cross-fade.
  * @param {HTMLElement} panel The panel, already laid out at its final size.
  * @param {{ duration: number, easing: string }} options Milliseconds and a CSS
  *   easing, both read from the token layer through `motionToken`.
  * @returns {Animation}
  */
 export function growFrom(origin, panel, { duration, easing }) {
-  if (prefersReducedMotion()) {
+  if (!origin || prefersReducedMotion()) {
     return panel.animate([{ opacity: 0 }, { opacity: 1 }], {
       duration: REDUCED_MS,
       fill: "both",
     });
   }
-  const a = origin.getBoundingClientRect();
+  const a = origin instanceof Element ? origin.getBoundingClientRect() : origin;
   const b = panel.getBoundingClientRect();
   const dx = a.left + a.width / 2 - b.left - b.width / 2;
   const dy = a.top + a.height / 2 - b.top - b.height / 2;
@@ -104,4 +112,47 @@ export function rubberBand(travel, grip, max) {
   if (travel <= 0) return 0;
   const eased = travel <= grip ? travel : grip + (travel - grip) / 3;
   return Math.min(max, eased);
+}
+
+/**
+ * The guard every swap that waits on an animation needs: a step is opened when
+ * the out-animation starts and committed when it finishes, and a second tap
+ * arriving in between commits the step still owed before opening its own.
+ *
+ * Two failures come out of the same missing state, and the Story player's Frame
+ * advance has both. A stale `finished` handler swapping a Frame that has since
+ * been superseded shows the reader a Frame they already left; a tap that starts
+ * a second transition without settling the first fills a pip whose Frame never
+ * arrived. `start` returns a token, `commit` refuses one that is no longer
+ * current, and `settle` is for the caller that has to read the state a pending
+ * swap is about to write before it can decide what its own step even is. None
+ * of the three touches the DOM, which is what makes this the piece of the
+ * sequencing a unit test can reach.
+ *
+ * @returns {{ start: (swap: () => void) => number, commit: (token: number) => boolean, settle: () => boolean }}
+ */
+export function sequencer() {
+  let seq = 0;
+  /** @type {(() => void) | null} */
+  let owed = null;
+  /** Run whatever swap is still owed, exactly once. */
+  const settle = () => {
+    const swap = owed;
+    owed = null;
+    if (!swap) return false;
+    swap();
+    return true;
+  };
+  return {
+    start(swap) {
+      settle();
+      owed = swap;
+      return ++seq;
+    },
+    commit(token) {
+      if (token !== seq) return false;
+      return settle();
+    },
+    settle,
+  };
 }
