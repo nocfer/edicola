@@ -75,7 +75,6 @@ const RELOAD_DEBOUNCE_MS = 250;
  * @property {'idle'|'loading'|'ready'|'error'} status
  * @property {PublicationRow[]} publications Enabled, by name.
  * @property {ItemRow[]} items Every stored Item of those Publications.
- * @property {string|null} filterPublicationId The chip that is on, null for All.
  * @property {string|null} menuFor Publication id whose chip menu is open.
  * @property {Set<string>} brokenThumbs Thumbnail URLs that failed to load.
  * @property {Map<string, CoverSource>} coverSources What fills each Item's
@@ -93,7 +92,6 @@ const screen = {
   status: "idle",
   publications: [],
   items: [],
-  filterPublicationId: null,
   menuFor: null,
   brokenThumbs: new Set(),
   coverSources: new Map(),
@@ -116,6 +114,8 @@ const screen = {
  * @returns {Promise<void>}
  */
 async function load() {
+  /** @type {Partial<import('../state.js').State> | undefined} */
+  let patch;
   try {
     const publications = await getSyncStore().getEnabledPublications();
     publications.sort((a, b) =>
@@ -137,18 +137,20 @@ async function load() {
     screen.publications = publications;
     screen.items = items;
     await refreshCoverSources(items);
+    // A filter on a Publication that is no longer Enabled would be an
+    // invisible one: no chip, no ring, and an empty screen with no way back.
     if (
-      screen.filterPublicationId &&
-      !publications.some((p) => p.id === screen.filterPublicationId)
+      state.todayFilter &&
+      !publications.some((p) => p.id === state.todayFilter)
     ) {
-      screen.filterPublicationId = null;
+      patch = { todayFilter: null };
     }
     screen.status = "ready";
   } catch (error) {
     console.warn("Today could not be read:", error);
     if (screen.status !== "ready") screen.status = "error";
   }
-  update();
+  update(patch);
 }
 
 /**
@@ -236,7 +238,7 @@ function watchSync() {
  */
 function refresh() {
   if (state.sync.running) return;
-  const only = screen.filterPublicationId;
+  const only = state.todayFilter;
   const options = only ? { publicationIds: [only] } : {};
   syncNow(options)
     .then(() => load())
@@ -249,8 +251,7 @@ function refresh() {
 /** @param {string|null} publicationId */
 function setFilter(publicationId) {
   screen.menuFor = null;
-  screen.filterPublicationId = publicationId;
-  update();
+  update({ todayFilter: publicationId });
 }
 
 /**
@@ -279,21 +280,6 @@ function tapRing(ring) {
   }
   screen.menuFor = null;
   navigate("story", { id: ring.publicationId });
-}
-
-/**
- * Filter the feed to one Publication and go to Today. Exported for the Story
- * player's end panel ("Show only BBC News", board 08), which is the one place
- * outside this screen that needs to set its filter — reaching in through a
- * named function keeps `screen` private and keeps the write going through
- * `update()` like every other.
- * @param {string} publicationId
- */
-export function showOnlyPublication(publicationId) {
-  screen.menuFor = null;
-  screen.filterPublicationId = publicationId;
-  navigate("today");
-  update();
 }
 
 /** @param {string} publicationId */
@@ -966,16 +952,29 @@ function feedCard(card) {
 }
 
 /**
+ * The stored row behind a card. Called from a click handler, never from the
+ * render path: a lookup per card per render is quadratic in the length of the
+ * feed, while a lookup per tap is one scan of a few dozen rows.
+ * @param {string} id
+ * @returns {ItemRow | undefined}
+ */
+function rowFor(id) {
+  return screen.items.find((row) => row.id === id);
+}
+
+/**
  * Save, Share, Original — the Reader's own three actions, through the shared
  * handlers in `item-actions.js` so there is one Web Share call with one
  * clipboard fallback. Nothing here counts anything: there is no server to send
  * a like to and nobody to show it to.
+ *
+ * Everything the bar renders comes off the card. The write needs the stored
+ * row, because that is the object the screen keeps and mutates in place, so it
+ * fetches one at the moment of the tap.
  * @param {TodayCard} card
  */
 function actionBar(card) {
-  const item = screen.items.find((row) => row.id === card.id);
-  if (!item) return nothing;
-  const isSaved = Boolean(item.saved);
+  const isSaved = card.saved;
   return html`
     <div class="feed__actions">
       <button
@@ -985,8 +984,10 @@ function actionBar(card) {
         aria-label=${t(isSaved ? "today.unsaveAria" : "today.saveAria", {
           title: card.title,
         })}
-        title=${t(isSaved ? "today.savedAction" : "today.save")}
+        title=${t(isSaved ? "app.saved" : "app.save")}
         @click=${async () => {
+          const item = rowFor(card.id);
+          if (!item) return;
           await toggleItemSaved(item);
           update();
         }}
@@ -994,19 +995,19 @@ function actionBar(card) {
         ${bookmarkIcon(isSaved)}
       </button>
       ${
-        item.link
+        card.link
           ? html`<button
                 type="button"
                 class="btn btn--tap feed__action"
                 aria-label=${t("today.shareAria", { title: card.title })}
-                title=${t("today.share")}
-                @click=${() => shareItem(item)}
+                title=${t("app.share")}
+                @click=${() => shareItem(card)}
               >
                 ${shareIcon}
               </button>
               <a
                 class="btn btn--tap feed__action"
-                href=${item.link}
+                href=${card.link}
                 target="_blank"
                 rel="noopener"
                 aria-label=${t("today.originalAria", {
@@ -1107,7 +1108,7 @@ export function todayView(appState) {
 
   const feed = appState.viewMode === "feed";
   const model = buildTodayModel(screen.items, publicationsById(), {
-    filterPublicationId: screen.filterPublicationId,
+    filterPublicationId: appState.todayFilter,
     lang: appState.lang,
     coverSources: feed ? screen.coverSources : null,
   });

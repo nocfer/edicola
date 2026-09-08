@@ -596,7 +596,7 @@ function header() {
               }"
               aria-pressed=${isSaved ? "true" : "false"}
               aria-label=${t(isSaved ? "reader.unsaveAria" : "reader.saveAria")}
-              title=${t(isSaved ? "reader.saved" : "reader.save")}
+              title=${t(isSaved ? "app.saved" : "app.save")}
               @click=${toggleSaved}
             >
               ${bookmarkIcon(isSaved)}
@@ -606,8 +606,8 @@ function header() {
                 ? html`<button
                     type="button"
                     class="btn btn--icon reader__action"
-                    aria-label=${t("reader.share")}
-                    title=${t("reader.share")}
+                    aria-label=${t("app.share")}
+                    title=${t("app.share")}
                     @click=${share}
                   >
                     ${shareIcon}

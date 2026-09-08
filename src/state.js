@@ -71,6 +71,11 @@
  * @property {ThemePreference} theme  the reader's preference, not the resolved theme
  * @property {Lang} lang     the UI Language (ADR-0006)
  * @property {ViewMode} viewMode  which presentation Today is showing
+ * @property {string|null} todayFilter  show only this Publication on Today,
+ *   null for all of them. On the store rather than inside Today's own module
+ *   state because the Story player's end panel sets it too ("Show only BBC
+ *   News"), and a second screen reaching into Today's private state to do that
+ *   was the one cross-view reach in the codebase. Transient: not persisted.
  * @property {boolean} online  mirrors `navigator.onLine`
  * @property {string|null} toast  transient message shown by the `.toast` primitive
  * @property {SyncState} sync  progress and result of the last Sync
@@ -84,6 +89,7 @@ export const state = {
   theme: "system",
   lang: "en",
   viewMode: "list",
+  todayFilter: null,
   online: true,
   toast: null,
   sync: {

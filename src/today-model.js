@@ -69,6 +69,9 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {string} publicationId
  * @property {string} publicationName
  * @property {string} title
+ * @property {string | null} link The Original. On the card because Feed mode's
+ *   action bar links to it and decides on it, and a view that had to fetch the
+ *   stored row for that would be doing a lookup per card per render.
  * @property {string} summary One line of plain text, possibly elided.
  * @property {number} publishedAt Epoch ms.
  * @property {string | null} thumbnailUrl The Feed's thumbnail, never stored.
@@ -522,6 +525,7 @@ function toCard(item, publication, cover) {
     publicationId,
     publicationName: name,
     title: oneLine(item.title, 200),
+    link: item.link || null,
     summary: oneLine(item.summaryText),
     publishedAt: timeOf(item.publishedAt),
     thumbnailUrl: item.thumbnailUrl || null,

@@ -10,9 +10,10 @@
 // database write itself belongs to `item-state.js`, which owns the `0 | 1`
 // rule and the `savedAt` stamp.
 //
-// The copy is deliberately the Reader's `reader.*` keys rather than a second
-// set: the messages are the same messages, and the reader who sees "Saved" from
-// a card should read exactly what they read from the Reader.
+// The copy lives under `app.*`, which is where CLAUDE.md puts shared chrome:
+// two screens raise these toasts, so neither owns them. The aria-labels stay
+// per screen — a card in a column of sixty has to name its Item, and the
+// Reader, showing one, must not.
 
 import { getDatabase } from "./db.js";
 import { t } from "./i18n.js";
@@ -36,10 +37,10 @@ export async function toggleItemSaved(item) {
   try {
     const written = await setItemSaved(getDatabase(), item.id, next);
     item.saved = written.saved;
-    showToast(t(next ? "reader.savedToast" : "reader.unsavedToast"));
+    showToast(t(next ? "app.savedToast" : "app.unsavedToast"));
   } catch (error) {
     console.warn("Saved could not be written:", error);
-    showToast(t("reader.saveFailed"));
+    showToast(t("app.saveFailed"));
   }
 }
 
@@ -64,9 +65,9 @@ export async function shareItem(item) {
   }
   try {
     await navigator.clipboard.writeText(link);
-    showToast(t("reader.shareCopied"));
+    showToast(t("app.shareCopied"));
   } catch (error) {
     console.warn("The link could not be shared:", error);
-    showToast(t("reader.shareFailed"));
+    showToast(t("app.shareFailed"));
   }
 }

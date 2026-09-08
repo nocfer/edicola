@@ -38,7 +38,6 @@ import { state, update } from "../state.js";
 import { goBack, hrefFor, navigate } from "../router.js";
 import { buildStoryReel } from "../today-model.js";
 import { emptyState, screenHeader } from "./layout.js";
-import { showOnlyPublication } from "./today.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
@@ -532,7 +531,10 @@ function endPanel(reel) {
           <button
             type="button"
             class="btn story__ghost"
-            @click=${() => showOnlyPublication(reel.publicationId)}
+            @click=${() => {
+              update({ todayFilter: reel.publicationId });
+              navigate("today");
+            }}
           >
             ${t("today.filterTo", { name: reel.name })}
           </button>
