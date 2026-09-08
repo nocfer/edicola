@@ -8,6 +8,11 @@
 //   --theme light|dark   force the theme: seeds `edicola.theme` in localStorage
 //                        and emulates prefers-color-scheme (default: system)
 //   --lang en|it         force the Language: seeds `edicola.lang` (default: browser)
+//   --viewmode list|feed force Today's View Mode: seeds `edicola.viewmode`
+//   --offline            cut the network before navigating, so `navigator.onLine`
+//                        is false and nothing loads that is not already stored.
+//                        Needs a primed --profile: the Shell comes from the
+//                        service worker cache and the Items from IndexedDB.
 //   --width 390          viewport width in CSS px  (default 390)
 //   --height 844         viewport height in CSS px (default 844)
 //   --scale 2            deviceScaleFactor (default 2)
@@ -51,6 +56,8 @@ function parseArgs(argv) {
     out: null,
     theme: null,
     lang: null,
+    viewmode: null,
+    offline: false,
     width: 390,
     height: 844,
     scale: 2,
@@ -65,6 +72,10 @@ function parseArgs(argv) {
     if (a.startsWith("--")) {
       const key = a.slice(2);
       if (!(key in opts)) throw new Error(`Unknown option ${a}`);
+      if (key === "offline") {
+        opts.offline = true;
+        continue;
+      }
       const v = argv[++i];
       if (v === undefined) throw new Error(`Missing value for ${a}`);
       opts[key] = ["width", "height", "scale", "wait"].includes(key)
@@ -82,6 +93,8 @@ function parseArgs(argv) {
     throw new Error("--theme must be light or dark");
   if (opts.lang && !["en", "it"].includes(opts.lang))
     throw new Error("--lang must be en or it");
+  if (opts.viewmode && !["list", "feed"].includes(opts.viewmode))
+    throw new Error("--viewmode must be list or feed");
   return opts;
 }
 
@@ -224,6 +237,21 @@ async function main() {
         features: [{ name: "prefers-color-scheme", value: opts.theme }],
       });
     }
+    // Offline BEFORE navigate too: a page that has already loaded its modules
+    // over the network is not the offline case anyone is trying to see.
+    if (opts.offline) {
+      await cdp.send("Network.enable");
+      // The HTTP cache has to go too, or a picture fetched on the previous run
+      // is served from it and the offline feed looks online.
+      await cdp.send("Network.setCacheDisabled", { cacheDisabled: true });
+      await cdp.send("Network.clearBrowserCache");
+      await cdp.send("Network.emulateNetworkConditions", {
+        offline: true,
+        latency: 0,
+        downloadThroughput: 0,
+        uploadThroughput: 0,
+      });
+    }
     const seed = [];
     if (opts.theme)
       seed.push(
@@ -233,6 +261,11 @@ async function main() {
       seed.push(
         `localStorage.setItem('edicola.lang', ${JSON.stringify(opts.lang)})`,
       );
+    if (opts.viewmode) {
+      seed.push(
+        `localStorage.setItem('edicola.viewmode', ${JSON.stringify(opts.viewmode)})`,
+      );
+    }
     if (seed.length) {
       await cdp.send("Page.addScriptToEvaluateOnNewDocument", {
         source: `try { ${seed.join("; ")} } catch (e) {}`,

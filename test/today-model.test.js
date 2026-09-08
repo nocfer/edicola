@@ -4,6 +4,7 @@
 // the reader's day, not UTC's.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { coverIndexFor } from "../src/cover.js";
 import {
   buildTodayModel,
   localDayKey,
@@ -406,4 +407,197 @@ test("oneLine collapses whitespace and elides on a word", () => {
   assert.ok(cut.length <= SUMMARY_MAX_CHARS + 1);
   assert.ok(cut.endsWith("…"));
   assert.ok(!cut.includes("  "));
+});
+
+// --- Feed mode: the flat card list and the rings row -----------------------
+//
+// Feed mode is one Today screen's second presentation, so its shape is decided
+// here and the template only renders it. These tests are the whole proof of
+// ticket 02's model half: the same Items, the same Retention window, the same
+// filter, arranged as one column instead of day sections, plus one ring per
+// Enabled Publication with its state.
+
+test("Feed mode gets one flat card list, newest first, with no day sections", () => {
+  const model = buildTodayModel(
+    [
+      item("old", NOW - 3 * DAY),
+      item("new", NOW - 60_000),
+      item("mid", NOW - DAY),
+    ],
+    PUBS,
+    { now: NOW },
+  );
+  assert.deepEqual(
+    model.cards.map((card) => card.id),
+    ["new", "mid", "old"],
+  );
+  assert.ok(
+    model.sections.length > 1,
+    "List mode still groups the same cards by day",
+  );
+});
+
+test("the flat list and the day sections hold the very same cards", () => {
+  const model = buildTodayModel(
+    [item("a", NOW - 60_000), item("b", NOW - DAY)],
+    PUBS,
+    { now: NOW },
+  );
+  const inSections = model.sections.flatMap((section) => section.cards);
+  assert.equal(inSections.length, model.cards.length);
+  for (const card of inSections) {
+    assert.ok(
+      model.cards.includes(card),
+      `${card.id} is a different object in each arrangement`,
+    );
+  }
+});
+
+test("the filter applies to the flat list exactly as it does to the sections", () => {
+  const model = buildTodayModel(
+    [item("a", NOW), item("n", NOW, { publicationId: "nature" })],
+    PUBS,
+    { now: NOW, filterPublicationId: "nature" },
+  );
+  assert.deepEqual(
+    model.cards.map((card) => card.id),
+    ["n"],
+  );
+  assert.equal(model.cardCount, 1);
+});
+
+test("every card carries its Publication's monogram and ramp index", () => {
+  const model = buildTodayModel([item("a", NOW)], PUBS, { now: NOW });
+  const card = model.cards[0];
+  assert.equal(card.monogram, "BN", "BBC News");
+  assert.equal(card.coverIndex, coverIndexFor("bbc-news"));
+  assert.ok(card.coverIndex >= 1 && card.coverIndex <= 8);
+});
+
+test("a card with no resolved source falls back to a generated Cover", () => {
+  // The view resolves sources against the `images` table and hands the map in;
+  // with no map every card is a Cover, which is the honest answer offline.
+  const model = buildTodayModel([item("a", NOW)], PUBS, { now: NOW });
+  assert.deepEqual(model.cards[0].cover, { kind: "cover", url: null });
+});
+
+test("a resolved source reaches the card untouched", () => {
+  const model = buildTodayModel([item("a", NOW), item("b", NOW - 1000)], PUBS, {
+    now: NOW,
+    coverSources: new Map([
+      ["a", { kind: "blob", url: "blob:x" }],
+      ["b", { kind: "network", url: "https://pub.test/p.jpg" }],
+    ]),
+  });
+  assert.deepEqual(model.cards[0].cover, { kind: "blob", url: "blob:x" });
+  assert.deepEqual(model.cards[1].cover, {
+    kind: "network",
+    url: "https://pub.test/p.jpg",
+  });
+});
+
+test("there is one ring per Enabled Publication, in the caller's order", () => {
+  const model = buildTodayModel([item("a", NOW)], PUBS, { now: NOW });
+  assert.deepEqual(
+    model.rings.map((ring) => ring.publicationId),
+    ["bbc-news", "nature"],
+    "a Publication with nothing in the window still gets a ring",
+  );
+  assert.equal(model.rings[0].name, "BBC News");
+  assert.equal(model.rings[0].monogram, "BN");
+  assert.equal(model.rings[1].monogram, "NA");
+});
+
+test("a ring with Unread Items nobody has Seen is unseen", () => {
+  const model = buildTodayModel([item("a", NOW), item("b", NOW - 1000)], PUBS, {
+    now: NOW,
+  });
+  assert.equal(model.rings[0].state, "unseen");
+  assert.equal(model.rings[0].unread, 2);
+  assert.equal(model.rings[0].reelCount, 2);
+});
+
+test("a ring whose whole reel is Seen dims, and its Unread count does not move", () => {
+  // The guarantee the design rests on: Seen is not Read.
+  const model = buildTodayModel(
+    [item("a", NOW, { seen: true }), item("b", NOW - 1000, { seen: true })],
+    PUBS,
+    { now: NOW },
+  );
+  assert.equal(model.rings[0].state, "seen");
+  assert.equal(model.rings[0].unread, 2, "Unread counts only fall on Read");
+  assert.equal(model.chips[0].unread, 2, "and the chip agrees");
+});
+
+test("one unseen Item in the reel keeps the whole ring unseen", () => {
+  const model = buildTodayModel(
+    [item("a", NOW, { seen: true }), item("b", NOW - 1000)],
+    PUBS,
+    { now: NOW },
+  );
+  assert.equal(model.rings[0].state, "unseen");
+});
+
+test("marking the last Item Seen is what flips the ring from unseen to seen", () => {
+  const rows = [item("a", NOW), item("b", NOW - 1000, { seen: true })];
+  assert.equal(
+    buildTodayModel(rows, PUBS, { now: NOW }).rings[0].state,
+    "unseen",
+  );
+  rows[0].seen = true;
+  assert.equal(
+    buildTodayModel(rows, PUBS, { now: NOW }).rings[0].state,
+    "seen",
+  );
+});
+
+test("a Publication with nothing Unread has no reel at all", () => {
+  const model = buildTodayModel(
+    [
+      item("a", NOW, { read: true, seen: true }),
+      item("b", NOW - 1000, { read: true }),
+    ],
+    PUBS,
+    { now: NOW },
+  );
+  assert.equal(model.rings[0].state, "none");
+  assert.equal(model.rings[0].reelCount, 0);
+  assert.equal(model.rings[0].unread, 0);
+});
+
+test("a Publication with no Items in the window has no reel either", () => {
+  const model = buildTodayModel([item("a", NOW)], PUBS, { now: NOW });
+  assert.equal(model.rings[1].publicationId, "nature");
+  assert.equal(model.rings[1].state, "none");
+});
+
+test("a Read Item is out of the reel even when it was never Seen", () => {
+  // A reel is the Publication's Unread Items: reading one in the Reader takes
+  // it out, which is why the ring can go quiet without a single Frame.
+  const model = buildTodayModel(
+    [item("a", NOW, { read: true }), item("b", NOW - 1000)],
+    PUBS,
+    { now: NOW },
+  );
+  assert.equal(model.rings[0].reelCount, 1);
+  assert.equal(model.rings[0].state, "unseen");
+});
+
+test("the active filter is echoed on its ring, so the row can show it", () => {
+  const model = buildTodayModel([item("a", NOW)], PUBS, {
+    now: NOW,
+    filterPublicationId: "nature",
+  });
+  assert.equal(model.rings[0].active, false);
+  assert.equal(model.rings[1].active, true);
+});
+
+test("an Item outside the Retention window is in no reel", () => {
+  const model = buildTodayModel(
+    [item("a", NOW - 40 * DAY), item("b", NOW)],
+    PUBS,
+    { now: NOW, limits: { maxAgeDays: 30, keepPerPublication: 50 } },
+  );
+  assert.equal(model.rings[0].reelCount, 1);
+  assert.equal(model.cards.length, 1);
 });

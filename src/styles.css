@@ -276,6 +276,12 @@ button {
   box-shadow: var(--card-shadow);
   padding: var(--s-4);
 }
+/* Feed mode's post card: the picture and the action bar run to the card's own
+   edge, so the padding moves inside to the rows that want it. */
+.card--flush {
+  padding: 0;
+  overflow: hidden;
+}
 .card__title {
   margin: 0 0 var(--s-3);
   font-size: var(--fs-caption);
@@ -328,6 +334,41 @@ button {
   display: inline-flex;
   flex-wrap: wrap;
   gap: var(--s-2);
+}
+
+/* Ramp: a Publication's own flat fill, from the eight-value Cover ramp in §1.
+   Which variant a Publication takes is decided by hashing its id
+   (`coverIndexFor` in src/cover.js), so thirty Publications share eight
+   colours and the monogram is what disambiguates them. Used by the ring tile,
+   the card avatar, a generated Cover and a Story Frame — one primitive rather
+   than the same eight rules written out per screen. Every fill carries
+   --accent-ink at --fs-title; see the note on the tokens. */
+.ramp {
+  color: var(--accent-ink);
+}
+.ramp--1 {
+  background: var(--cover-1);
+}
+.ramp--2 {
+  background: var(--cover-2);
+}
+.ramp--3 {
+  background: var(--cover-3);
+}
+.ramp--4 {
+  background: var(--cover-4);
+}
+.ramp--5 {
+  background: var(--cover-5);
+}
+.ramp--6 {
+  background: var(--cover-6);
+}
+.ramp--7 {
+  background: var(--cover-7);
+}
+.ramp--8 {
+  background: var(--cover-8);
 }
 
 /* Button: default is a quiet control; `--primary` is the accent fill;
@@ -697,6 +738,32 @@ button {
   line-height: 1;
 }
 
+/* The View Mode toggle: two icon chips reading as one control, so the pair owns
+   the pill and the halves sit inside it. 44px wide each keeps both a touch
+   target while the pair still fits beside the title and the refresh button. */
+.today__modes {
+  flex: none;
+  flex-wrap: nowrap;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--chip-bg);
+}
+.today__mode {
+  justify-content: center;
+  width: 44px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+.today__mode.chip--on {
+  background: var(--chip-on-bg);
+  color: var(--chip-on-fg);
+}
+
 /* Sync progress: a hairline that fills as the pipeline works. */
 .today__progress {
   height: 3px;
@@ -801,6 +868,14 @@ button {
   border-radius: var(--r-control);
   background: var(--card);
   box-shadow: 0 8px 24px -12px rgb(0 0 0 / 45%);
+}
+/* Feed mode's rings row is a horizontal scroller, and an `overflow-x: auto`
+   box clips its children on both axes, so the ring menu renders below the row
+   in normal flow instead of floating over the ring. */
+.today__menu--static {
+  position: static;
+  display: flex;
+  flex-direction: column;
 }
 .today__menuitem {
   white-space: nowrap;
@@ -936,6 +1011,317 @@ button {
     transition-duration: 0s !important;
   }
 }
+
+/* Feed View Mode: the rings row, the post cards and the end card. Today's
+   second presentation of the same Items (spec: Feed View Mode) - no sticky day
+   headers here, because each card carries its own relative time.
+
+   Every colour comes from the token layer, including the eight Cover fills,
+   which arrive through the `.ramp` primitive rather than being retyped per
+   element. */
+.feed__rings {
+  display: flex;
+  gap: var(--s-4);
+  /* The row scrolls to the screen's own edge, so it eats the screen padding
+     and puts it back inside as its own. */
+  margin: 0 calc(-1 * var(--s-4));
+  padding: 0 var(--s-4) var(--s-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+.feed__ring {
+  position: relative;
+  flex: none;
+  width: 62px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+}
+/* The ring itself. Its three states differ in ring WEIGHT first - 2px accent,
+   1px hairline, none - so the row reads without relying on hue (board 09); the
+   padding changes with the border so the tile inside stays one size. */
+.feed__ringbtn {
+  width: 62px;
+  height: 62px;
+  padding: 5px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  cursor: pointer;
+}
+.feed__ring--unseen .feed__ringbtn {
+  padding: 3px;
+  border: 2px solid var(--accent);
+}
+.feed__ring--seen .feed__ringbtn {
+  padding: var(--s-1);
+  border: 1px solid var(--hairline);
+}
+.feed__ringtile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.feed__ring--seen .feed__ringtile {
+  opacity: 0.6;
+}
+/* The no-reel tile deliberately drops its Cover fill for the flattest state
+   there is: nothing Unread, so nothing to look through. This is a more
+   specific selector shadowing `.ramp--n` on purpose - the gate in
+   test/styles-structure.test.js cannot see that shape (CLAUDE.md gotcha 9), so
+   it is said here instead. */
+.feed__ring--none .feed__ringtile {
+  border: 1px solid var(--hairline);
+  background: var(--chip-bg);
+  color: var(--faint);
+}
+.feed__ringname {
+  max-width: 62px;
+  color: var(--text);
+  font-size: var(--fs-caption);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feed__ring--seen .feed__ringname {
+  color: var(--muted);
+}
+.feed__ring--none .feed__ringname {
+  color: var(--faint);
+}
+/* The overflow affordance: a 24px glyph inside a 44px target, so the visible
+   twin of the long press is no harder to hit than the ring. */
+.feed__ringmore {
+  position: absolute;
+  top: 27px;
+  right: calc(-1 * var(--s-3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.feed__ringmoredot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  line-height: 1;
+}
+.feed__ringmenu {
+  align-self: flex-start;
+}
+
+/* The column of post cards. */
+.feed__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+.feed__card {
+  display: flex;
+  flex-direction: column;
+}
+.feed__head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4) var(--s-2);
+}
+.feed__avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.feed__pub {
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.feed__when {
+  flex: none;
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+.feed__gap {
+  flex: 1;
+}
+.feed__dot {
+  width: 7px;
+  height: 7px;
+  flex: none;
+  border-radius: var(--r-pill);
+  background: var(--accent);
+}
+
+/* The picture, 4:5. With a photo it is the photo; without one it is a
+   generated Cover: the Publication's flat fill, its monogram as a watermark,
+   and the headline set large ON the Cover - which is why the text block below
+   omits the headline in that variant and prints it in the photo variant. The
+   headline appears once either way. */
+.feed__media {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 4 / 5;
+  padding: var(--s-5);
+  color: inherit;
+  overflow: hidden;
+  text-decoration: none;
+}
+.feed__media:hover {
+  text-decoration: none;
+}
+.feed__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--chip-bg);
+  object-fit: cover;
+}
+.feed__watermark {
+  position: absolute;
+  right: -18px;
+  bottom: -52px;
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: 200px;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  opacity: 0.14;
+  pointer-events: none;
+}
+.feed__coverhead {
+  position: relative;
+  margin: 0;
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  text-wrap: pretty;
+}
+/* The Summary-only badge. One treatment for both variants: over a photo it is
+   the scrim the text needs, and over a Cover it still reads. Sixteen of the
+   thirty Catalog Publications are truncated, so this is the common case. */
+.feed__badge {
+  position: absolute;
+  top: var(--s-3);
+  left: var(--s-3);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+
+/* Save, Share, Original - the Reader's three actions, 44px each. No likes, no
+   comments, no counts: there is no server to send them to. */
+.feed__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-3);
+}
+.feed__action {
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+}
+.feed__action--on {
+  color: var(--accent);
+}
+
+.feed__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: 0 var(--s-4) var(--s-4);
+  color: inherit;
+  text-decoration: none;
+}
+.feed__text:hover {
+  text-decoration: none;
+}
+.feed__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  text-wrap: pretty;
+}
+.feed__summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+/* The end of the feed. The column stops at the Retention window, not at the
+   beginning of time, and this says so rather than trailing off. */
+.feed__end {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-8) var(--s-6);
+  text-align: center;
+}
+.feed__endtitle {
+  font-family: var(--font-display);
+  font-size: var(--fs-lead);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+}
+.feed__endnote {
+  color: var(--faint);
+  font-size: var(--fs-caption);
+}
+
 
 /* Settings: the Proxy, Retention, Storage and About cards, and the update
    prompt. Tokens only — no raw colour, space, radius or font literal

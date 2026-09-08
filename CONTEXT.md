@@ -81,9 +81,36 @@ _Avoid_: failed item, stub, partial item
 ### Reading
 
 **Today**:
-The home screen: a single timeline of Items from all Enabled Publications,
-newest first, grouped by day.
+The home screen: the Items of all Enabled Publications, newest first, in one of
+two View Modes. It is one screen with two presentations, never two screens.
 _Avoid_: feed, home, timeline, inbox
+
+**View Mode**:
+How Today presents its Items. **List** is the day-grouped timeline of compact
+rows; **Feed** is a row of Story rings above one column of full-bleed post
+cards. Both show the same Items inside the same Retention window and share the
+same Unread counts.
+_Avoid_: layout, density, style, skin
+
+**Story**:
+One Publication's tap-through reel of its Unread Items, newest first, opened
+from its ring in Feed mode. It never advances by itself.
+_Avoid_: reel, slideshow, carousel, stories
+
+**Frame**:
+One screen of a Story: one Item.
+_Avoid_: slide, page, card
+
+**Seen**:
+A Frame showed this Item. Distinct from Read, which only the Reader sets: a
+ring dims once its whole reel is Seen, while Unread counts move only on Read.
+_Avoid_: viewed, looked at, opened
+
+**Cover**:
+The generated stand-in for an Item with no usable photo: one flat fill from a
+fixed eight-colour ramp, the Publication's monogram, and the headline set
+large. A Cover is deliberate, not a placeholder for a failure.
+_Avoid_: placeholder, fallback image, thumbnail, gradient
 
 **Reader**:
 The screen that shows one Article.

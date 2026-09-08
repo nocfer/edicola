@@ -38,7 +38,8 @@ import {
 import { fetchArticleNow } from "../fetch-one.js";
 import { createFetcher } from "../fetcher.js";
 import { formatDate, formatRelative, t, tCount } from "../i18n.js";
-import { setItemSaved, setReadingPosition } from "../item-state.js";
+import { toggleItemSaved, shareItem } from "../item-actions.js";
+import { setReadingPosition } from "../item-state.js";
 import {
   clampPosition,
   debounce,
@@ -54,9 +55,9 @@ import {
 import { html, nothing, unsafeHTML } from "../render.js";
 import { goBack, hrefFor, parseRoute } from "../router.js";
 import { effectiveProxyTemplate, getSettingsStore } from "../settings.js";
-import { showToast, state, update } from "../state.js";
+import { state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
-import { emptyState } from "./layout.js";
+import { bookmarkIcon, emptyState, shareIcon } from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').ArticleRow} ArticleRow */
@@ -493,51 +494,24 @@ async function extractNow() {
 // --- Actions ---------------------------------------------------------------
 
 /**
- * Flip `saved` and say so. `item-state.js` owns the write, so the `0 | 1` rule
- * (IndexedDB cannot index a boolean, see db.js) and the `savedAt` stamp the
- * Saved screen orders by are applied in one place. A Saved Item and its
- * Article are never Evicted.
+ * Flip `saved` and redraw. The write, the toast and the `0 | 1` rule live in
+ * `item-actions.js`, shared with Feed mode's action bar; this screen only has
+ * to say which Item and ask for a redraw.
  * @returns {Promise<void>}
  */
 async function toggleSaved() {
-  const item = screen.item;
-  if (!item) return;
-  const next = !item.saved;
-  try {
-    const written = await setItemSaved(getDatabase(), item.id, next);
-    item.saved = written.saved;
-    showToast(t(next ? "reader.savedToast" : "reader.unsavedToast"));
-  } catch (error) {
-    console.warn("Saved could not be written:", error);
-    showToast(t("reader.saveFailed"));
-  }
+  if (!screen.item) return;
+  await toggleItemSaved(screen.item);
   update();
 }
 
 /**
- * Share the Original through the system sheet, falling back to copying the
- * link. A dismissed sheet is not a failure and says nothing.
+ * Share the Original. `item-actions.js` owns the Web Share call and its
+ * clipboard fallback, shared with Feed mode.
  * @returns {Promise<void>}
  */
-async function share() {
-  const item = screen.item;
-  if (!item?.link) return;
-  const payload = { title: item.title || t("reader.title"), url: item.link };
-  if (typeof navigator.share === "function") {
-    try {
-      await navigator.share(payload);
-      return;
-    } catch (error) {
-      if (/** @type {any} */ (error)?.name === "AbortError") return;
-    }
-  }
-  try {
-    await navigator.clipboard.writeText(item.link);
-    showToast(t("reader.shareCopied"));
-  } catch (error) {
-    console.warn("The link could not be shared:", error);
-    showToast(t("reader.shareFailed"));
-  }
+function share() {
+  return shareItem(/** @type {any} */ (screen.item) || {});
 }
 
 // --- Templates -------------------------------------------------------------
@@ -556,41 +530,6 @@ const backIcon = html`<svg
 >
   <path d="m12 19-7-7 7-7" />
   <path d="M19 12H5" />
-</svg>`;
-
-/** @param {boolean} filled */
-function bookmarkIcon(filled) {
-  return html`<svg
-    class="ico"
-    viewBox="0 0 24 24"
-    width="20"
-    height="20"
-    fill=${filled ? "currentColor" : "none"}
-    stroke="currentColor"
-    stroke-width="2"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z" />
-  </svg>`;
-}
-
-const shareIcon = html`<svg
-  class="ico"
-  viewBox="0 0 24 24"
-  width="20"
-  height="20"
-  fill="none"
-  stroke="currentColor"
-  stroke-width="2"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  aria-hidden="true"
->
-  <path d="M12 16V3" />
-  <path d="m7 8 5-5 5 5" />
-  <path d="M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" />
 </svg>`;
 
 /** The name of the Publication this Item came from, never left blank. */

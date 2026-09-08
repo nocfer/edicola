@@ -1,4 +1,11 @@
-// Today's data model: the pure half of the home screen.
+// Today's data model: the pure half of the home screen, in both View Modes.
+//
+// Today has two presentations of one set of Items (spec: Feed View Mode), and
+// both shapes are decided here: `sections` groups the cards by day for List
+// mode, `cards` is the same card objects flat and newest first for Feed mode,
+// and `rings` is one entry per Enabled Publication with its Story state. The
+// cards are literally shared between the two arrangements rather than built
+// twice, so the two modes can never disagree about what an Item says.
 //
 // `buildTodayModel` takes the stored Items, the Enabled Publications and the
 // reader's filter, and returns exactly what the template needs — day sections
@@ -21,6 +28,7 @@
 // scroll into the past; older Items are reachable from the Publication's own
 // list").
 
+import { coverIndexFor, monogramFor } from "./cover.js";
 import { DICTIONARIES, en, LOCALES } from "./i18n.js";
 import {
   compareItemsNewestFirst,
@@ -44,6 +52,7 @@ export const SUMMARY_MAX_CHARS = 160;
 /** @typedef {import('./db.js').ItemRow} ItemRow */
 /** @typedef {import('./db.js').PublicationRow} PublicationRow */
 /** @typedef {import('./i18n.js').Lang} Lang */
+/** @typedef {import('./cover.js').CoverSource} CoverSource */
 
 /**
  * How a Publication is handed to `buildTodayModel`: a Map keyed by id, or a
@@ -66,6 +75,31 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {boolean} read
  * @property {boolean} saved
  * @property {boolean} summaryOnly No Article: the Reader shows the Summary.
+ * @property {string} monogram The Publication's initials (`src/cover.js`).
+ * @property {number} coverIndex Which `--cover-n` fill this Publication takes.
+ * @property {CoverSource} cover What fills the picture slot, already decided.
+ */
+
+/**
+ * One Publication's ring in Feed mode. The three states are told apart by ring
+ * weight before colour (board 09), so the row reads without relying on hue.
+ *
+ * A **reel** is the Publication's Unread Items inside Today's window. `state`
+ * is `none` when there is no reel — a tap filters the feed instead of opening a
+ * Story — `seen` when every Item in the reel has had a Frame shown, and
+ * `unseen` otherwise. `unread` is the same number the chip shows and moves only
+ * on Read, which is why a dimmed ring and a standing Unread count are not a
+ * contradiction.
+ *
+ * @typedef {object} Ring
+ * @property {string} publicationId
+ * @property {string} name
+ * @property {string} monogram
+ * @property {number} coverIndex
+ * @property {'unseen'|'seen'|'none'} state
+ * @property {number} unread Unread Items inside the window.
+ * @property {number} reelCount Frames the Story would have; 0 means no reel.
+ * @property {boolean} active This Publication is the filter currently applied.
  */
 
 /**
@@ -93,10 +127,15 @@ export const SUMMARY_MAX_CHARS = 160;
 /**
  * @typedef {object} TodayModel
  * @property {DaySection[]} sections Newest day first; empty when nothing matches.
+ * @property {TodayCard[]} cards The same cards flat and newest first, for Feed
+ *   mode. No day sections: each card carries its own `publishedAt`, which is
+ *   the relative time the card prints.
+ * @property {Ring[]} rings One per Enabled Publication, in the caller's order.
  * @property {FilterChip[]} chips "All" first, then one per Publication with Items.
  * @property {string | null} filterPublicationId Echo of the filter applied.
  * @property {string | null} filterName Name of the filtered Publication, or null.
- * @property {number} cardCount Cards in `sections` (after the filter).
+ * @property {number} cardCount Cards in `cards`, and so in `sections` too
+ *   (after the filter).
  * @property {number} itemCount Items inside the window (before the filter).
  * @property {number} unreadCount Unread Items inside the window (before the filter).
  * @property {number} windowDays The age bound applied, for the honest footer line.
@@ -122,6 +161,11 @@ export const SUMMARY_MAX_CHARS = 160;
  * @param {Lang} [options.lang] Language of the day headers and the "All" chip.
  * @param {{ maxAgeDays?: number, keepPerPublication?: number }} [options.limits]
  *   Retention bounds; defaults to `DEFAULT_RETENTION`.
+ * @param {Map<string, CoverSource> | null} [options.coverSources] What fills
+ *   each Item's picture slot, from `resolveCoverSources` (`src/cover.js`). An
+ *   Item the map does not mention gets a generated Cover, which is the honest
+ *   answer with no connection and the right one for List mode, which asks for
+ *   no sources at all.
  * @returns {TodayModel}
  */
 export function buildTodayModel(items, publicationsById, options = {}) {
@@ -130,6 +174,7 @@ export function buildTodayModel(items, publicationsById, options = {}) {
     now = Date.now(),
     lang = "en",
     limits = {},
+    coverSources = null,
   } = options;
   const {
     maxAgeDays = DEFAULT_RETENTION.maxAgeDays,
@@ -168,16 +213,20 @@ export function buildTodayModel(items, publicationsById, options = {}) {
 
   // 2. Counts per Publication, always over the whole window: a chip's Unread
   //    count must not change when the reader filters to another Publication.
-  /** @type {Map<string, { total: number, unread: number }>} */
+  //    `reel` and `reelSeen` are counted in the same pass: a reel is the
+  //    Publication's Unread Items in the window, and a ring dims once every
+  //    one of them has had a Frame shown.
+  /** @type {Map<string, { total: number, unread: number, reelSeen: number }>} */
   const counts = new Map();
   let unreadCount = 0;
   for (const item of bounded) {
     const key = String(item.publicationId);
-    const tally = counts.get(key) || { total: 0, unread: 0 };
+    const tally = counts.get(key) || { total: 0, unread: 0, reelSeen: 0 };
     tally.total += 1;
     if (!item.read) {
       tally.unread += 1;
       unreadCount += 1;
+      if (item.seen) tally.reelSeen += 1;
     }
     counts.set(key, tally);
   }
@@ -206,15 +255,52 @@ export function buildTodayModel(items, publicationsById, options = {}) {
     });
   }
 
-  // 4. Sections, newest day first. `bounded` is already newest first, so each
+  // 4. Rings: one per Enabled Publication, whether or not it has Items in the
+  //    window — board 09 is "one ring per Enabled Publication", and a
+  //    Publication with nothing to show is the flattest state rather than a
+  //    gap in the row.
+  /** @type {Ring[]} */
+  const rings = [];
+  for (const [id, publication] of publications) {
+    const tally = counts.get(id);
+    const unread = tally ? tally.unread : 0;
+    const reelSeen = tally ? tally.reelSeen : 0;
+    rings.push({
+      publicationId: id,
+      name: publicationName(publication, id),
+      monogram: monogramFor(publicationName(publication, id)),
+      coverIndex: coverIndexFor(id),
+      state: unread === 0 ? "none" : reelSeen === unread ? "seen" : "unseen",
+      unread,
+      reelCount: unread,
+      active: id === filterId,
+    });
+  }
+
+  // 5. The cards, once, newest first. Feed mode renders them as one column;
+  //    List mode groups the very same objects into day sections below, so the
+  //    two presentations cannot drift apart.
+  /** @type {TodayCard[]} */
+  const cards = [];
+  for (const item of bounded) {
+    if (filterId !== null && String(item.publicationId) !== filterId) continue;
+    cards.push(
+      toCard(
+        item,
+        publications.get(String(item.publicationId)),
+        coverSources?.get(String(item.id)),
+      ),
+    );
+  }
+
+  // 6. Sections, newest day first. `cards` is already newest first, so each
   //    section's cards inherit that order and the sections come out in order.
   /** @type {DaySection[]} */
   const sections = [];
   /** @type {Map<string, DaySection>} */
   const byDay = new Map();
-  for (const item of bounded) {
-    if (filterId !== null && String(item.publicationId) !== filterId) continue;
-    const startedAt = startOfLocalDay(item.publishedAt);
+  for (const card of cards) {
+    const startedAt = startOfLocalDay(card.publishedAt);
     const key = localDayKey(startedAt);
     let section = byDay.get(key);
     if (!section) {
@@ -223,18 +309,18 @@ export function buildTodayModel(items, publicationsById, options = {}) {
       byDay.set(key, section);
       sections.push(section);
     }
-    section.cards.push(
-      toCard(item, publications.get(String(item.publicationId))),
-    );
+    section.cards.push(card);
   }
 
   const filtered = filterId === null ? null : publications.get(filterId);
   return {
     sections,
+    cards,
+    rings,
     chips,
     filterPublicationId: filterId,
     filterName: filterId === null ? null : publicationName(filtered, filterId),
-    cardCount: sections.reduce((total, s) => total + s.cards.length, 0),
+    cardCount: cards.length,
     itemCount: bounded.length,
     unreadCount,
     windowDays: maxAgeDays,
@@ -372,14 +458,17 @@ function publicationName(publication, id) {
 /**
  * @param {ItemRow} item
  * @param {PublicationRow | undefined} publication
+ * @param {CoverSource} [cover] From `resolveCoverSources`; a generated Cover
+ *   when the caller resolved nothing for this Item.
  * @returns {TodayCard}
  */
-function toCard(item, publication) {
+function toCard(item, publication, cover) {
   const publicationId = String(item.publicationId);
+  const name = publicationName(publication, publicationId);
   return {
     id: String(item.id),
     publicationId,
-    publicationName: publicationName(publication, publicationId),
+    publicationName: name,
     title: oneLine(item.title, 200),
     summary: oneLine(item.summaryText),
     publishedAt: timeOf(item.publishedAt),
@@ -387,5 +476,8 @@ function toCard(item, publication) {
     read: Boolean(item.read),
     saved: Boolean(item.saved),
     summaryOnly: Boolean(item.summaryOnly),
+    monogram: monogramFor(name),
+    coverIndex: coverIndexFor(publicationId),
+    cover: cover ?? { kind: "cover", url: null },
   };
 }

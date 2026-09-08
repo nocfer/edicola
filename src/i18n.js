@@ -65,6 +65,34 @@ export const en = {
     "Today keeps the last {count} days. Older Items stay on their Publication.",
   "today.cardAria": "{title} — {publication}, {when}",
 
+  // Feed View Mode. `today.view*` labels the segmented control; the rings row
+  // replaces the filter chips in Feed mode, so its strings live here too. The
+  // action bar reuses the Reader's own toasts (see src/item-actions.js) and
+  // needs only its labels.
+  "today.viewMode": "How Today is shown",
+  "today.viewList": "List",
+  "today.viewFeed": "Feed",
+  "today.viewListAria": "Show Today as a list",
+  "today.viewFeedAria": "Show Today as a feed",
+  "today.rings": "Publications",
+  "today.ringUnseen": "{name}: unread Items to look through",
+  "today.ringSeen": "{name}: every unread Item already looked at",
+  "today.ringNone": "{name}: nothing unread",
+  "today.showAll": "Show every Publication",
+  "today.save": "Save",
+  "today.savedAction": "Saved",
+  "today.saveAria": "Save {title}",
+  "today.unsaveAria": "Remove {title} from Saved",
+  "today.share": "Share",
+  "today.shareAria": "Share {title}",
+  "today.original": "Original",
+  "today.originalAria": "Open {title} on {publication}",
+  "today.caughtUp": "You are all caught up",
+  "today.caughtUpDays.one": "showing the last day",
+  "today.caughtUpDays.other": "showing the last {count} days",
+  "today.coversStandIn":
+    "Covers stand in for photos that were not stored. Every Item below is readable.",
+
   "saved.title": "Saved",
   "saved.loading": "Opening your Saved Items…",
   "saved.loadError": "Saved could not be read from storage.",
@@ -358,6 +386,30 @@ export const it = {
   "today.bounded.other":
     "Oggi conserva gli ultimi {count} giorni. I titoli più vecchi restano sulla loro testata.",
   "today.cardAria": "{title} — {publication}, {when}",
+
+  "today.viewMode": "Come si vede Oggi",
+  "today.viewList": "Elenco",
+  "today.viewFeed": "Feed",
+  "today.viewListAria": "Mostra Oggi come elenco",
+  "today.viewFeedAria": "Mostra Oggi come feed",
+  "today.rings": "Testate",
+  "today.ringUnseen": "{name}: titoli da leggere ancora da sfogliare",
+  "today.ringSeen": "{name}: tutti i titoli da leggere già sfogliati",
+  "today.ringNone": "{name}: niente da leggere",
+  "today.showAll": "Mostra tutte le testate",
+  "today.save": "Salva",
+  "today.savedAction": "Salvato",
+  "today.saveAria": "Salva {title}",
+  "today.unsaveAria": "Rimuovi {title} dai salvati",
+  "today.share": "Condividi",
+  "today.shareAria": "Condividi {title}",
+  "today.original": "Originale",
+  "today.originalAria": "Apri {title} su {publication}",
+  "today.caughtUp": "Hai letto tutto",
+  "today.caughtUpDays.one": "mostra l'ultimo giorno",
+  "today.caughtUpDays.other": "mostra gli ultimi {count} giorni",
+  "today.coversStandIn":
+    "Le copertine sostituiscono le foto non salvate. Ogni titolo qui sotto è leggibile.",
 
   "saved.title": "Salvati",
   "saved.loading": "Apertura dei salvati…",

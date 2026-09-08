@@ -1,5 +1,12 @@
-// Today: one timeline across the Enabled Publications, newest first, grouped by
-// day under sticky headers (spec stories 10-14, 21).
+// Today: the Items of every Enabled Publication, newest first, in one of two
+// View Modes (spec stories 10-14, 21, plus Feed View Mode).
+//
+// **List** is the day-grouped timeline under sticky headers Today has always
+// had. **Feed** is the same Items as one column of full-bleed post cards, with
+// a row of Publication rings where List mode puts its filter chips. One route,
+// one model, two templates: `buildTodayModel` decides both shapes and neither
+// template decides anything. The toggle writes `update({ viewMode })` and
+// `main.js` persists it.
 //
 // This is the browser half of the screen. Everything that decides *what* the
 // list contains — the Retention window, the day sections, the localized
@@ -20,8 +27,10 @@
 // reads it, it does not survive a reload, and every mutation ends in a bare
 // `update()` so main.js's one subscriber is what redraws.
 
-import { getDatabase } from "../db.js";
+import { resolveCoverSources } from "../cover.js";
+import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
+import { shareItem, toggleItemSaved } from "../item-actions.js";
 import { markPublicationRead } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
@@ -29,13 +38,23 @@ import { getSyncStore } from "../store.js";
 import { hrefFor, parseRoute } from "../router.js";
 import { syncNow } from "../sync-client.js";
 import { buildTodayModel } from "../today-model.js";
-import { emptyState, screenHeader } from "./layout.js";
+import {
+  bookmarkIcon,
+  emptyState,
+  externalIcon,
+  feedIcon,
+  listIcon,
+  screenHeader,
+  shareIcon,
+} from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
 /** @typedef {import('../today-model.js').FilterChip} FilterChip */
 /** @typedef {import('../today-model.js').TodayCard} TodayCard */
 /** @typedef {import('../today-model.js').DaySection} DaySection */
+/** @typedef {import('../today-model.js').Ring} Ring */
+/** @typedef {import('../cover.js').CoverSource} CoverSource */
 
 /** Pull distance (CSS px) that arms a refresh. */
 const PULL_TRIGGER_PX = 72;
@@ -58,6 +77,11 @@ const RELOAD_DEBOUNCE_MS = 250;
  * @property {string|null} filterPublicationId The chip that is on, null for All.
  * @property {string|null} menuFor Publication id whose chip menu is open.
  * @property {Set<string>} brokenThumbs Thumbnail URLs that failed to load.
+ * @property {Map<string, CoverSource>} coverSources What fills each Item's
+ *   picture slot in Feed mode, resolved against the `images` table.
+ * @property {string[]} objectUrls Object URLs `coverSources` created; revoked
+ *   on the next load and on `pagehide`, the way the Reader revokes an
+ *   Article's images.
  * @property {number} pull Current pull distance in CSS px, 0 when idle.
  * @property {string} syncMark Signature of the `state.sync` we last reacted to.
  * @property {number} scrollY Where the reader was in the list.
@@ -71,6 +95,8 @@ const screen = {
   filterPublicationId: null,
   menuFor: null,
   brokenThumbs: new Set(),
+  coverSources: new Map(),
+  objectUrls: [],
   pull: 0,
   syncMark: "",
   scrollY: 0,
@@ -109,6 +135,7 @@ async function load() {
     }
     screen.publications = publications;
     screen.items = items;
+    await refreshCoverSources(items);
     if (
       screen.filterPublicationId &&
       !publications.some((p) => p.id === screen.filterPublicationId)
@@ -121,6 +148,47 @@ async function load() {
     if (screen.status !== "ready") screen.status = "error";
   }
   update();
+}
+
+/**
+ * Work out what fills each Item's picture slot: the stored blob if we hold the
+ * bytes, else the publisher's URL, else a generated Cover (`src/cover.js` owns
+ * that order). Resolved once per load rather than per card so the whole feed
+ * costs one `bulkGet`, and the previous load's object URLs are released first —
+ * a screen that reloaded on every Sync tick and kept them would hold every
+ * picture it had ever shown.
+ *
+ * It never throws into `load`: a database that cannot be read leaves every
+ * card on its publisher URL or its Cover, and the feed still renders.
+ *
+ * @param {ItemRow[]} items
+ * @returns {Promise<void>}
+ */
+async function refreshCoverSources(items) {
+  const previous = screen.objectUrls;
+  const resolved = await resolveCoverSources(items, {
+    db: getDatabase(),
+    imageKeyFor,
+    createObjectURL: (blob) => URL.createObjectURL(blob),
+  });
+  screen.coverSources = resolved.sources;
+  screen.objectUrls = resolved.objectUrls;
+  releaseObjectUrls(previous);
+}
+
+/**
+ * Release object URLs the feed no longer renders. A URL the browser has already
+ * forgotten is not a problem worth raising.
+ * @param {string[]} urls
+ */
+function releaseObjectUrls(urls) {
+  for (const url of urls) {
+    try {
+      URL.revokeObjectURL(url);
+    } catch {
+      // Already gone.
+    }
+  }
 }
 
 let started = false;
@@ -197,6 +265,29 @@ function setFilter(publicationId) {
   update();
 }
 
+/**
+ * Switch View Mode. The write goes through the store like every other write;
+ * `main.js` persists it to `edicola.viewmode` as a side effect of the redraw,
+ * so this screen does not touch storage.
+ * @param {import('../state.js').ViewMode} viewMode
+ */
+function setViewMode(viewMode) {
+  if (state.viewMode === viewMode) return;
+  screen.menuFor = null;
+  update({ viewMode });
+}
+
+/**
+ * Tap a Publication's ring. Ticket 03 gives a ring with a reel its Story;
+ * until then, and permanently for the no-reel state, a tap filters the feed to
+ * that Publication — and tapping the ring that is already the filter clears it,
+ * because Feed mode has no "All" chip to go back to.
+ * @param {Ring} ring
+ */
+function tapRing(ring) {
+  setFilter(ring.active ? null : ring.publicationId);
+}
+
 /** @param {string} publicationId */
 function toggleMenu(publicationId) {
   screen.menuFor = screen.menuFor === publicationId ? null : publicationId;
@@ -207,7 +298,8 @@ function toggleMenu(publicationId) {
  * Mark every Item of one Publication read. The write covers the Publication's
  * whole table, not only the Items inside Today's window: "mark all read" that
  * left older Items Unread would be a lie the next Retention pass exposes.
- * @param {FilterChip} chip
+ * @param {{ publicationId: string | null, name: string }} chip A filter chip or
+ *   a Feed mode ring; both carry the two fields this reads.
  * @returns {Promise<void>}
  */
 async function markAllRead(chip) {
@@ -371,7 +463,52 @@ async function refreshReadState() {
 
 // --- Templates -------------------------------------------------------------
 
-/** The refresh control and the "last refreshed" / progress line. */
+/**
+ * The View Mode toggle and the refresh control, both in the screen header
+ * beside the title (boards 01 and 11). The toggle is the `seg` primitive with
+ * `aria-pressed` on each half, so the pair reads as one two-state control.
+ */
+function headerControls() {
+  const sync = state.sync;
+  return html`
+    <span class="seg today__modes" role="group" aria-label=${t("today.viewMode")}>
+      ${viewModeButton("list", listIcon, "today.viewList", "today.viewListAria")}
+      ${viewModeButton("feed", feedIcon, "today.viewFeed", "today.viewFeedAria")}
+    </span>
+    <button
+      type="button"
+      class="btn btn--icon today__refresh"
+      aria-label=${t("today.refresh")}
+      title=${t("today.refresh")}
+      ?disabled=${sync.running}
+      @click=${refresh}
+    >
+      <span class="ico" aria-hidden="true">↻</span>
+    </button>
+  `;
+}
+
+/**
+ * @param {import('../state.js').ViewMode} mode
+ * @param {unknown} icon
+ * @param {string} labelKey
+ * @param {string} ariaKey
+ */
+function viewModeButton(mode, icon, labelKey, ariaKey) {
+  const on = state.viewMode === mode;
+  return html`<button
+    type="button"
+    class="chip today__mode ${on ? "chip--on" : ""}"
+    aria-pressed=${on ? "true" : "false"}
+    aria-label=${t(ariaKey)}
+    title=${t(labelKey)}
+    @click=${() => setViewMode(mode)}
+  >
+    ${icon}
+  </button>`;
+}
+
+/** The "last refreshed" / progress line, and the bar a Sync fills. */
 function statusBar() {
   const sync = state.sync;
   const line = sync.running
@@ -385,16 +522,6 @@ function statusBar() {
   return html`
     <div class="today__bar">
       <span class="today__status" role="status">${line}</span>
-      <button
-        type="button"
-        class="btn btn--icon today__refresh"
-        aria-label=${t("today.refresh")}
-        title=${t("today.refresh")}
-        ?disabled=${sync.running}
-        @click=${refresh}
-      >
-        <span class="ico" aria-hidden="true">↻</span>
-      </button>
     </div>
     ${sync.running ? progressBar(sync) : nothing}
   `;
@@ -562,10 +689,13 @@ function itemCard(card) {
 }
 
 /**
- * A thumbnail that will not load leaves no gap and no broken-image glyph. The
- * element is hidden imperatively (no `?hidden` binding to undo it) and the URL
- * is remembered so a later render skips it — without an `update()`, because the
- * DOM is already correct and a redraw per broken image would be wasteful.
+ * A picture that will not load leaves no gap and no broken-image glyph. The
+ * element is hidden imperatively so the current DOM is right immediately, the
+ * URL is remembered so no later render offers it again, and a redraw follows
+ * because Feed mode must put the generated Cover in the slot the photo just
+ * failed to fill — a 4:5 hole is exactly the "looks broken" the Cover treatment
+ * exists to avoid. List mode reaches the same answer it always did, one redraw
+ * later.
  * @param {Event} event
  */
 function onThumbError(event) {
@@ -573,6 +703,7 @@ function onThumbError(event) {
   const url = img.getAttribute("src");
   if (url) screen.brokenThumbs.add(url);
   img.hidden = true;
+  if (url) update();
 }
 
 /** @param {DaySection} section */
@@ -584,6 +715,307 @@ function daySection(section) {
         ${repeat(section.cards, (card) => card.id, itemCard)}
       </div>
     </section>
+  `;
+}
+
+// --- Feed mode -------------------------------------------------------------
+//
+// The rings row and the post cards. Nothing here decides anything: the ring
+// states, the flat card order and what fills each picture slot all arrive on
+// the model (`today-model.js`, `cover.js`).
+
+/**
+ * One Publication's ring. Three states, told apart by ring weight before
+ * colour (board 09): a 2px accent ring when there are Unread Items nobody has
+ * looked through, a 1px hairline ring once every Frame has been Seen, and no
+ * ring at all when there is no reel. Only the last one is permanent in this
+ * ticket — a tap filters the feed until ticket 03 gives the reel a Story.
+ *
+ * The `⋯` opens the menu a long press opens, so the gesture is never the only
+ * way in, and its hit area is a full 44px around the 24px glyph.
+ * @param {Ring} ring
+ */
+function publicationRing(ring) {
+  const open = screen.menuFor === ring.publicationId;
+  const stateLabel = t(
+    ring.state === "unseen"
+      ? "today.ringUnseen"
+      : ring.state === "seen"
+        ? "today.ringSeen"
+        : "today.ringNone",
+    { name: ring.name },
+  );
+  const label =
+    ring.unread > 0
+      ? `${stateLabel} · ${t("today.unreadCount", { count: ring.unread })}`
+      : stateLabel;
+  return html`
+    <span class="feed__ring feed__ring--${ring.state}">
+      <button
+        type="button"
+        class="feed__ringbtn"
+        aria-label=${label}
+        aria-pressed=${ring.active ? "true" : "false"}
+        @click=${() => tapRing(ring)}
+        @contextmenu=${(/** @type {Event} */ event) => {
+          event.preventDefault();
+          toggleMenu(ring.publicationId);
+        }}
+      >
+        <span class="feed__ringtile ramp ramp--${ring.coverIndex}"
+          >${ring.monogram}</span
+        >
+      </button>
+      <button
+        type="button"
+        class="feed__ringmore"
+        aria-label=${t("today.moreAria", { name: ring.name })}
+        aria-expanded=${open ? "true" : "false"}
+        @click=${() => toggleMenu(ring.publicationId)}
+      >
+        <span class="feed__ringmoredot" aria-hidden="true">⋯</span>
+      </button>
+      <span class="feed__ringname">${ring.name}</span>
+    </span>
+  `;
+}
+
+/**
+ * The menu behind a long press or the `⋯`: the two actions List mode's chip
+ * menu already offers, plus a way back out of a filter — Feed mode replaced the
+ * chip row, so there is no "All" chip to clear it with.
+ *
+ * It renders *below* the rings row rather than floating over the ring, because
+ * the row is a horizontal scroller and an `overflow-x: auto` box clips its
+ * children on both axes. Reusing `.today__menu` keeps the look; `--static`
+ * drops the absolute positioning it does not want here.
+ * @param {Ring} ring
+ */
+function ringMenu(ring) {
+  return html`
+    <span class="today__menu today__menu--static feed__ringmenu" role="menu">
+      <button
+        type="button"
+        role="menuitem"
+        class="btn today__menuitem"
+        @click=${() => setFilter(ring.active ? null : ring.publicationId)}
+      >
+        ${ring.active ? t("today.showAll") : t("today.filterTo", { name: ring.name })}
+      </button>
+      ${
+        ring.unread === 0
+          ? nothing
+          : html`<button
+              type="button"
+              role="menuitem"
+              class="btn today__menuitem"
+              @click=${() => markAllRead(ring)}
+            >
+              ${t("today.markAllRead")}
+            </button>`
+      }
+    </span>
+  `;
+}
+
+/**
+ * The rings row: one horizontal scroller where List mode puts its chips, plus
+ * the open ring's menu underneath it. With no Enabled Publications there is
+ * nothing to make a ring from, so the row is absent rather than empty
+ * (board 04).
+ * @param {import('../today-model.js').TodayModel} model
+ */
+function ringsRow(model) {
+  if (model.rings.length === 0) return nothing;
+  const open = model.rings.find(
+    (ring) => ring.publicationId === screen.menuFor,
+  );
+  return html`
+    <div class="feed__rings" role="group" aria-label=${t("today.rings")}>
+      ${repeat(model.rings, (ring) => ring.publicationId, publicationRing)}
+    </div>
+    ${open ? ringMenu(open) : nothing}
+  `;
+}
+
+/**
+ * Whether this card shows a real picture. A Cover is the answer both when
+ * nothing was resolved and when the photo we were offered has already failed
+ * to load, which is what keeps an offline feed deliberate rather than holed.
+ * @param {TodayCard} card
+ */
+function cardPhoto(card) {
+  const { kind, url } = card.cover;
+  if (kind === "cover" || !url) return null;
+  return screen.brokenThumbs.has(url) ? null : url;
+}
+
+/**
+ * One post card. Header row, the picture at 4:5, the action bar, then the text.
+ *
+ * The two picture variants are one system read two ways: a **Cover** carries
+ * the headline itself and the text below is the Summary alone, while a
+ * **photo** leaves the headline to the text block. The headline appears once
+ * either way — printing it twice is the detail that would make the two
+ * variants read as two designs.
+ * @param {TodayCard} card
+ */
+function feedCard(card) {
+  const when = formatRelative(card.publishedAt);
+  const photo = cardPhoto(card);
+  const aria = t("today.cardAria", {
+    title: card.title,
+    publication: card.publicationName,
+    when,
+  });
+  return html`
+    <article class="card card--flush feed__card">
+      <div class="feed__head">
+        <span class="feed__avatar ramp ramp--${card.coverIndex}"
+          >${card.monogram}</span
+        >
+        <span class="feed__pub">${card.publicationName}</span>
+        <span class="feed__when">${when}</span>
+        <span class="feed__gap"></span>
+        ${
+          card.read
+            ? nothing
+            : html`<span
+                class="feed__dot"
+                title=${t("today.unread")}
+                aria-hidden="true"
+              ></span>`
+        }
+      </div>
+      <a
+        class="feed__media ${photo ? "" : `ramp ramp--${card.coverIndex}`}"
+        href=${hrefFor("reader", { id: card.id })}
+        aria-label=${aria}
+      >
+        ${
+          photo
+            ? html`<img
+                class="feed__photo"
+                src=${photo}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
+                @error=${onThumbError}
+              />`
+            : html`<span class="feed__watermark" aria-hidden="true"
+                  >${card.monogram}</span
+                >
+                <h3 class="feed__coverhead">${card.title}</h3>`
+        }
+        ${
+          card.summaryOnly
+            ? html`<span class="feed__badge">${t("today.summaryOnly")}</span>`
+            : nothing
+        }
+      </a>
+      ${actionBar(card)}
+      ${
+        photo || card.summary
+          ? html`<a
+              class="feed__text"
+              href=${hrefFor("reader", { id: card.id })}
+              tabindex="-1"
+            >
+              ${photo ? html`<h3 class="feed__title">${card.title}</h3>` : nothing}
+              ${
+                card.summary
+                  ? html`<p class="feed__summary">${card.summary}</p>`
+                  : nothing
+              }
+            </a>`
+          : nothing
+      }
+    </article>
+  `;
+}
+
+/**
+ * Save, Share, Original — the Reader's own three actions, through the shared
+ * handlers in `item-actions.js` so there is one Web Share call with one
+ * clipboard fallback. Nothing here counts anything: there is no server to send
+ * a like to and nobody to show it to.
+ * @param {TodayCard} card
+ */
+function actionBar(card) {
+  const item = screen.items.find((row) => row.id === card.id);
+  if (!item) return nothing;
+  const isSaved = Boolean(item.saved);
+  return html`
+    <div class="feed__actions">
+      <button
+        type="button"
+        class="btn btn--icon feed__action ${isSaved ? "feed__action--on" : ""}"
+        aria-pressed=${isSaved ? "true" : "false"}
+        aria-label=${t(isSaved ? "today.unsaveAria" : "today.saveAria", {
+          title: card.title,
+        })}
+        title=${t(isSaved ? "today.savedAction" : "today.save")}
+        @click=${async () => {
+          await toggleItemSaved(item);
+          update();
+        }}
+      >
+        ${bookmarkIcon(isSaved)}
+      </button>
+      ${
+        item.link
+          ? html`<button
+                type="button"
+                class="btn btn--icon feed__action"
+                aria-label=${t("today.shareAria", { title: card.title })}
+                title=${t("today.share")}
+                @click=${() => shareItem(item)}
+              >
+                ${shareIcon}
+              </button>
+              <a
+                class="btn btn--icon feed__action"
+                href=${item.link}
+                target="_blank"
+                rel="noopener"
+                aria-label=${t("today.originalAria", {
+                  title: card.title,
+                  publication: card.publicationName,
+                })}
+                title=${t("today.original")}
+              >
+                ${externalIcon}
+              </a>`
+          : nothing
+      }
+    </div>
+  `;
+}
+
+/**
+ * The end of the feed. The Retention bound is the honest reason the column
+ * stops, and it is the same `windowDays` List mode prints in its footer line.
+ * @param {import('../today-model.js').TodayModel} model
+ */
+function endCard(model) {
+  return html`
+    <div class="feed__end">
+      <span class="feed__endtitle">${t("today.caughtUp")}</span>
+      <span class="feed__endnote"
+        >${tCount("today.caughtUpDays", model.windowDays)}</span
+      >
+    </div>
+  `;
+}
+
+/** @param {import('../today-model.js').TodayModel} model */
+function feedList(model) {
+  return html`
+    <div class="feed__list">
+      ${repeat(model.cards, (card) => card.id, feedCard)}
+    </div>
+    ${endCard(model)}
   `;
 }
 
@@ -631,32 +1063,48 @@ function emptyBody(model) {
   );
 }
 
-/** @param {import('../state.js').State} appState */
+/**
+ * Today, in whichever View Mode is on. The two modes share the header, the
+ * status line, the pull gesture, every empty state and the error state; they
+ * differ in one row (chips or rings) and one body (day sections or post
+ * cards). Anything that reads "Feed mode quietly has fewer states than List
+ * mode" belongs on this list, not in a second screen.
+ * @param {import('../state.js').State} appState
+ */
 export function todayView(appState) {
   watchSync();
   ensureLoaded();
 
+  const feed = appState.viewMode === "feed";
   const model = buildTodayModel(screen.items, publicationsById(), {
     filterPublicationId: screen.filterPublicationId,
     lang: appState.lang,
+    coverSources: feed ? screen.coverSources : null,
   });
   const loading = screen.status === "idle" || screen.status === "loading";
 
   return html`
     <section class="screen">
-      ${screenHeader(appState, t("today.title"))}
+      ${screenHeader(appState, t("today.title"), nothing, headerControls())}
       ${pullIndicator()}
       <div class="screen__body today__body">
         ${statusBar()}
         ${
-          model.chips.length > 1
-            ? html`<div
-                class="seg today__filters"
-                role="group"
-                aria-label=${t("today.filters")}
-              >
-                ${model.chips.map(filterChip)}
-              </div>`
+          feed
+            ? ringsRow(model)
+            : model.chips.length > 1
+              ? html`<div
+                  class="seg today__filters"
+                  role="group"
+                  aria-label=${t("today.filters")}
+                >
+                  ${model.chips.map(filterChip)}
+                </div>`
+              : nothing
+        }
+        ${
+          feed && !appState.online && model.cardCount > 0
+            ? html`<p class="today__hint">${t("today.coversStandIn")}</p>`
             : nothing
         }
         ${
@@ -688,14 +1136,16 @@ export function todayView(appState) {
             : nothing
         }
         ${
-          model.cardCount > 0
-            ? html`<div class="today__list">
-                  ${repeat(model.sections, (section) => section.key, daySection)}
-                </div>
-                <p class="today__bounded">
-                  ${tCount("today.bounded", model.windowDays)}
-                </p>`
-            : nothing
+          model.cardCount === 0
+            ? nothing
+            : feed
+              ? feedList(model)
+              : html`<div class="today__list">
+                    ${repeat(model.sections, (section) => section.key, daySection)}
+                  </div>
+                  <p class="today__bounded">
+                    ${tCount("today.bounded", model.windowDays)}
+                  </p>`
         }
       </div>
     </section>
