@@ -62,7 +62,9 @@ that repo is the reference implementation.
   actually appear instead of a picture served from the last run.
 - **After any Shell change run `npm run stamp`.** It rewrites `CACHE` in `sw.js`
   from a hash of the `SHELL` files; CI fails on a stale stamp. If you add or
-  remove a Shell file, update `SHELL` in `sw.js`, then stamp.
+  remove a Shell file, update `SHELL` in `sw.js`, then stamp. **Format first,
+  then stamp**: `npm run format` rewrites Shell files, so a stamp taken before
+  it is already stale by the time you run the gates.
 - `npm run install:hooks` once per clone installs the pre-push gate
   (`tools/pre-push.sh`), which runs the four CI gates in CI order.
 

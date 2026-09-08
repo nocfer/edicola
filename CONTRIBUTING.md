@@ -50,7 +50,9 @@ Two of these fail in ways that are not obvious:
 - **`stamp:check`** compares `CACHE` in `sw.js` against a hash of the files
   listed in `SHELL`. After any change to a Shell file, run `npm run stamp`. If
   you add or remove a Shell file, edit `SHELL` first, then stamp. A stale stamp
-  means readers keep an old app.
+  means readers keep an old app. **Format before you stamp.** `biome format
+  --write` rewrites Shell files, so a stamp taken first is stale again by the
+  time you reach `stamp:check`, and the two gates fail each other in turn.
 - **`check-imports`** exists because a committed module once imported a named
   export nothing provided, ES module linking threw, and the whole deployed app
   showed a blank page. `node --check` cannot see that, and there is no bundler
