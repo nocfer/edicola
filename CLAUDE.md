@@ -123,6 +123,15 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   "complete" the light theme there. Everything inside `.story` takes its colour
   from `--accent-ink`, `--scrim-*`, `--accent` or a `color-mix` of those; a
   theme token there inverts and puts dark ink on a dark scrim.
+- **An animation that crosses a route captures its origin before the route
+  changes.** The Story grows out of the ring that was tapped, but opening it
+  unmounts Today, so by the time the panel exists the ring is gone. `tapRing()`
+  measures the ring and calls `rememberRingRect()` **before** `navigate`, and
+  `growFrom` accepts a `DOMRect` as well as an Element. This is a real contract
+  between `views/today.js` and `views/story.js`: a change to either end that
+  drops the rect leaves the player growing out of nothing. Matching
+  `view-transition-name`s were rejected because they need both ends inside one
+  `startViewTransition` callback, and this app renders one screen at a time.
 - **Seen is not Read.** A Story Frame marks its Item Seen (`markItemSeen`);
   only the Reader marks Read. Rings dim on Seen, Unread counts fall only on
   Read. `seen` is a plain non-indexed boolean, so it needed no `db.version(n)`

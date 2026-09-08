@@ -107,6 +107,12 @@ Two of these fail in ways that are not obvious:
   No motion library: the reasoning, and the four candidates that were weighed,
   are in
   [ADR-0012](docs/adr/0012-motion-is-three-platform-primitives-not-a-library.md).
+- **An animation that crosses a route captures its origin before the route
+  changes.** Opening the Story unmounts Today, so the ring the panel grows out
+  of no longer exists by the time the panel does. `tapRing()` measures it and
+  stashes the `DOMRect` before `navigate`; `growFrom` takes a rect as happily
+  as an Element. If you animate from one screen into another, measure on the
+  outgoing screen or you are measuring nothing.
 - **Every write that should redraw goes through `update()`** in
   `src/state.js`. One mutable store, one subscriber (`render`).
 
