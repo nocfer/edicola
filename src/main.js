@@ -22,6 +22,14 @@ import { notFoundView } from "./views/not-found.js";
 /** localStorage key shared with the pre-paint script in index.html. */
 const THEME_KEY = "edicola.theme";
 
+/**
+ * localStorage key for Today's View Mode. Unlike the theme this needs no
+ * pre-paint script in index.html: the boot block below seeds `viewMode` before
+ * `subscribe(renderApp)`, so nothing has painted yet and there is no flash of
+ * the wrong presentation to prevent.
+ */
+const VIEWMODE_KEY = "edicola.viewmode";
+
 const lightQuery = matchMedia("(prefers-color-scheme: light)");
 
 /** @returns {import('./state.js').ThemePreference} */
@@ -31,6 +39,29 @@ function readThemePreference() {
     return v === "light" || v === "dark" ? v : "system";
   } catch {
     return "system";
+  }
+}
+
+/** @returns {import('./state.js').ViewMode} */
+function readViewModePreference() {
+  try {
+    return localStorage.getItem(VIEWMODE_KEY) === "feed" ? "feed" : "list";
+  } catch {
+    return "list";
+  }
+}
+
+/**
+ * Persist Today's View Mode. A side effect of a state change, so it lives here
+ * beside the theme's rather than in the view that flipped it.
+ * @param {import('./state.js').ViewMode} mode
+ */
+function applyViewMode(mode) {
+  try {
+    if (mode === "feed") localStorage.setItem(VIEWMODE_KEY, mode);
+    else localStorage.removeItem(VIEWMODE_KEY);
+  } catch {
+    // Storage unavailable: the choice lasts for this session only.
   }
 }
 
@@ -133,6 +164,7 @@ function updatePrompt() {
 function renderApp() {
   applyTheme(state.theme);
   applyLang(state.lang);
+  applyViewMode(state.viewMode);
   const view = SCREENS[state.route.name] || notFoundView;
   render(
     html`${view(state)}${updatePrompt()}${
@@ -153,6 +185,7 @@ function renderApp() {
 document.getElementById("boot")?.remove();
 state.theme = readThemePreference();
 state.lang = initLang();
+state.viewMode = readViewModePreference();
 state.online = navigator.onLine;
 
 subscribe(renderApp);

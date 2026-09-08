@@ -68,6 +68,12 @@ export const META_KEYS = Object.freeze({
  * @property {string} summaryText Plain text of the Summary, for cards.
  * @property {string | null} thumbnailUrl
  * @property {boolean} read Set when the Item is opened in the Reader.
+ * @property {boolean} [seen] A Story Frame showed this Item. Distinct from
+ *   `read`: rings dim on Seen, Unread counts only fall on Read. A plain
+ *   boolean and NOT indexed, so unlike `saved` it needed no `db.version(n)`
+ *   block and no migration — IndexedDB stores whole objects and only a
+ *   declared index constrains their shape. A row written before this field
+ *   existed simply has it `undefined`, which is falsy, which is not Seen.
  * @property {0 | 1} saved Saved Items are never trimmed or Evicted (indexed, so 0/1).
  * @property {number} readingPosition Fraction of the Article last scrolled to.
  * @property {boolean} summaryOnly No Article: Extraction failed or yielded too little.

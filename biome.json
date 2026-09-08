@@ -6,6 +6,7 @@
       "**",
       "!**/*.zip",
       "!src/fonts",
+      "!docs/designs",
       "!**/*.css",
       "!**/*.html",
       "!**/*.svg"

@@ -18,6 +18,12 @@
 /** @typedef {import('./router.js').Route} Route */
 /** @typedef {'system'|'light'|'dark'} ThemePreference */
 /** @typedef {'en'|'it'} Lang */
+/**
+ * How Today presents its Items (spec: Feed View Mode). `list` is the day-grouped
+ * timeline Today has always had; `feed` is the rings row and the post cards.
+ * One route, one model, two templates — never a second screen.
+ * @typedef {'list'|'feed'} ViewMode
+ */
 
 /**
  * What a Sync is doing, published by `sync-client.js` (never written by a
@@ -64,6 +70,7 @@
  * @property {Route} route   the current screen, kept in sync by the router
  * @property {ThemePreference} theme  the reader's preference, not the resolved theme
  * @property {Lang} lang     the UI Language (ADR-0006)
+ * @property {ViewMode} viewMode  which presentation Today is showing
  * @property {boolean} online  mirrors `navigator.onLine`
  * @property {string|null} toast  transient message shown by the `.toast` primitive
  * @property {SyncState} sync  progress and result of the last Sync
@@ -76,6 +83,7 @@ export const state = {
   route: { name: "today", params: {}, path: "/" },
   theme: "system",
   lang: "en",
+  viewMode: "list",
   online: true,
   toast: null,
   sync: {

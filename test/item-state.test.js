@@ -13,6 +13,7 @@ import {
   compareBySavedNewestFirst,
   countUnreadByPublication,
   isUnread,
+  markItemSeen,
   markPublicationRead,
   SAVED,
   savedAtOf,
@@ -277,4 +278,51 @@ test("markPublicationRead does not touch Saved or the Reading Position", async (
   assert.equal(items.get("a1").read, true);
   assert.equal(items.get("a1").saved, SAVED);
   assert.equal(items.get("a1").readingPosition, 0.3);
+});
+
+// --- Seen is not Read ------------------------------------------------------
+
+test("markItemSeen sets seen and leaves read alone, so the Item stays Unread", async () => {
+  // The guarantee the whole rings design rests on: showing a Frame dims the
+  // ring, and CONTEXT.md's "opening marks it Read; scrolling past it does not"
+  // still holds, because a Frame is not an opening.
+  const { db, items } = fakeDb([row("a1", { publicationId: "a" })]);
+
+  const changed = await markItemSeen(db, "a1");
+
+  assert.equal(changed, 1);
+  assert.equal(items.get("a1").seen, true);
+  assert.equal(items.get("a1").read, false, "a Frame never marks Read");
+  assert.equal(isUnread(items.get("a1")), true, "a Seen Item is still Unread");
+});
+
+test("a Seen Item still counts towards its Publication's Unread total", async () => {
+  const { db } = fakeDb([
+    row("a1", { publicationId: "a" }),
+    row("a2", { publicationId: "a" }),
+  ]);
+
+  await markItemSeen(db, "a1");
+  await markItemSeen(db, "a2");
+
+  const counts = await countUnreadByPublication(db, ["a"]);
+  assert.equal(counts.get("a"), 2, "Unread counts only fall on Read");
+});
+
+test("markItemSeen tolerates an Item a Retention trim already removed", async () => {
+  const { db } = fakeDb([row("a1", { publicationId: "a" })]);
+
+  assert.equal(await markItemSeen(db, "gone"), 0);
+});
+
+test("markItemSeen touches nothing else on the row", async () => {
+  const { db, items } = fakeDb([
+    row("a1", { publicationId: "a", saved: SAVED, readingPosition: 0.4 }),
+  ]);
+
+  await markItemSeen(db, "a1");
+
+  assert.equal(items.get("a1").saved, SAVED);
+  assert.equal(items.get("a1").readingPosition, 0.4);
+  assert.equal(items.get("a1").read, false);
 });

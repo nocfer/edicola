@@ -27,6 +27,35 @@
   --toast-fg: var(--bg);
   --tabbar-bg: rgba(26, 24, 22, 0.92);
 
+  /* --- Cover ramp: the eight flat fills a generated Cover can take -------
+     A Publication picks its index by hashing its id (src/cover.js), so thirty
+     Publications share eight colours and the monogram is what disambiguates
+     them. Every fill carries --accent-ink at --fs-title comfortably: the worst
+     case measured is 5.28:1 on light --cover-2, against the 3.0 large text
+     needs and the 4.5 the 12px avatar monogram needs. Recompute rather than
+     assume if a value ever changes. */
+  --cover-1: #7a2f22;
+  --cover-2: #6e4a12;
+  --cover-3: #3f5220;
+  --cover-4: #1c5147;
+  --cover-5: #1b4a63;
+  --cover-6: #34406f;
+  --cover-7: #563066;
+  --cover-8: #6f2a4a;
+
+  /* --- The Story player scrim -------------------------------------------
+     Defined once, on bare :root, and DELIBERATELY NOT redefined in the light
+     block below. The Story player is dark in both themes by decision: its
+     headline and Summary are --accent-ink, which scores 14.6-15.6 over this
+     dark scrim and 1.6 over a light one. A light value here does not complete
+     the theme, it makes every Summary in the player unreadable. See
+     .scratch/feed-view-mode/spec.md, "the finding that matters".
+     The rule that consumes it is identical in both themes, so this stays
+     inside "themes change tokens, never rules" - the token simply does not
+     vary. */
+  --scrim-ink: rgba(18, 17, 16, 0.94);
+  --scrim-flat: rgba(18, 17, 16, 0.72);
+
   /* --- Typography (system stacks, no bundled fonts) ---------------------- */
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
@@ -85,6 +114,17 @@
   --toast-bg: var(--text);
   --toast-fg: var(--bg);
   --tabbar-bg: rgba(255, 253, 249, 0.92);
+  --cover-1: #9c3b2a;
+  --cover-2: #8d5f18;
+  --cover-3: #52692a;
+  --cover-4: #26695c;
+  --cover-5: #235f7e;
+  --cover-6: #43518c;
+  --cover-7: #6c3d84;
+  --cover-8: #8b365d;
+  /* --scrim-ink and --scrim-flat are absent on purpose. Do not add them: the
+     Story player is dark in both themes, and --accent-ink over a light scrim
+     scores 1.6:1. The comment on bare :root has the numbers. */
 }
 
 /* ==========================================================================

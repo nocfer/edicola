@@ -165,3 +165,24 @@ export async function markPublicationRead(db, publicationId) {
     .filter(isUnread)
     .modify({ read: true });
 }
+
+/**
+ * Mark one Item **Seen**: a Story Frame showed it (ticket 03).
+ *
+ * Seen is not Read, and this write must never become one. CONTEXT.md says
+ * opening an Item in the Reader is what marks it Read and scrolling past it
+ * does not, and a Frame is not an opening — so a ring dims while the
+ * Publication's Unread count does not move. That is the guarantee the whole
+ * rings design rests on, which is why `seen` is the only field written here.
+ *
+ * Tolerant of an Item that no longer exists: a reel can outlive a Retention
+ * trim by a few taps, and a Frame that cannot record itself is not worth an
+ * error the reader would see. Resolves with how many rows changed.
+ *
+ * @param {EdicolaDb} db
+ * @param {string} itemId
+ * @returns {Promise<number>}
+ */
+export async function markItemSeen(db, itemId) {
+  return await db.items.update(itemId, { seen: true });
+}
