@@ -4,13 +4,18 @@
 // the Web Share call with its clipboard fallback is a second place for the
 // fallback to rot.
 //
-// These take the stored row itself and mutate the field they wrote, the way
-// `reader.js` already did: the screens hold their Items in module state and
-// mutate in place so `repeat`'s keys and the list's height do not move. The
-// database write itself belongs to `item-state.js`, which owns the `0 | 1`
+// `toggleItemSaved` takes the stored row itself and mutates the field it
+// wrote, the way `reader.js` already did: the screens hold their Items in
+// module state and mutate in place so `repeat`'s keys and the list's height do
+// not move. `shareItem` writes nothing and takes anything carrying a title and
+// a link — Feed mode hands it the row behind the card, and the row is what has
+// the untruncated headline. Do not widen it into a writer without giving it a
+// row: a write onto a card object vanishes on the next `buildTodayModel`.
+// The database write itself belongs to `item-state.js`, which owns the `0 | 1`
 // rule and the `savedAt` stamp.
 //
-// The copy lives under `app.*`, which is where CLAUDE.md puts shared chrome:
+// The copy lives under `app.*`, which is where `src/i18n.js` puts shared
+// chrome:
 // two screens raise these toasts, so neither owns them. The aria-labels stay
 // per screen — a card in a column of sixty has to name its Item, and the
 // Reader, showing one, must not.
@@ -82,8 +87,12 @@ export async function toggleItemSaved(item, button) {
   popSave(button);
   update();
   try {
-    const written = await setItemSaved(getDatabase(), item.id, next);
-    Object.assign(item, written);
+    await setItemSaved(getDatabase(), item.id, next);
+    // What `setItemSaved` wrote is what `savedFields(next)` already put on the
+    // row above, to the millisecond of the stamp. Assigning it back again is
+    // what let two taps inside one round trip cross over: the first tap's
+    // late write would restore the state the second had just replaced, and the
+    // icon would visibly bounce between them.
     showToast(t(next ? "app.savedToast" : "app.unsavedToast"));
   } catch (error) {
     console.warn("Saved could not be written:", error);

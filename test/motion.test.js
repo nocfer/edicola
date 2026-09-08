@@ -106,8 +106,15 @@ test("settling on its own commits the pending swap and reports it", () => {
   const token = swaps.start(() => seen.push("a"));
   assert.equal(swaps.settle(), true);
   assert.deepEqual(seen, ["a"]);
-  // Nothing is owed any more, so that animation's own finish is a no-op rather
-  // than a second application of the same swap.
+  // Nothing is owed any more, but the step is still the current one and its
+  // out-animation still owns a Frame it has to bring back in, so `commit`
+  // says true and applies nothing. Answering false here — because no swap was
+  // left to run — is indistinguishable from "you were superseded", and
+  // `advance` reads that as "touch nothing", which left the Frame pinned at
+  // `opacity: 0` under its own filled out-animation.
+  assert.equal(swaps.commit(token), true);
+  assert.deepEqual(seen, ["a"]);
+  // Still only committable once.
   assert.equal(swaps.commit(token), false);
   assert.deepEqual(seen, ["a"]);
 });

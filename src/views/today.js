@@ -444,7 +444,15 @@ function settle(distance) {
   // The redraw has already put the ring back to its resting scale. Holding
   // where the finger left it for the length of the fade is what stops it
   // shrinking and unwinding in front of a reader who has just let go.
-  ring?.animate([{ transform: from.transform }], timing);
+  //
+  // Both keyframes, not one: a single-keyframe list is the *to* state and
+  // WAAPI takes the *from* from the underlying value, which is the resting
+  // ring the redraw just wrote — so one keyframe played the unwind forwards
+  // instead of holding it still.
+  ring?.animate(
+    [{ transform: from.transform }, { transform: from.transform }],
+    timing,
+  );
 }
 
 /**
@@ -1256,7 +1264,7 @@ function actionBar(card) {
                 class="btn btn--tap feed__action"
                 aria-label=${t("today.shareAria", { title: card.title })}
                 title=${t("app.share")}
-                @click=${() => shareItem(card)}
+                @click=${() => shareItem(rowFor(card.id) ?? card)}
               >
                 ${shareIcon}
               </button>

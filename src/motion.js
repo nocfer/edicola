@@ -22,8 +22,19 @@
 // one, and where it does not — or where the reader asked for less motion — the
 // redraw simply happens. It knows nothing about which screen called it.
 
-/** How long a reduced-motion cross-fade lasts, in ms: `--dur-fast`. */
-const REDUCED_MS = 120;
+/**
+ * How long a reduced-motion cross-fade lasts, in ms. Read from `--dur-fast`
+ * rather than written here, for the same reason every other duration is: this
+ * module is what the "durations are tokens, never literals" rule points at, so
+ * it is the last place that may hold a copy of one. Falls back to 120 only if
+ * the token is missing, which is a stylesheet that has not loaded rather than
+ * a value worth tuning.
+ *
+ * @returns {number}
+ */
+function reducedMs() {
+  return Number.parseFloat(motionToken("--dur-fast")) * 1000 || 120;
+}
 
 /**
  * Whether the reader asked for reduced motion, read at call time rather than
@@ -105,7 +116,7 @@ export function withViewTransition(mutate) {
 export function growFrom(origin, panel, { duration, easing }) {
   if (!origin || prefersReducedMotion()) {
     return panel.animate([{ opacity: 0 }, { opacity: 1 }], {
-      duration: REDUCED_MS,
+      duration: reducedMs(),
       fill: "both",
     });
   }
@@ -167,6 +178,8 @@ export function rubberBand(travel, grip, max) {
  */
 export function sequencer() {
   let seq = 0;
+  /** The highest sequence number whose step has already been committed. */
+  let committed = 0;
   /** @type {(() => void) | null} */
   let owed = null;
   /** Run whatever swap is still owed, exactly once. */
@@ -184,8 +197,17 @@ export function sequencer() {
       return ++seq;
     },
     commit(token) {
-      if (token !== seq) return false;
-      return settle();
+      // Current *and* not already committed. Two different things return
+      // false here and the caller has to tell them apart: a superseded step,
+      // whose animation must not touch the DOM at all, and a step whose swap
+      // someone else already drained through `settle()` — that one is still
+      // the current step, and its animation still owns the frame it has to
+      // bring back in. Returning false for the second left a Frame pinned
+      // under a filled out-animation for ever.
+      if (token !== seq || committed === seq) return false;
+      committed = seq;
+      settle();
+      return true;
     },
     settle,
   };

@@ -184,7 +184,13 @@ let ringRect = null;
 let openAnim = null;
 
 /** The guard over the Frame swap an out-animation still owes (D2). */
-const swaps = sequencer();
+let swaps = sequencer();
+
+/**
+ * True between the tap that closes the player and the route actually changing,
+ * so a second Escape or a second tap on the cross does not race the reverse.
+ */
+let closing = false;
 
 /**
  * Remember which ring the reader tapped, in viewport coordinates. Today calls
@@ -282,7 +288,11 @@ function arrive(panel) {
         duration: ms("--dur-arrive"),
         delay: ms("--delay-arrive"),
         easing: motionToken("--ease"),
-        fill: "both",
+        // Backwards, not both: the fill is only needed to hold a child out of
+        // sight through its delay, and the animation ends where the child
+        // rests. A forward fill outranks author styles for the life of the
+        // panel, which took `:active` off the two chevrons that are `.btn`s.
+        fill: "backwards",
       },
     );
   }
@@ -443,6 +453,14 @@ function installListeners() {
     // The handle belongs to a panel that has just left the document; keeping it
     // would let the next close reverse an animation of the wrong Story.
     openAnim = null;
+    closing = false;
+    // Everything else measured or owed belongs to the visit that is ending. A
+    // rect kept past a failed load would grow the next Story out of a ring
+    // that is no longer on screen, at a scroll position that no longer holds;
+    // a swap kept past an unmount would apply an index from the last reel to
+    // the first tap of the next one.
+    ringRect = null;
+    swaps = sequencer();
   });
   window.addEventListener("pagehide", () => {
     revoke(screen.objectUrls);
@@ -498,6 +516,8 @@ function installListeners() {
  * before it had shrunk anywhere.
  */
 function close() {
+  if (closing) return;
+  closing = true;
   const anim = openAnim;
   openAnim = null;
   if (!anim) {
@@ -505,6 +525,15 @@ function close() {
     return;
   }
   const panel = panelElement();
+  // The clip and the Cover colour go back on for the shrink. `playOpen` hands
+  // them to the stylesheet once the grow has finished, so a close after a
+  // completed open would otherwise shrink an unclipped `--scrim-ink` panel:
+  // the Frame photo pokes out of the animating rounded corners, and the panel
+  // lands on the ring in the wrong colour.
+  if (panel) {
+    panel.style.backgroundColor = `var(--cover-${currentReel().coverIndex})`;
+    panel.style.overflow = "hidden";
+  }
   for (const child of Array.from(panel?.children ?? [])) {
     child.animate([{ opacity: 1 }, { opacity: 0 }], {
       duration: ms("--dur-fast"),
