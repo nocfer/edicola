@@ -93,6 +93,21 @@ export const en = {
   "today.coversStandIn":
     "Covers stand in for photos that were not stored. Every Item below is readable.",
 
+  // The Story player. Dark in both themes by decision, manual advance only:
+  // there is no countdown copy here and there must never be.
+  "story.close": "Close",
+  "story.previous": "Previous Frame",
+  "story.next": "Next Frame",
+  "story.position": "Frame {index} of {total}",
+  "story.read": "Read",
+  "story.readSummary": "Read the Summary and open the Original",
+  "story.endTitle": "That is the last Frame",
+  "story.endBody":
+    "{count} Frames from {name}, all Seen. Nothing is marked Read until you open it in the Reader.",
+  "story.backToToday": "Back to Today",
+  "story.empty": "Nothing unread from {name} right now.",
+  "story.loadError": "This Story could not be read from storage.",
+
   "saved.title": "Saved",
   "saved.loading": "Opening your Saved Items…",
   "saved.loadError": "Saved could not be read from storage.",
@@ -410,6 +425,19 @@ export const it = {
   "today.caughtUpDays.other": "mostra gli ultimi {count} giorni",
   "today.coversStandIn":
     "Le copertine sostituiscono le foto non salvate. Ogni titolo qui sotto è leggibile.",
+
+  "story.close": "Chiudi",
+  "story.previous": "Riquadro precedente",
+  "story.next": "Riquadro successivo",
+  "story.position": "Riquadro {index} di {total}",
+  "story.read": "Leggi",
+  "story.readSummary": "Leggi il sommario e apri l'originale",
+  "story.endTitle": "Questo è l'ultimo riquadro",
+  "story.endBody":
+    "{count} riquadri da {name}, tutti sfogliati. Niente viene segnato come letto finché non lo apri nel lettore.",
+  "story.backToToday": "Torna a Oggi",
+  "story.empty": "Al momento non c'è niente da leggere da {name}.",
+  "story.loadError": "Impossibile leggere questa storia dall'archivio.",
 
   "saved.title": "Salvati",
   "saved.loading": "Apertura dei salvati…",

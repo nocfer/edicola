@@ -17,6 +17,7 @@ import { savedView } from "./views/saved.js";
 import { publicationsView } from "./views/publications.js";
 import { settingsView } from "./views/settings.js";
 import { readerView } from "./views/reader.js";
+import { storyView } from "./views/story.js";
 import { notFoundView } from "./views/not-found.js";
 
 /** localStorage key shared with the pre-paint script in index.html. */
@@ -104,6 +105,7 @@ const SCREENS = {
   publications: publicationsView,
   settings: settingsView,
   reader: readerView,
+  story: storyView,
   "not-found": notFoundView,
 };
 

@@ -35,7 +35,7 @@ import { markPublicationRead } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
-import { hrefFor, parseRoute } from "../router.js";
+import { hrefFor, navigate, parseRoute } from "../router.js";
 import { syncNow } from "../sync-client.js";
 import { buildTodayModel } from "../today-model.js";
 import {
@@ -278,14 +278,34 @@ function setViewMode(viewMode) {
 }
 
 /**
- * Tap a Publication's ring. Ticket 03 gives a ring with a reel its Story;
- * until then, and permanently for the no-reel state, a tap filters the feed to
- * that Publication — and tapping the ring that is already the filter clears it,
- * because Feed mode has no "All" chip to go back to.
+ * Tap a Publication's ring. A ring with a reel opens that Publication's Story
+ * (ticket 03); the no-reel state has no reel to open, so it filters the feed
+ * instead — and tapping the ring that is already the filter clears it, because
+ * Feed mode has no "All" chip to go back to.
  * @param {Ring} ring
  */
 function tapRing(ring) {
-  setFilter(ring.active ? null : ring.publicationId);
+  if (ring.state === "none") {
+    setFilter(ring.active ? null : ring.publicationId);
+    return;
+  }
+  screen.menuFor = null;
+  navigate("story", { id: ring.publicationId });
+}
+
+/**
+ * Filter the feed to one Publication and go to Today. Exported for the Story
+ * player's end panel ("Show only BBC News", board 08), which is the one place
+ * outside this screen that needs to set its filter — reaching in through a
+ * named function keeps `screen` private and keeps the write going through
+ * `update()` like every other.
+ * @param {string} publicationId
+ */
+export function showOnlyPublication(publicationId) {
+  screen.menuFor = null;
+  screen.filterPublicationId = publicationId;
+  navigate("today");
+  update();
 }
 
 /** @param {string} publicationId */
@@ -437,7 +457,10 @@ function watchRouteForScroll() {
 /**
  * Refresh the fields the reader owns on the rows already in memory, so the
  * Unread chips are right after a trip to the Reader (spec story 21: Unread
- * counts update on read). The rows are mutated in place rather than replaced,
+ * counts update on read) and a ring is dimmed after a trip through its Story.
+ * `seen` is copied for that second reason: a full pass through a reel that
+ * un-dimmed its ring the moment the reader came back would make the Story look
+ * like it had not happened. The rows are mutated in place rather than replaced,
  * so `repeat`'s keys and the list's height do not move and the scroll restore
  * above is not fought.
  * @returns {Promise<void>}
@@ -451,9 +474,16 @@ async function refreshReadState() {
     rows.forEach((/** @type {ItemRow | undefined} */ row, i) => {
       const item = screen.items[i];
       if (!row || !item) return;
-      if (item.read !== row.read || item.saved !== row.saved) changed = true;
+      if (
+        item.read !== row.read ||
+        item.saved !== row.saved ||
+        item.seen !== row.seen
+      ) {
+        changed = true;
+      }
       item.read = row.read;
       item.saved = row.saved;
+      item.seen = row.seen;
     });
     if (changed) update();
   } catch (error) {

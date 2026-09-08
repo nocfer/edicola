@@ -103,6 +103,18 @@ export const SUMMARY_MAX_CHARS = 160;
  */
 
 /**
+ * One Publication's Story: the Frames its ring opens, newest first, plus the
+ * identity the player prints in its header.
+ *
+ * @typedef {object} StoryReel
+ * @property {string} publicationId
+ * @property {string} name
+ * @property {string} monogram
+ * @property {number} coverIndex
+ * @property {TodayCard[]} frames One per Unread Item; empty means no reel.
+ */
+
+/**
  * One day of the timeline, newest first.
  *
  * @typedef {object} DaySection
@@ -324,6 +336,46 @@ export function buildTodayModel(items, publicationsById, options = {}) {
     itemCount: bounded.length,
     unreadCount,
     windowDays: maxAgeDays,
+  };
+}
+
+/**
+ * One Publication's Story reel: its **Unread** Items inside Today's window,
+ * newest first (ticket 03).
+ *
+ * Built by filtering `buildTodayModel`'s own cards rather than re-deriving the
+ * window, so a Frame is literally the card the feed renders — the same
+ * Retention bound, the same order, the same resolved picture. A reel that
+ * disagreed with the feed about which Items exist would be a second source of
+ * truth for the thing the rings are counting.
+ *
+ * A Publication with nothing Unread comes back with no Frames, which is the
+ * no-reel ring state; the player renders that as "nothing to look through"
+ * rather than an empty screen.
+ *
+ * @param {Iterable<ItemRow> | null | undefined} items
+ * @param {PublicationsById | null | undefined} publicationsById
+ * @param {object} [options] As `buildTodayModel`, plus:
+ * @param {string} [options.publicationId] Whose reel this is.
+ * @param {number | Date} [options.now]
+ * @param {Lang} [options.lang]
+ * @param {{ maxAgeDays?: number, keepPerPublication?: number }} [options.limits]
+ * @param {Map<string, CoverSource> | null} [options.coverSources]
+ * @returns {StoryReel}
+ */
+export function buildStoryReel(items, publicationsById, options = {}) {
+  const publicationId = String(options.publicationId ?? "");
+  const model = buildTodayModel(items, publicationsById, {
+    ...options,
+    filterPublicationId: publicationId,
+  });
+  const frames = model.cards.filter((card) => !card.read);
+  return {
+    publicationId,
+    name: model.filterName ?? publicationId,
+    monogram: monogramFor(model.filterName ?? publicationId),
+    coverIndex: coverIndexFor(publicationId),
+    frames,
   };
 }
 

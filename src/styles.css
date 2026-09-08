@@ -1012,6 +1012,335 @@ button {
   }
 }
 
+/* Story player: one Publication's reel, one Frame at a time, full screen with
+   the tab bar hidden (router.js `hidesTabBar`).
+
+   THE PLAYER IS DARK IN BOTH THEMES, BY DECISION. Its scrim is --scrim-ink and
+   its text over that scrim is --accent-ink, and neither varies with the theme:
+   --accent-ink over a light scrim scores 1.6:1 against 14.6-15.6 over this one.
+   The rules below are identical in both themes - only the token refuses to
+   vary - so this stays inside "themes change tokens, never rules". Do not
+   "complete" the light theme by giving --scrim-ink a light value; the note
+   where it is defined has the numbers. */
+.story {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--bg);
+  /* Every colour inside the player comes from --accent-ink, --scrim-*,
+     --accent or a mix of those, because those are the values that do NOT vary
+     with the theme. A theme token here (--text, --muted, --surface,
+     --hairline) inverts in the light theme and puts dark ink on a dark scrim,
+     which is the whole failure the top of src/views/story.js is about. The two
+     exceptions are `.story--empty` and `.story__loading` below: those states
+     have no scrim and sit on plain --bg, so there they are correct. */
+  color: var(--accent-ink);
+}
+/* The two scrim-less states sit on plain --bg, so they take the theme's own
+   text colour rather than the player's fixed ink. */
+.story--empty {
+  gap: var(--s-4);
+  padding: var(--s-4);
+  color: var(--text);
+}
+.story__loading {
+  margin: var(--s-8) auto;
+  color: var(--muted);
+  font-size: var(--fs-caption);
+}
+
+/* Header: pips, identity, the position in words, the close. */
+.story__head {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-2) 0 var(--s-3);
+}
+/* Position pips. One segment per Frame, filled up to the current one. There is
+   deliberately no transition and no animation here: they show where you are,
+   never how long you have. */
+.story__pips {
+  display: flex;
+  gap: var(--s-1);
+  padding: 0 var(--s-4);
+}
+.story__pip {
+  flex: 1;
+  height: 3px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--accent-ink) 25%, transparent);
+}
+.story__pip--on {
+  background: var(--accent-ink);
+}
+.story__ident {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 44px;
+  padding: 0 var(--s-4);
+}
+.story__avatar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-pill);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.story__pub {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.story__when {
+  flex: none;
+  font-size: var(--fs-caption);
+  opacity: 0.7;
+}
+/* The pip row is not readable on its own at six segments, so the same fact is
+   here in words. */
+.story__count {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  opacity: 0.7;
+}
+.story__close {
+  flex: none;
+  border: 0;
+  background: transparent;
+}
+
+/* The Frame: the picture full-bleed, the scrim over it, the copy over that. */
+.story__frame {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+}
+.story__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.story__watermark {
+  position: absolute;
+  right: -40px;
+  bottom: 96px;
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: 300px;
+  font-weight: 700;
+  line-height: 0.8;
+  letter-spacing: -0.02em;
+  opacity: 0.14;
+  pointer-events: none;
+}
+/* The scrim. Text over a photo without one is the accessibility regression the
+   brief forbids, so it is not optional. */
+.story__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    var(--scrim-ink) 0%,
+    var(--scrim-ink) 28%,
+    var(--scrim-flat) 58%,
+    transparent 100%
+  );
+}
+/* Over a photograph the scrim covers the whole Frame, because a photo can be
+   light anywhere and a six-line headline reaches most of the way up. Over a
+   generated Cover it does not need to: the eight ramp fills are chosen to
+   carry --accent-ink on their own (5.28:1 at worst), so the Cover keeps its
+   colour and takes only the softer bottom gradient board 07 draws. Darkening a
+   Cover to photograph strength would throw away the one thing that makes a
+   Cover-dominant feed look deliberate. */
+.story__frame--cover .story__scrim {
+  inset: auto 0 0 0;
+  height: 60%;
+  background: linear-gradient(
+    to top,
+    var(--scrim-flat) 0%,
+    color-mix(in srgb, var(--scrim-flat) 75%, transparent) 45%,
+    transparent 100%
+  );
+}
+.story__badge {
+  position: absolute;
+  top: var(--s-5);
+  left: var(--s-5);
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--accent-ink);
+  border-radius: var(--r-pill);
+  background: var(--scrim-ink);
+  color: var(--accent-ink);
+  font-size: var(--fs-caption);
+  font-weight: 600;
+}
+.story__copy {
+  position: absolute;
+  inset: auto 0 132px 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: 0 var(--s-5);
+}
+.story__title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  margin: 0;
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  overflow: hidden;
+  text-wrap: pretty;
+}
+.story__summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  margin: 0;
+  color: var(--accent-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  overflow: hidden;
+  text-wrap: pretty;
+}
+
+/* Advance. The two zones are the tap thirds; the two chevrons are their
+   visible twin at the vertical centre, and a keyboard gets the arrow keys. */
+.story__zone {
+  position: absolute;
+  top: 150px;
+  bottom: 132px;
+  width: 33%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.story__zone--back {
+  left: 0;
+}
+.story__zone--next {
+  right: 0;
+}
+.story__nav {
+  position: absolute;
+  top: 50%;
+  z-index: 3;
+  width: 44px;
+  min-height: 44px;
+  margin-top: -22px;
+  border-color: color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  background: var(--scrim-ink);
+  color: var(--accent-ink);
+}
+.story__nav--back {
+  left: var(--s-2);
+}
+.story__nav--next {
+  right: var(--s-2);
+}
+
+/* The Read button, always visible. The chevron above it is the familiar hint
+   for the swipe up; it is never the only way in. */
+.story__foot {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-4) var(--s-4) var(--s-6);
+}
+.story__hint {
+  color: var(--accent-ink);
+  opacity: 0.7;
+}
+.story__read {
+  width: 100%;
+  min-height: 48px;
+}
+
+/* The end of the reel (board 08): a flat scrim over the last Frame and a panel
+   that says the reel is finished. Its own surface is --scrim-ink rather than
+   --card so the player stays dark in the light theme too. */
+.story__endwrap {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+.story__flat {
+  position: absolute;
+  inset: 0;
+  background: var(--scrim-flat);
+}
+.story__end {
+  position: absolute;
+  top: 96px;
+  right: var(--s-5);
+  left: var(--s-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-6);
+  border: 1px solid color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  border-radius: var(--r-card);
+  background: var(--scrim-ink);
+}
+.story__endtitle {
+  color: var(--accent-ink);
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 700;
+  line-height: var(--lh-tight);
+  text-wrap: pretty;
+}
+.story__endbody {
+  margin: 0;
+  color: var(--accent-ink);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  opacity: 0.8;
+  text-wrap: pretty;
+}
+.story__endactions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+.story__endactions .btn {
+  min-height: 48px;
+}
+/* The quiet button on the dark panel: `.btn`'s own --card fill would be the
+   theme's, and this panel is not the theme's. */
+.story__ghost {
+  border-color: color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  background: transparent;
+  color: var(--accent-ink);
+}
+
 /* Feed View Mode: the rings row, the post cards and the end card. Today's
    second presentation of the same Items (spec: Feed View Mode) - no sticky day
    headers here, because each card carries its own relative time.

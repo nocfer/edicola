@@ -4,6 +4,7 @@
 //   #/saved            Saved
 //   #/publications     Publications
 //   #/item/:id         Reader (full-screen push: hides the tab bar)
+//   #/story/:id        Story player (full-screen push: hides the tab bar)
 //   #/settings         Settings
 //
 // `parseRoute` is pure so it can be unit tested in Node; everything that touches
@@ -11,12 +12,13 @@
 // not hold state: `startRouter` hands every change to a callback, and main.js
 // puts the Route into the store with `update({ route })`.
 
-/** @typedef {'today'|'saved'|'publications'|'settings'|'reader'|'not-found'} RouteName */
+/** @typedef {'today'|'saved'|'publications'|'settings'|'reader'|'story'|'not-found'} RouteName */
 
 /**
  * @typedef {object} Route
  * @property {RouteName} name
- * @property {Record<string, string>} params  `{ id }` for the Reader, else `{}`
+ * @property {Record<string, string>} params  `{ id }` for the Reader and the
+ *   Story player (a Publication id there), else `{}`
  * @property {string} path  normalized path after the `#`, e.g. `/saved`
  */
 
@@ -48,21 +50,23 @@ export function parseRoute(hash) {
   if (path.length > 1) path = path.replace(/\/+$/, "");
   const name = STATIC_PATHS[path];
   if (name) return { name, params: {}, path };
-  const item = path.match(/^\/item\/([^/]+)$/);
-  if (item) {
-    let id = item[1];
+  const dynamic = path.match(/^\/(item|story)\/([^/]+)$/);
+  if (dynamic) {
+    let id = dynamic[2];
     try {
       id = decodeURIComponent(id);
     } catch {
       // Keep the raw segment: a malformed escape is still a usable key.
     }
-    return { name: "reader", params: { id }, path };
+    const name = dynamic[1] === "item" ? "reader" : "story";
+    return { name, params: { id }, path };
   }
   return { name: "not-found", params: {}, path };
 }
 
 /**
- * The path (after `#`) for a screen. The Reader needs `params.id`.
+ * The path (after `#`) for a screen. The Reader and the Story player need
+ * `params.id` — an Item id and a Publication id respectively.
  * @param {RouteName} name
  * @param {Record<string, string>} [params]
  * @returns {string}
@@ -73,6 +77,8 @@ export function pathFor(name, params = {}) {
       return "/";
     case "reader":
       return `/item/${encodeURIComponent(params.id ?? "")}`;
+    case "story":
+      return `/story/${encodeURIComponent(params.id ?? "")}`;
     case "not-found":
       return "/404";
     default:
@@ -95,9 +101,13 @@ export function isTabRoute(/** @type {Route} */ route) {
   return TABS.includes(/** @type {any} */ (route.name));
 }
 
-/** The Reader is a full-screen push: it hides the tab bar. */
+/**
+ * The Reader and the Story player are full-screen pushes: they hide the tab
+ * bar. Both are routes rather than overlays so the browser's own back gesture
+ * closes them.
+ */
 export function hidesTabBar(/** @type {Route} */ route) {
-  return route.name === "reader";
+  return route.name === "reader" || route.name === "story";
 }
 
 /** The Route for the current `location.hash`. */

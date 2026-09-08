@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { coverIndexFor } from "../src/cover.js";
 import {
+  buildStoryReel,
   buildTodayModel,
   localDayKey,
   oneLine,
@@ -600,4 +601,118 @@ test("an Item outside the Retention window is in no reel", () => {
   );
   assert.equal(model.rings[0].reelCount, 1);
   assert.equal(model.cards.length, 1);
+});
+
+// --- The Story reel --------------------------------------------------------
+//
+// A reel is one Publication's Unread Items inside Today's window, newest
+// first. It goes through `buildTodayModel`, so a Frame is the very same card
+// the feed renders and cannot disagree with it about the window, the order or
+// the picture.
+
+test("a reel is that Publication's Unread Items, newest first", () => {
+  const reel = buildStoryReel(
+    [
+      item("a", NOW - 60_000),
+      item("b", NOW - DAY),
+      item("n", NOW, { publicationId: "nature" }),
+    ],
+    PUBS,
+    { publicationId: "bbc-news", now: NOW },
+  );
+  assert.equal(reel.publicationId, "bbc-news");
+  assert.equal(reel.name, "BBC News");
+  assert.equal(reel.monogram, "BN");
+  assert.deepEqual(
+    reel.frames.map((frame) => frame.id),
+    ["a", "b"],
+    "another Publication's Items are not in this reel",
+  );
+});
+
+test("a Read Item is out of the reel; a Seen one is still in it", () => {
+  const reel = buildStoryReel(
+    [
+      item("read", NOW, { read: true }),
+      item("seen", NOW - 1000, { seen: true }),
+      item("fresh", NOW - 2000),
+    ],
+    PUBS,
+    { publicationId: "bbc-news", now: NOW },
+  );
+  assert.deepEqual(
+    reel.frames.map((frame) => frame.id),
+    ["seen", "fresh"],
+  );
+});
+
+test("a Publication with nothing Unread has no reel", () => {
+  const reel = buildStoryReel([item("a", NOW, { read: true })], PUBS, {
+    publicationId: "bbc-news",
+    now: NOW,
+  });
+  assert.deepEqual(reel.frames, []);
+});
+
+test("the reel stops at the Retention window, like the feed", () => {
+  const reel = buildStoryReel(
+    [item("old", NOW - 40 * DAY), item("new", NOW)],
+    PUBS,
+    {
+      publicationId: "bbc-news",
+      now: NOW,
+      limits: { maxAgeDays: 30, keepPerPublication: 50 },
+    },
+  );
+  assert.deepEqual(
+    reel.frames.map((frame) => frame.id),
+    ["new"],
+  );
+});
+
+test("a Frame is the same card the feed renders, picture and all", () => {
+  const reel = buildStoryReel([item("a", NOW)], PUBS, {
+    publicationId: "bbc-news",
+    now: NOW,
+    coverSources: new Map([["a", { kind: "network", url: "https://p/x.jpg" }]]),
+  });
+  const frame = reel.frames[0];
+  assert.deepEqual(frame.cover, { kind: "network", url: "https://p/x.jpg" });
+  assert.equal(frame.monogram, "BN");
+  assert.equal(frame.coverIndex, coverIndexFor("bbc-news"));
+});
+
+test("a Publication that is not Enabled has no reel rather than throwing", () => {
+  const reel = buildStoryReel([item("a", NOW)], PUBS, {
+    publicationId: "not-enabled",
+    now: NOW,
+  });
+  assert.deepEqual(reel.frames, []);
+  assert.equal(reel.name, "not-enabled", "the id still labels the player");
+});
+
+test("a full pass through a reel leaves every Item Seen and every Item Unread", () => {
+  // The guarantee the whole design rests on, end to end through the model: the
+  // ring dims, and the chip's Unread count does not move.
+  const rows = [item("a", NOW), item("b", NOW - 1000), item("c", NOW - 2000)];
+  const reel = buildStoryReel(rows, PUBS, {
+    publicationId: "bbc-news",
+    now: NOW,
+  });
+  assert.equal(reel.frames.length, 3);
+
+  // What the player does to each Frame it shows — `markItemSeen` writes
+  // exactly this field and no other (see test/item-state.test.js).
+  for (const frame of reel.frames) {
+    rows.find((row) => row.id === frame.id).seen = true;
+  }
+
+  const after = buildTodayModel(rows, PUBS, { now: NOW });
+  assert.equal(after.rings[0].state, "seen", "the ring dims");
+  assert.equal(after.rings[0].unread, 3, "and the Unread count does not move");
+  assert.equal(after.chips[0].unread, 3, "nor does the chip's");
+  assert.ok(
+    rows.every((row) => !row.read),
+    "nothing in a Story marks an Item Read",
+  );
 });

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<style>
+  body { margin:0; background:#0a0908; color:#a39c93; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color:#ff8a6a; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+</style>
+</helmet>
+
+<div style="padding:56px 56px 96px;display:flex;flex-direction:column;gap:48px;max-width:1500px">
+
+  <header style="display:flex;flex-direction:column;gap:12px;max-width:860px">
+    <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#7d766f">Edicola · Feed View Mode · Motion</span>
+    <h1 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:44px;line-height:1.05;font-weight:700;color:#f3efe9">Motion spec</h1>
+    <p style="margin:0;font-size:15px;line-height:1.6;color:#a39c93;text-wrap:pretty">Every demo below is running code, not a recording, and none of it starts on its own — tap a control to play it, the same rule the artboards follow. Numbers are the real durations; the slow-motion tweak scales them for review.</p>
+  </header>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <h2 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;font-weight:700;color:#f3efe9">The verdict: no library</h2>
+      <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#7d766f">0 bytes added · 3 platform primitives</span>
+    </div>
+    <p style="margin:0;max-width:78ch;font-size:15px;line-height:1.6;color:#a39c93;text-wrap:pretty">Edicola has no build step and admits runtime libraries only from esm.sh, pinned, one choke point each. A motion library would be the fourth such import, cached by the service worker, loaded on every cold start — to do what the platform now does natively. The three primitives below cover every animation in this spec.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;max-width:1200px">
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">01</span>
+        <span style="font-size:16px;font-weight:600;color:#f3efe9">CSS transitions on the existing tokens</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">State changes that lit-html already re-renders: chips, buttons, the progress bar. <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">--dur-fast</code> and <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">--ease</code> ship already; twelve rules in styles.css use them.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">02</span>
+        <span style="font-size:16px;font-weight:600;color:#f3efe9">Web Animations API with <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:15px">linear()</code> springs</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">Anything that starts from where the finger landed: the Story opening out of its ring, the Save pop. <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">el.animate()</code> returns a handle you can reverse or re-target mid-flight, which is the whole of what a spring library sells.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">03</span>
+        <span style="font-size:16px;font-weight:600;color:#f3efe9">View Transitions, progressively</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">List ↔ Feed, and Today → Reader. One <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">document.startViewTransition</code> wrapper in <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">src/render.js</code>; where it is missing the render just happens, as it does today.</p>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:0;max-width:1200px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow:hidden">
+      <div style="display:grid;grid-template-columns:170px 92px 1fr;gap:16px;padding:14px 20px;background:#1a1816;border-bottom:1px solid rgba(255,255,255,.08);font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#7d766f">
+        <span>Considered</span><span>Weight</span><span>Why not</span>
+      </div>
+      <div style="display:grid;grid-template-columns:170px 92px 1fr;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.5;color:#a39c93">
+        <span style="color:#f3efe9;font-weight:600">Motion One</span><span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;color:#f3efe9">~4 kB</span>
+        <span>The closest fit, and the fallback if this spec ever outgrows hand-written keyframes. It is a thin wrapper over the same WAAPI calls, so today it would buy syntax, not capability.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:170px 92px 1fr;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.5;color:#a39c93">
+        <span style="color:#f3efe9;font-weight:600">GSAP</span><span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;color:#f3efe9">~70 kB</span>
+        <span>Built for timelines and scrubbing. Feed mode has no timeline — the brief forbids anything that advances by itself.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:170px 92px 1fr;gap:16px;padding:14px 20px;border-bottom:1px solid rgba(255,255,255,.08);font-size:14px;line-height:1.5;color:#a39c93">
+        <span style="color:#f3efe9;font-weight:600">anime.js</span><span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;color:#f3efe9">~17 kB</span>
+        <span>Drives its own rAF loop rather than the compositor, so it competes with Sync for the page thread on exactly the frames that matter.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:170px 92px 1fr;gap:16px;padding:14px 20px;font-size:14px;line-height:1.5;color:#a39c93">
+        <span style="color:#f3efe9;font-weight:600">Auto-Animate</span><span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;color:#f3efe9">~2 kB</span>
+        <span>Animates list diffs generically. It cannot know that a ring becomes a Story, which is the one transition worth writing by hand.</span>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;font-weight:700;color:#f3efe9">Tokens this adds</h2>
+    <p style="margin:0;max-width:78ch;font-size:15px;line-height:1.6;color:#a39c93;text-wrap:pretty">Four values, appended to the motion group in the bare <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:#f3efe9">:root</code> block. Not theme-scoped: motion does not change between dark and light. The two springs are solved once and written out as <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:#f3efe9">linear()</code> ramps, so there is no solver at runtime.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:stretch">
+      <div style="flex:1 1 420px;min-width:0;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow-x:auto">
+        <pre style="margin:0;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;line-height:1.75;color:#a39c93">:root {
+  <span style="color:#7d766f">/* existing */</span>
+  --dur-fast: 0.12s;
+  --dur: 0.2s;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  <span style="color:#7d766f">/* added for Feed mode */</span>
+  <span style="color:#f3efe9">--dur-slow</span>: 0.54s;      <span style="color:#7d766f">/* Story open / close */</span>
+  <span style="color:#f3efe9">--dur-pop</span>: 0.42s;       <span style="color:#7d766f">/* Save, ring tap        */</span>
+  <span style="color:#f3efe9">--ease-spring</span>: linear(0, 0.0396, 0.1311, 0.2448,
+    0.3627, 0.4745, 0.5747, 0.6612, 0.7339, 0.7936,
+    0.8418, 0.8801, 0.9101, 0.9333, 0.951, 0.9644,
+    0.9745, 0.9819, 0.9874, 0.9913, 0.9942, 0.9962,
+    0.9975, 0.9985, 0.9991);
+  <span style="color:#f3efe9">--ease-pop</span>: linear(0, 0.1163, 0.367, 0.6385,
+    0.8639, 1.0164, 1.0966, 1.1202, 1.1077, 1.0781,
+    1.0453, 1.0178, 0.9989, 0.9887, 0.9856, 0.9869,
+    0.9904, 0.9943, 0.9977, 1, 1.0013, 1.0017,
+    1.0016, 1.0012, 1.0007);
+}</pre>
+      </div>
+      <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-direction:column;gap:10px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+          <span style="font-size:15px;font-weight:600;color:#f3efe9">--ease-spring</span>
+          <span style="font-size:13.5px;line-height:1.55;color:#a39c93">Stiffness 190, damping 26. Settles without crossing 1, so nothing that carries text ever overshoots and snaps back.</span>
+          <div style="display:flex;align-items:center;gap:12px;padding-top:4px">
+            <span style="width:96px;height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden"><span id="mt-glide" style="display:block;width:100%;height:100%;background:#e0563a;transform:scaleX(0);transform-origin:left"></span></span>
+            <span onClick="{{ playGlide }}" style="display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-size:13px;font-weight:500;cursor:pointer;user-select:none">Play</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+          <span style="font-size:15px;font-weight:600;color:#f3efe9">--ease-pop</span>
+          <span style="font-size:13.5px;line-height:1.55;color:#a39c93">Stiffness 320, damping 20. Peaks at 1.12 and settles. Reserved for things the finger is touching, never for arriving content.</span>
+          <div style="display:flex;align-items:center;gap:12px;padding-top:4px">
+            <span style="width:96px;height:6px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden"><span id="mt-pop" style="display:block;width:100%;height:100%;background:#e0563a;transform:scaleX(0);transform-origin:left"></span></span>
+            <span onClick="{{ playPop }}" style="display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-size:13px;font-weight:500;cursor:pointer;user-select:none">Play</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:16px">
+      <h2 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;font-weight:700;color:#f3efe9">Six transitions</h2>
+      <span onClick="{{ toggleReduced }}" style="display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:999px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-size:13.5px;font-weight:500;cursor:pointer;user-select:none">
+        <span style="width:8px;height:8px;border-radius:999px;background:#e0563a"></span>
+        <span>{{ reducedLabel }}</span>
+      </span>
+      <span style="font-size:13.5px;color:#7d766f">Every demo replays on tap. Nothing plays itself.</span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:44px 32px;align-items:flex-start">
+
+      <!-- D1 ring -> story -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D1 · Ring → Story · 540ms --ease-spring</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">The player grows out of the ring that opened it, keeping the Publication's Cover colour the whole way. Close reverses into the same ring, so the reader never loses their place in the row.</span>
+        </div>
+        <div id="m1-stage" style="position:relative;width:342px;height:440px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
+          <div style="display:flex;gap:14px;padding:20px 16px">
+            <div id="m1-ring-0" onClick="{{ openStory0 }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex:none;cursor:pointer">
+              <div style="width:62px;height:62px;border-radius:999px;border:2px solid #e0563a;padding:3px;box-sizing:border-box">
+                <div class="m1-disc" style="width:100%;height:100%;border-radius:999px;background:#1b4a63;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;letter-spacing:.04em">BN</div>
+              </div>
+              <span style="max-width:62px;font-size:.8125rem;color:#f3efe9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BBC News</span>
+            </div>
+            <div id="m1-ring-1" onClick="{{ openStory1 }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex:none;cursor:pointer">
+              <div style="width:62px;height:62px;border-radius:999px;border:2px solid #e0563a;padding:3px;box-sizing:border-box">
+                <div class="m1-disc" style="width:100%;height:100%;border-radius:999px;background:#7a2f22;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;letter-spacing:.04em">AN</div>
+              </div>
+              <span style="max-width:62px;font-size:.8125rem;color:#f3efe9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">ANSA</span>
+            </div>
+            <div id="m1-ring-2" onClick="{{ openStory2 }}" style="display:flex;flex-direction:column;align-items:center;gap:6px;width:62px;flex:none;cursor:pointer">
+              <div style="width:62px;height:62px;border-radius:999px;border:2px solid #e0563a;padding:3px;box-sizing:border-box">
+                <div class="m1-disc" style="width:100%;height:100%;border-radius:999px;background:#43518c;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;letter-spacing:.04em">LR</div>
+              </div>
+              <span style="max-width:62px;font-size:.8125rem;color:#f3efe9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">London Review of Books</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:8px 16px">
+            <div style="height:150px;border-radius:16px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08)"></div>
+            <div style="height:150px;border-radius:16px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08)"></div>
+          </div>
+          <div id="m1-panel" style="position:absolute;inset:0;display:none;background:#1b4a63;overflow:hidden;will-change:transform">
+            <div id="m1-panel-inner" style="position:absolute;inset:0;display:flex;flex-direction:column;padding:16px">
+              <div style="display:flex;gap:4px;padding-bottom:12px">
+                <span style="flex:1;height:3px;border-radius:999px;background:#f3efe9"></span>
+                <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25)"></span>
+                <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25)"></span>
+                <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25)"></span>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;min-height:44px">
+                <div id="m1-panel-mono" style="width:32px;height:32px;flex:none;border-radius:999px;background:rgba(255,248,243,.16);color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.04em">BN</div>
+                <span id="m1-panel-name" style="min-width:0;font-size:.8125rem;font-weight:600;color:#fff8f3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">BBC News</span>
+                <span style="flex:1"></span>
+                <span onClick="{{ closeStory }}" style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border-radius:999px;color:#fff8f3;cursor:pointer">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                </span>
+              </div>
+              <span style="flex:1"></span>
+              <h3 id="m1-panel-head" style="margin:0 0 10px;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.75rem;line-height:1.15;font-weight:700;color:#fff8f3;text-wrap:pretty">Water regulator to force leak repairs within 48 hours</h3>
+              <span style="display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;background:#e0563a;color:#fff8f3;font-weight:600">Read</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D2 frame advance -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D2 · Frame advance · 200ms out, 320ms in</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">Content leaves against the direction of travel and the next Frame arrives with it. The pip fills over the same 320ms, which is the only thing on screen that reports position — it never runs ahead of a tap.</span>
+        </div>
+        <div style="position:relative;width:342px;height:440px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
+          <div id="m2-pips" style="display:flex;gap:4px;padding:16px 16px 12px">
+            <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25);overflow:hidden"><span class="m2-fill" style="display:block;width:100%;height:100%;background:#f3efe9;transform:scaleX(1);transform-origin:left"></span></span>
+            <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25);overflow:hidden"><span class="m2-fill" style="display:block;width:100%;height:100%;background:#f3efe9;transform:scaleX(0);transform-origin:left"></span></span>
+            <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25);overflow:hidden"><span class="m2-fill" style="display:block;width:100%;height:100%;background:#f3efe9;transform:scaleX(0);transform-origin:left"></span></span>
+            <span style="flex:1;height:3px;border-radius:999px;background:rgba(243,239,233,.25);overflow:hidden"><span class="m2-fill" style="display:block;width:100%;height:100%;background:#f3efe9;transform:scaleX(0);transform-origin:left"></span></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:0 16px;min-height:44px">
+            <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#1b4a63;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;letter-spacing:.04em">BN</div>
+            <span style="font-size:.8125rem;font-weight:600;color:#f3efe9">BBC News</span>
+            <span style="flex:1"></span>
+            <span id="m2-count" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:.8125rem;color:#7d766f">Frame 1 of 4</span>
+          </div>
+          <div id="m2-body" style="position:absolute;left:0;right:0;top:110px;bottom:80px;display:flex;flex-direction:column;justify-content:flex-end;padding:0 20px 20px;will-change:transform">
+            <h3 id="m2-head" style="margin:0 0 10px;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.5rem;line-height:1.15;font-weight:700;color:#f3efe9;text-wrap:pretty">Water regulator to force leak repairs within 48 hours</h3>
+            <p id="m2-sum" style="margin:0;font-size:1rem;line-height:1.5;color:#a39c93;text-wrap:pretty">Ofwat says the new licence condition will apply from April and carries a penalty of up to 8% of turnover.</p>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:16px">
+            <span onClick="{{ framePrev }}" style="flex:none;width:48px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);color:#f3efe9;cursor:pointer">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </span>
+            <span onClick="{{ frameNext }}" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-weight:600;cursor:pointer">Next Frame</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- D3 save -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D3 · Save · 420ms --ease-pop</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">The only overshoot in the system, and only under the finger. Tap it repeatedly: each tap cancels the running animation and starts from the current scale rather than snapping back to 1.</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;width:342px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;box-sizing:border-box">
+          <div style="display:flex;align-items:center;gap:4px">
+            <span id="m3-save" onClick="{{ toggleSave }}" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;color:#f3efe9;cursor:pointer;will-change:transform">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path id="m3-path" d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
+            </span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;color:#f3efe9">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3"/><path d="m7 8 5-5 5 5"/><path d="M5 13v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg>
+            </span>
+            <span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:999px;color:#f3efe9">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg>
+            </span>
+            <span style="flex:1"></span>
+            <span id="m3-state" style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#7d766f">not Saved</span>
+          </div>
+          <h3 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.125rem;line-height:1.15;font-weight:700;color:#f3efe9;text-wrap:pretty">Councils in England warn of a £4bn gap as social care costs climb again</h3>
+          <p style="margin:0;font-size:1rem;line-height:1.5;color:#a39c93;text-wrap:pretty">The Save is written to IndexedDB before the spring finishes. If the write fails the icon returns on the same curve, so the animation is never a promise the store has not kept.</p>
+        </div>
+      </div>
+
+      <!-- D4 toggle -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D4 · List ↔ Feed · 300ms --ease</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">The pill slides under the icon at token speed while the two presentations cross-dissolve. Same Items, same order — so the crossfade is honest about it, and the header never moves.</span>
+        </div>
+        <div style="position:relative;width:342px;height:440px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:16px;min-height:44px">
+            <h2 style="flex:1;margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.75rem;line-height:1.15;font-weight:700;letter-spacing:-.01em;color:#f3efe9">Today</h2>
+            <div style="position:relative;display:flex;align-items:center;gap:2px;padding:2px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:rgba(255,255,255,.06)">
+              <span id="m4-pill" style="position:absolute;left:2px;top:2px;width:44px;height:38px;border-radius:999px;background:#f3efe9;transform:translateX(46px);will-change:transform"></span>
+              <span onClick="{{ setList }}" style="position:relative;width:44px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:999px;cursor:pointer">
+                <svg id="m4-i-list" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#a39c93" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></svg>
+              </span>
+              <span onClick="{{ setFeed }}" style="position:relative;width:44px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:999px;cursor:pointer">
+                <svg id="m4-i-feed" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#121110" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="8" rx="2"/><rect x="3" y="13" width="18" height="8" rx="2"/></svg>
+              </span>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;top:80px;bottom:0">
+            <div id="m4-feed" style="position:absolute;inset:0;padding:0 16px;will-change:transform,opacity">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="border-radius:16px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);overflow:hidden">
+                  <div style="display:flex;align-items:center;gap:10px;padding:12px 14px 8px">
+                    <div style="width:28px;height:28px;border-radius:999px;background:#43518c;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">GU</div>
+                    <span style="font-size:.8125rem;font-weight:600;color:#f3efe9">The Guardian</span>
+                    <span style="font-size:.8125rem;color:#7d766f">2h</span>
+                  </div>
+                  <div style="height:180px;background:#1a1816;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.06) 0 14px,rgba(255,255,255,0) 14px 28px)"></div>
+                  <div style="padding:12px 14px 14px">
+                    <h3 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.0625rem;line-height:1.15;font-weight:700;color:#f3efe9">Councils warn of a £4bn gap as social care costs climb</h3>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="m4-list" style="position:absolute;inset:0;padding:0 16px;opacity:0;pointer-events:none;will-change:transform,opacity">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="padding:4px 0;color:#a39c93;font-size:.8125rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase">Today</span>
+                <div style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:.8125rem;color:#a39c93;font-weight:600">The Guardian · 2h</span>
+                    <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.0625rem;line-height:1.15;font-weight:700;color:#f3efe9">Councils warn of a £4bn gap as social care costs climb</span>
+                  </div>
+                  <span style="flex:none;width:64px;height:64px;border-radius:12px;background:rgba(255,255,255,.06)"></span>
+                </div>
+                <div style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:.8125rem;color:#a39c93;font-weight:600">London Review of Books · 5h</span>
+                    <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.0625rem;line-height:1.15;font-weight:700;color:#f3efe9">The empty quarter: the afterlife of the seaside hotel</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px">
+                    <span style="font-size:.8125rem;color:#a39c93;font-weight:600">Il Sole 24 Ore · 7h</span>
+                    <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.0625rem;line-height:1.15;font-weight:700;color:#f3efe9">Btp a tre anni, la domanda supera l’offerta</span>
+                  </div>
+                  <span style="flex:none;width:64px;height:64px;border-radius:12px;background:rgba(255,255,255,.06)"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D5 stagger -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D5 · Items arriving · 280ms, 40ms apart, capped at 4</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">Sync answers one Publication at a time, so cards land in bursts. The stagger caps at the fourth card: past that a reader reads the delay as lag, and offline Syncs can land thirty at once.</span>
+        </div>
+        <div style="position:relative;width:342px;height:600px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:12px;padding:16px 16px 8px">
+            <span id="m5-status" style="flex:1;font-size:.8125rem;color:#a39c93">Feeds 3 of 8</span>
+            <span onClick="{{ replayStagger }}" style="display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-size:13px;font-weight:500;cursor:pointer;user-select:none">Replay</span>
+          </div>
+          <div style="padding:0 16px 8px">
+            <span style="display:block;height:3px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden"><span id="m5-bar" style="display:block;height:100%;width:100%;background:#e0563a;transform:scaleX(.15);transform-origin:left"></span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:12px 16px">
+            <div class="m5-card" style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;will-change:transform,opacity">
+              <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#7a2f22;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">AN</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:.8125rem;color:#7d766f">ANSA · 40m</span>
+                <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.2;font-weight:700;color:#f3efe9">Frana sulla statale 45, chiusa la Val Trebbia</span>
+              </div>
+            </div>
+            <div class="m5-card" style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;will-change:transform,opacity">
+              <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#1b4a63;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">BN</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:.8125rem;color:#7d766f">BBC News · 3h</span>
+                <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.2;font-weight:700;color:#f3efe9">Water regulator to force leak repairs within 48 hours</span>
+              </div>
+            </div>
+            <div class="m5-card" style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;will-change:transform,opacity">
+              <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#52692a;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">NA</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:.8125rem;color:#7d766f">Nature · 6h</span>
+                <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.2;font-weight:700;color:#f3efe9">A single gene explains why some corals survived</span>
+              </div>
+            </div>
+            <div class="m5-card" style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;will-change:transform,opacity">
+              <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#8d5f18;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">SO</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:.8125rem;color:#7d766f">Il Sole 24 Ore · 9h</span>
+                <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.2;font-weight:700;color:#f3efe9">Manifattura, ordini in calo per il quarto mese</span>
+              </div>
+            </div>
+            <div class="m5-card" style="display:flex;gap:12px;padding:14px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;will-change:transform,opacity">
+              <div style="width:32px;height:32px;flex:none;border-radius:999px;background:#43518c;color:#fff8f3;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700">GU</div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:.8125rem;color:#7d766f">The Guardian · 11h</span>
+                <span style="font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1rem;line-height:1.2;font-weight:700;color:#f3efe9">Storm Bettina closes three east coast ports</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- D6 pull to refresh -->
+      <div style="display:flex;flex-direction:column;gap:12px;width:342px">
+        <div style="display:flex;flex-direction:column;gap:3px">
+          <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D6 · Pull to refresh · rubber band, then 540ms settle</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">Pull tracks the finger 1:1 to 64px and at a third of that beyond, so the surface feels attached. On release the sheet settles on --ease-spring and the bar takes over; the Refresh button in the header does the same thing without the gesture.</span>
+        </div>
+        <div style="position:relative;width:342px;height:440px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
+          <div id="m6-spinner" style="position:absolute;left:0;right:0;top:14px;display:flex;justify-content:center;opacity:0">
+            <span style="width:26px;height:26px;border-radius:999px;border:2px solid rgba(255,255,255,.12);border-top-color:#e0563a;display:block"></span>
+          </div>
+          <div id="m6-sheet" style="position:absolute;inset:0;background:#121110;will-change:transform">
+            <div style="display:flex;align-items:center;gap:12px;padding:16px;min-height:44px">
+              <h2 style="flex:1;margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:1.75rem;line-height:1.15;font-weight:700;letter-spacing:-.01em;color:#f3efe9">Today</h2>
+              <span onClick="{{ playPull }}" style="width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#1f1c1a;color:#f3efe9;font-size:1.125rem;line-height:1;cursor:pointer">↻</span>
+            </div>
+            <div style="padding:0 16px">
+              <span id="m6-status" style="font-size:.8125rem;color:#a39c93">Last synced 4 minutes ago</span>
+            </div>
+            <div style="padding:8px 16px 0">
+              <span style="display:block;height:3px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden"><span id="m6-bar" style="display:block;height:100%;width:100%;background:#e0563a;transform:scaleX(0);transform-origin:left"></span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:12px;padding:16px">
+              <div style="height:140px;border-radius:16px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08)"></div>
+              <div style="height:140px;border-radius:16px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08)"></div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:16px">
+            <span onClick="{{ playPull }}" style="display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:12px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);color:#f3efe9;font-weight:600;cursor:pointer;user-select:none">Play the pull</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;font-weight:700;color:#f3efe9">Reduced motion is a path, not a switch</h2>
+    <p style="margin:0;max-width:78ch;font-size:15px;line-height:1.6;color:#a39c93;text-wrap:pretty">styles.css already zeroes every <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:#f3efe9">transition-duration</code> under <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:#f3efe9">prefers-reduced-motion</code>, which handles primitive 01 and nothing else — a WAAPI animation ignores that rule entirely. So each script reads the query and takes a shorter branch: the Story still opens, it just cross-fades in 120ms instead of growing out of the ring. Toggle it on the demos above with the control by the section heading.</p>
+    <div style="max-width:1200px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px;overflow-x:auto">
+      <pre style="margin:0;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12.5px;line-height:1.75;color:#a39c93"><span style="color:#7d766f">// src/motion.js — the whole module. No dependencies, no exports beyond these three.</span>
+
+<span style="color:#7d766f">/** The reader's preference, read at call time: it can change while the app is open. */</span>
+export function <span style="color:#f3efe9">prefersReducedMotion</span>() {
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+<span style="color:#7d766f">/** Read a motion token off :root so JS and CSS never disagree about a duration. */</span>
+export function <span style="color:#f3efe9">motionToken</span>(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+<span style="color:#7d766f">/** Grow `panel` out of `origin`. Returns the Animation so the caller can reverse it. */</span>
+export function <span style="color:#f3efe9">growFrom</span>(origin, panel, { duration, easing }) {
+  if (prefersReducedMotion()) {
+    return panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 120, fill: 'both' });
+  }
+  const a = origin.getBoundingClientRect();
+  const b = panel.getBoundingClientRect();
+  const dx = a.left + a.width / 2 - b.left - b.width / 2;
+  const dy = a.top + a.height / 2 - b.top - b.height / 2;
+  const from = 'translate(' + dx + 'px,' + dy + 'px)'
+    + ' scale(' + a.width / b.width + ',' + a.height / b.height + ')';
+  return panel.animate(
+    [{ transform: from, borderRadius: 'var(--r-pill)', opacity: 0 },
+     { transform: 'none', borderRadius: '0px', opacity: 1 }],
+    { duration, easing, fill: 'both' },
+  );
+}</pre>
+    </div>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:20px">
+    <h2 style="margin:0;font-family:ui-serif,Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;font-weight:700;color:#f3efe9">Landing it in the repo</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;max-width:1200px">
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">src/motion.js</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">New file, named exports only so <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px">tools/check-imports.mjs</code> stays sound. It is a Shell file: add it to <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px">SHELL</code> in sw.js, then <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px">npm run stamp</code>, and verify on a throwaway profile.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">src/styles.css</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">Four tokens into the motion group in §1, beside <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px">--ease</code>. Keep them with their primitive, not with the Feed-mode block that needed them — gotcha 9.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">test/styles-structure.test.js</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">Add an anchor for the Feed-mode block, as gotcha 8 requires, and assert the reduced-motion reset still carries its declaration.</p>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:20px;background:#1f1c1a;border:1px solid rgba(255,255,255,.08);border-radius:16px">
+        <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px;color:#f3efe9">Verification</span>
+        <p style="margin:0;font-size:14px;line-height:1.55;color:#a39c93">Tests cover logic, not motion. Drive headless Chrome over CDP and capture each transition at its midpoint with <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px">Animation.setCurrentTime</code>, in both themes.</p>
+      </div>
+    </div>
+    <p style="margin:0;max-width:78ch;font-size:15px;line-height:1.6;color:#a39c93;text-wrap:pretty">No ADR is needed to add a file, but the choice not to take a dependency is exactly what <code style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:14px;color:#f3efe9">docs/adr/</code> is for. Worth a short one, so the next person proposing a motion library finds the reasoning instead of repeating it.</p>
+  </section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;speed&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:1,&quot;min&quot;:0.15,&quot;max&quot;:1,&quot;step&quot;:0.05,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Review&quot;,&quot;unit&quot;:&quot;×&quot;}}">
+const GLIDE = 'linear(0, 0.0396, 0.1311, 0.2448, 0.3627, 0.4745, 0.5747, 0.6612, 0.7339, 0.7936, 0.8418, 0.8801, 0.9101, 0.9333, 0.951, 0.9644, 0.9745, 0.9819, 0.9874, 0.9913, 0.9942, 0.9962, 0.9975, 0.9985, 0.9991)';
+const POP = 'linear(0, 0.1163, 0.367, 0.6385, 0.8639, 1.0164, 1.0966, 1.1202, 1.1077, 1.0781, 1.0453, 1.0178, 0.9989, 0.9887, 0.9856, 0.9869, 0.9904, 0.9943, 0.9977, 1, 1.0013, 1.0017, 1.0016, 1.0012, 1.0007)';
+const EASE = 'cubic-bezier(.2,.7,.2,1)';
+
+const FRAMES = [
+  { h: 'Water regulator to force leak repairs within 48 hours', s: 'Ofwat says the new licence condition will apply from April and carries a penalty of up to 8% of turnover.' },
+  { h: 'Treasury drops the fuel duty freeze after fourteen years', s: 'The rise is staged over two years, with a rural rebate the Chancellor called "the price of getting it through".' },
+  { h: 'Storm Bettina closes three east coast ports for a second day', s: 'The Harbour Authority expects Grimsby to reopen on the evening tide; ferries from Hull are cancelled until Thursday.' },
+  { h: 'Bank holds rates, and signals one more cut before spring', s: 'Two members voted to cut immediately. The minutes describe services inflation as "stickier than the July forecast allowed".' },
+];
+
+const STORIES = [
+  { m: 'BN', n: 'BBC News', c: '#1b4a63', h: 'Water regulator to force leak repairs within 48 hours' },
+  { m: 'AN', n: 'ANSA', c: '#7a2f22', h: 'Frana sulla statale 45, chiusa la Val Trebbia' },
+  { m: 'LR', n: 'London Review of Books', c: '#43518c', h: 'The empty quarter: on the long afterlife of the British seaside hotel' },
+];
+
+class Component extends DCLogic {
+  state = { reduced: false, frame: 0, saved: false, mode: 'feed' };
+
+  q(sel) { return document.querySelector(sel); }
+  all(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+  scale(ms) { const s = this.props.speed ?? 1; return ms / (s > 0 ? s : 1); }
+  get reduced() { return this.state.reduced; }
+
+  play(el, kf, ms, easing, extra) {
+    if (!el) return null;
+    let frames = kf, dur = ms, ease = easing;
+    if (this.reduced) {
+      frames = kf.map((f) => ({ opacity: f.opacity === undefined ? 1 : f.opacity }));
+      dur = 120; ease = 'linear';
+    }
+    return el.animate(frames, Object.assign({ duration: this.scale(dur), easing: ease, fill: 'both' }, extra || {}));
+  }
+
+  componentDidMount() {
+    this.storyAnim = null;
+    this.saveAnim = null;
+    this.frameIdx = 0;
+    this.frameSeq = 0;
+    this.pendingSwap = null;
+    this.replayStagger();
+  }
+
+  /* --- easing previews --- */
+  ramp(id, easing, ms) {
+    const el = this.q(id);
+    if (!el) return;
+    el.getAnimations().forEach((a) => a.cancel());
+    el.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: this.scale(ms), easing, fill: 'both' });
+  }
+
+  /* --- D1 Story --- */
+  openStory(i) {
+    const story = STORIES[i];
+    const ring = this.q('#m1-ring-' + i + ' .m1-disc');
+    const panel = this.q('#m1-panel');
+    const inner = this.q('#m1-panel-inner');
+    if (!ring || !panel) return;
+    this.q('#m1-panel-mono').textContent = story.m;
+    this.q('#m1-panel-name').textContent = story.n;
+    this.q('#m1-panel-head').textContent = story.h;
+    panel.style.background = story.c;
+    panel.style.display = 'block';
+    if (this.storyAnim) this.storyAnim.cancel();
+
+    if (this.reduced) {
+      this.storyAnim = panel.animate([{ opacity: 0 }, { opacity: 1 }], { duration: this.scale(120), fill: 'both' });
+      inner.getAnimations().forEach((a) => a.cancel());
+      return;
+    }
+    const a = ring.getBoundingClientRect();
+    const b = panel.getBoundingClientRect();
+    const from = 'translate(' + (a.left + a.width / 2 - b.left - b.width / 2) + 'px,'
+      + (a.top + a.height / 2 - b.top - b.height / 2) + 'px) scale('
+      + (a.width / b.width) + ',' + (a.height / b.height) + ')';
+    this.storyAnim = panel.animate(
+      [{ transform: from, borderRadius: '999px', opacity: 0 }, { transform: 'none', borderRadius: '0px', opacity: 1 }],
+      { duration: this.scale(540), easing: GLIDE, fill: 'both' },
+    );
+    inner.animate([{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'none' }],
+      { duration: this.scale(280), delay: this.scale(140), easing: EASE, fill: 'both' });
+  }
+
+  closeStory() {
+    const panel = this.q('#m1-panel');
+    if (!panel || !this.storyAnim) return;
+    const inner = this.q('#m1-panel-inner');
+    inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.scale(120), easing: EASE, fill: 'both' });
+    this.storyAnim.reverse();
+    this.storyAnim.finished.then(() => { panel.style.display = 'none'; }).catch(() => {});
+  }
+
+  /* --- D2 Frames --- */
+  goFrame(dir) {
+    // A tap that lands mid-transition commits the one in flight first, so a
+    // fast reader never fills a pip without advancing the Frame under it.
+    if (this.pendingSwap) { this.pendingSwap(); this.pendingSwap = null; }
+    const cur = this.frameIdx || 0;
+    const next = cur + dir;
+    if (next < 0 || next >= FRAMES.length) return;
+    const body = this.q('#m2-body');
+    const fills = this.all('.m2-fill');
+    const count = this.q('#m2-count');
+    if (!body) return;
+    const seq = ++this.frameSeq;
+
+    const target = dir > 0 ? fills[next] : fills[cur];
+    if (target) {
+      target.getAnimations().forEach((a) => a.cancel());
+      const to = dir > 0 ? 1 : 0;
+      target.animate([{ transform: 'scaleX(' + (1 - to) + ')' }, { transform: 'scaleX(' + to + ')' }],
+        { duration: this.scale(this.reduced ? 120 : 320), easing: EASE, fill: 'both' });
+    }
+
+    const swap = () => {
+      this.q('#m2-head').textContent = FRAMES[next].h;
+      this.q('#m2-sum').textContent = FRAMES[next].s;
+      if (count) count.textContent = 'Frame ' + (next + 1) + ' of ' + FRAMES.length;
+      this.frameIdx = next;
+    };
+    this.pendingSwap = swap;
+
+    if (this.reduced) {
+      body.getAnimations().forEach((a) => a.cancel());
+      const out = body.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.scale(120), fill: 'both' });
+      out.finished.then(() => {
+        if (this.frameSeq !== seq) return;
+        this.pendingSwap = null;
+        swap();
+        body.animate([{ opacity: 0 }, { opacity: 1 }], { duration: this.scale(120), fill: 'both' });
+      }).catch(() => {});
+      return;
+    }
+    body.getAnimations().forEach((a) => a.cancel());
+    const out = body.animate(
+      [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateX(' + (-18 * dir) + 'px)' }],
+      { duration: this.scale(200), easing: 'cubic-bezier(.4,0,1,1)', fill: 'both' },
+    );
+    out.finished.then(() => {
+      if (this.frameSeq !== seq) return;
+      this.pendingSwap = null;
+      swap();
+      body.animate(
+        [{ opacity: 0, transform: 'translateX(' + (22 * dir) + 'px)' }, { opacity: 1, transform: 'none' }],
+        { duration: this.scale(320), easing: GLIDE, fill: 'both' },
+      );
+    }).catch(() => {});
+  }
+
+  /* --- D3 Save --- */
+  toggleSave() {
+    const btn = this.q('#m3-save');
+    const path = this.q('#m3-path');
+    const label = this.q('#m3-state');
+    const saved = !this.state.saved;
+    this.setState({ saved: saved });
+    if (path) path.setAttribute('fill', saved ? 'currentColor' : 'none');
+    if (btn) btn.style.color = saved ? '#e0563a' : '#f3efe9';
+    if (label) label.textContent = saved ? 'Saved' : 'not Saved';
+    if (!btn) return;
+    if (this.saveAnim) this.saveAnim.cancel();
+    if (this.reduced) return;
+    this.saveAnim = btn.animate(
+      [{ transform: 'scale(.86)' }, { transform: 'scale(1)' }],
+      { duration: this.scale(420), easing: POP, fill: 'both', composite: 'replace' },
+    );
+  }
+
+  /* --- D4 toggle --- */
+  setMode(mode) {
+    if (mode === this.state.mode) return;
+    this.setState({ mode: mode });
+    const pill = this.q('#m4-pill');
+    const feed = this.q('#m4-feed');
+    const list = this.q('#m4-list');
+    const iList = this.q('#m4-i-list');
+    const iFeed = this.q('#m4-i-feed');
+    const toFeed = mode === 'feed';
+    if (pill) {
+      pill.getAnimations().forEach((a) => a.cancel());
+      pill.animate([{ transform: 'translateX(' + (toFeed ? 0 : 46) + 'px)' }, { transform: 'translateX(' + (toFeed ? 46 : 0) + 'px)' }],
+        { duration: this.scale(this.reduced ? 120 : 300), easing: EASE, fill: 'both' });
+    }
+    if (iList) iList.setAttribute('stroke', toFeed ? '#a39c93' : '#121110');
+    if (iFeed) iFeed.setAttribute('stroke', toFeed ? '#121110' : '#a39c93');
+    const inEl = toFeed ? feed : list;
+    const outEl = toFeed ? list : feed;
+    [inEl, outEl].forEach((el) => { if (el) el.getAnimations().forEach((a) => a.cancel()); });
+    if (outEl) { outEl.style.pointerEvents = 'none'; this.play(outEl, [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.985)' }], 300, EASE); }
+    if (inEl) { inEl.style.pointerEvents = 'auto'; this.play(inEl, [{ opacity: 0, transform: 'scale(1.015)' }, { opacity: 1, transform: 'scale(1)' }], 300, EASE); }
+  }
+
+  /* --- D5 stagger --- */
+  replayStagger() {
+    const cards = this.all('.m5-card');
+    const bar = this.q('#m5-bar');
+    if (bar) {
+      bar.getAnimations().forEach((a) => a.cancel());
+      bar.animate([{ transform: 'scaleX(.15)' }, { transform: 'scaleX(.62)' }], { duration: this.scale(1400), easing: EASE, fill: 'both' });
+    }
+    cards.forEach((el, i) => {
+      el.getAnimations().forEach((a) => a.cancel());
+      const delay = this.scale(Math.min(i, 4) * 40);
+      if (this.reduced) { el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: this.scale(120), delay: delay, fill: 'both' }); return; }
+      el.animate(
+        [{ opacity: 0, transform: 'translateY(14px) scale(.99)' }, { opacity: 1, transform: 'none' }],
+        { duration: this.scale(280), delay: delay, easing: EASE, fill: 'both' },
+      );
+    });
+  }
+
+  /* --- D6 pull --- */
+  playPull() {
+    const sheet = this.q('#m6-sheet');
+    const spinner = this.q('#m6-spinner');
+    const bar = this.q('#m6-bar');
+    const status = this.q('#m6-status');
+    if (!sheet) return;
+    [sheet, spinner, bar].forEach((el) => { if (el) el.getAnimations().forEach((a) => a.cancel()); });
+    if (status) status.textContent = 'Feeds 1 of 8';
+
+    if (this.reduced) {
+      if (spinner) spinner.animate([{ opacity: 0 }, { opacity: 1 }], { duration: this.scale(120), fill: 'both' });
+    } else {
+      const pull = sheet.animate(
+        [{ transform: 'translateY(0)' }, { transform: 'translateY(72px)' }],
+        { duration: this.scale(420), easing: 'cubic-bezier(.25,1,.5,1)', fill: 'both' },
+      );
+      spinner.animate([{ opacity: 0, transform: 'scale(.7) rotate(0deg)' }, { opacity: 1, transform: 'scale(1) rotate(220deg)' }],
+        { duration: this.scale(420), easing: EASE, fill: 'both' });
+      pull.finished.then(() => {
+        sheet.animate([{ transform: 'translateY(72px)' }, { transform: 'translateY(0)' }],
+          { duration: this.scale(540), easing: GLIDE, fill: 'both' });
+        spinner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.scale(200), easing: EASE, fill: 'both' });
+      }).catch(() => {});
+    }
+    if (bar) {
+      bar.animate([{ transform: 'scaleX(0)' }, { transform: 'scaleX(.35)' }, { transform: 'scaleX(1)' }],
+        { duration: this.scale(2200), delay: this.scale(300), easing: EASE, fill: 'both' });
+    }
+    if (status) {
+      setTimeout(() => { const s = this.q('#m6-status'); if (s) s.textContent = 'Last synced just now'; }, this.scale(2600));
+    }
+  }
+
+  renderVals() {
+    return {
+      reducedLabel: this.state.reduced ? 'Reduced motion: on' : 'Reduced motion: off',
+      toggleReduced: () => this.setState({ reduced: !this.state.reduced }),
+      playGlide: () => this.ramp('#mt-glide', GLIDE, 540),
+      playPop: () => this.ramp('#mt-pop', POP, 420),
+      openStory0: () => this.openStory(0),
+      openStory1: () => this.openStory(1),
+      openStory2: () => this.openStory(2),
+      closeStory: () => this.closeStory(),
+      frameNext: () => this.goFrame(1),
+      framePrev: () => this.goFrame(-1),
+      toggleSave: () => this.toggleSave(),
+      setList: () => this.setMode('list'),
+      setFeed: () => this.setMode('feed'),
+      replayStagger: () => this.replayStagger(),
+      playPull: () => this.playPull(),
+    };
+  }
+}
+</script>
+</body>
+</html>

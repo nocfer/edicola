@@ -147,6 +147,7 @@ const SCREEN_ANCHORS = [
   ".unread__count",
   ".feed__card",
   ".ramp",
+  ".story__frame",
 ];
 
 test("the stylesheet parses to a plausible number of rules", () => {
