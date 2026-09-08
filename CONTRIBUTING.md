@@ -89,6 +89,17 @@ Two of these fail in ways that are not obvious:
 - **Theming changes tokens, not rules.** The only theme-scoped selector is the
   token block. No raw colour, space, radius or font literal where a token
   exists.
+- **Durations and easings are tokens; JS reads them through `src/motion.js`,
+  never as literals.** The Motion group in §1 of `styles.css` is where a
+  duration or a curve is written, once; `motionToken(name)` reads it back, so a
+  WAAPI animation and the CSS transition of the same thing cannot disagree.
+  **Every WAAPI animation takes an explicit reduced-motion branch.** The
+  `prefers-reduced-motion` block zeroes `transition-duration`, which covers CSS
+  transitions and nothing else — `el.animate()` ignores that rule entirely, so
+  ask `prefersReducedMotion()` in JS and verify by forcing the query on rather
+  than by trusting the reset. No motion library: the reasoning, and the four
+  candidates that were weighed, are in
+  [ADR-0012](docs/adr/0012-motion-is-three-platform-primitives-not-a-library.md).
 - **Every write that should redraw goes through `update()`** in
   `src/state.js`. One mutable store, one subscriber (`render`).
 

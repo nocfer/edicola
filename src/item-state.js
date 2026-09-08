@@ -89,6 +89,22 @@ export async function savedItems(db) {
 }
 
 /**
+ * The fields a Saved or unsaved Item carries. Separate from the write because
+ * `item-actions.js` flips the icon optimistically, before the write resolves,
+ * and it must flip it to exactly what the database is about to hold — the
+ * `0 | 1` rule and the `savedAt` stamp are declared here, once.
+ *
+ * @param {boolean} saved
+ * @param {number} [now] Epoch ms.
+ * @returns {{ saved: 0 | 1, savedAt: number | null }}
+ */
+export function savedFields(saved, now = Date.now()) {
+  return saved
+    ? { saved: SAVED, savedAt: now }
+    : { saved: UNSAVED, savedAt: null };
+}
+
+/**
  * Save or unsave one Item. A Saved Item and its Article are never Evicted
  * (CONTEXT.md), and `savedAt` records when so the Saved screen can list
  * newest-Saved first. Unsaving clears the stamp rather than keeping a stale
@@ -101,11 +117,9 @@ export async function savedItems(db) {
  * @returns {Promise<{ saved: 0 | 1, savedAt: number | null }>}
  */
 export async function setItemSaved(db, itemId, saved, now = Date.now()) {
-  const next = saved
-    ? { saved: SAVED, savedAt: now }
-    : { saved: UNSAVED, savedAt: null };
+  const next = savedFields(saved, now);
   await db.items.update(itemId, next);
-  return /** @type {{ saved: 0 | 1, savedAt: number | null }} */ (next);
+  return next;
 }
 
 /**

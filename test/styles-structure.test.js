@@ -241,6 +241,35 @@ test("styles.css is brace balanced", () => {
   assert.equal(depth, 0, "unclosed rule in styles.css");
 });
 
+test("every motion token JS reads is declared on bare :root", () => {
+  // `src/motion.js` reads these off `:root` at runtime and hands them to
+  // `el.animate()`. A renamed or relocated token does not fail any other gate:
+  // `getPropertyValue` returns "", the duration parses to NaN and the
+  // animation silently does nothing. Theme-scoped would be just as wrong —
+  // motion does not change between dark and light, and a token declared only
+  // in the light block would leave the dark default without one.
+  const root = RULES.find(
+    (rule) => rule.selector === ":root" && !rule.inAtRule,
+  );
+  assert.ok(root, "the bare :root token block is gone");
+  for (const token of [
+    "--dur-fast",
+    "--dur",
+    "--dur-slow",
+    "--dur-pop",
+    "--ease",
+    "--ease-spring",
+    "--ease-pop",
+    "--r-pill",
+  ]) {
+    assert.match(
+      root.body,
+      new RegExp(`(^|;|\\*/)\\s*${token}\\s*:`),
+      `${token} is not declared on bare :root; src/motion.js reads it there`,
+    );
+  }
+});
+
 test("the reduced-motion reset still carries its declaration", () => {
   // The splice replaced this rule's body, silently disabling the reset.
   const block =
