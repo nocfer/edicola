@@ -102,7 +102,9 @@ export const en = {
   "story.read": "Read",
   "story.readSummary": "Read the Summary and open the Original",
   "story.endTitle": "That is the last Frame",
-  "story.endBody":
+  "story.endBody.one":
+    "One Frame from {name}, Seen. Nothing is marked Read until you open it in the Reader.",
+  "story.endBody.other":
     "{count} Frames from {name}, all Seen. Nothing is marked Read until you open it in the Reader.",
   "story.backToToday": "Back to Today",
   "story.empty": "Nothing unread from {name} right now.",
@@ -433,7 +435,9 @@ export const it = {
   "story.read": "Leggi",
   "story.readSummary": "Leggi il sommario e apri l'originale",
   "story.endTitle": "Questo è l'ultimo riquadro",
-  "story.endBody":
+  "story.endBody.one":
+    "Un riquadro da {name}, sfogliato. Niente viene segnato come letto finché non lo apri nel lettore.",
+  "story.endBody.other":
     "{count} riquadri da {name}, tutti sfogliati. Niente viene segnato come letto finché non lo apri nel lettore.",
   "story.backToToday": "Torna a Oggi",
   "story.empty": "Al momento non c'è niente da leggere da {name}.",

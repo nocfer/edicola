@@ -19,7 +19,12 @@
 /** How many fills the `--cover-1 … --cover-8` ramp has (styles.css §1). */
 export const COVER_RAMP_SIZE = 8;
 
-/** What a name gives when it holds no usable character at all. */
+/**
+ * What a name gives when it holds no usable character at all. Not a Cover
+ * fallback — CONTEXT.md is clear that a Cover is deliberate rather than a
+ * stand-in for a failure. This is only the glyph a nameless Publication's
+ * monogram becomes.
+ */
 const NO_MONOGRAM = "?";
 
 /**
@@ -76,7 +81,7 @@ const PARTICLES = new Set([
  * "The" must still get a ring, so it degrades in two steps rather than
  * throwing: a name of nothing but particles keeps its particles (`The` → `TH`),
  * and a name with no letters at all falls back to its own first two characters
- * (`24` → `24`). Only a name with no usable character gives `?`.
+ * (`24` → `24`). Only a name with no usable character at all gives `?`.
  *
  * @param {string | null | undefined} name
  * @returns {string}

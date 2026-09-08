@@ -125,7 +125,13 @@ here, so screens are checked over the Chrome DevTools Protocol:
 node tools/screenshot.mjs http://localhost:8000/#/settings out.png --theme dark --lang it
 ```
 
-Screenshot any new or changed screen in both themes and both Languages. Use a
+Screenshot any new or changed screen in both themes and both Languages.
+`--viewmode list|feed` picks Today's View Mode and `--offline` cuts the network
+before navigating (clearing the HTTP cache too, or a picture fetched on the
+previous run makes an offline feed look online). The **Story player is the one
+screen that needs a single theme**, because it is dark in both by decision
+(ADR-0011) — say so when you post the shots, so the next reviewer does not read
+one theme as a missed criterion. Use a
 throwaway Chrome profile (`--user-data-dir=/tmp/prof`, deleted first): the
 service worker serves the Shell stale-while-revalidate, so a primed profile
 shows you the previous version and you will chase a bug that is not there. If a

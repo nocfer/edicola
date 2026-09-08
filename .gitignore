@@ -7,3 +7,6 @@ dist/
 .agents/
 .mcp.json
 skills-lock.json
+# tokensave keeps a multi-megabyte local index here; it is tool state,
+# not repo content, like .claude/ and .agents/ above.
+.tokensave/

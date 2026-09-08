@@ -27,6 +27,7 @@
 // reads it, it does not survive a reload, and every mutation ends in a bare
 // `update()` so main.js's one subscriber is what redraws.
 
+import { revokeObjectUrls } from "../article-render.js";
 import { resolveCoverSources } from "../cover.js";
 import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
@@ -80,8 +81,8 @@ const RELOAD_DEBOUNCE_MS = 250;
  * @property {Map<string, CoverSource>} coverSources What fills each Item's
  *   picture slot in Feed mode, resolved against the `images` table.
  * @property {string[]} objectUrls Object URLs `coverSources` created; revoked
- *   on the next load and on `pagehide`, the way the Reader revokes an
- *   Article's images.
+ *   on the next load and on `pagehide` (never on leaving Today — the rows stay
+ *   in memory and render again on the way back).
  * @property {number} pull Current pull distance in CSS px, 0 when idle.
  * @property {string} syncMark Signature of the `state.sync` we last reacted to.
  * @property {number} scrollY Where the reader was in the list.
@@ -173,22 +174,9 @@ async function refreshCoverSources(items) {
   });
   screen.coverSources = resolved.sources;
   screen.objectUrls = resolved.objectUrls;
-  releaseObjectUrls(previous);
-}
-
-/**
- * Release object URLs the feed no longer renders. A URL the browser has already
- * forgotten is not a problem worth raising.
- * @param {string[]} urls
- */
-function releaseObjectUrls(urls) {
-  for (const url of urls) {
-    try {
-      URL.revokeObjectURL(url);
-    } catch {
-      // Already gone.
-    }
-  }
+  revokeObjectUrls(previous, {
+    revokeObjectURL: (url) => URL.revokeObjectURL(url),
+  });
 }
 
 let started = false;
@@ -422,6 +410,18 @@ function installListeners() {
   );
 
   window.addEventListener("hashchange", watchRouteForScroll);
+
+  // A reload or a closed tab is the one exit `load()` never runs after, so it
+  // is the one place the feed's object URLs would otherwise outlive it. Leaving
+  // Today deliberately does NOT revoke: the rows stay in memory and the feed
+  // renders them again on the way back, so a revoke here would hand the reader
+  // a column of dead `blob:` URLs.
+  window.addEventListener("pagehide", () => {
+    revokeObjectUrls(screen.objectUrls, {
+      revokeObjectURL: (url) => URL.revokeObjectURL(url),
+    });
+    screen.objectUrls = [];
+  });
 }
 
 /** Whether the last hash change took us off Today. */
@@ -980,7 +980,7 @@ function actionBar(card) {
     <div class="feed__actions">
       <button
         type="button"
-        class="btn btn--icon feed__action ${isSaved ? "feed__action--on" : ""}"
+        class="btn btn--tap feed__action ${isSaved ? "feed__action--on" : ""}"
         aria-pressed=${isSaved ? "true" : "false"}
         aria-label=${t(isSaved ? "today.unsaveAria" : "today.saveAria", {
           title: card.title,
@@ -997,7 +997,7 @@ function actionBar(card) {
         item.link
           ? html`<button
                 type="button"
-                class="btn btn--icon feed__action"
+                class="btn btn--tap feed__action"
                 aria-label=${t("today.shareAria", { title: card.title })}
                 title=${t("today.share")}
                 @click=${() => shareItem(item)}
@@ -1005,7 +1005,7 @@ function actionBar(card) {
                 ${shareIcon}
               </button>
               <a
-                class="btn btn--icon feed__action"
+                class="btn btn--tap feed__action"
                 href=${item.link}
                 target="_blank"
                 rel="noopener"

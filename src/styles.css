@@ -406,6 +406,21 @@ button {
   padding: 0;
   border-radius: var(--r-pill);
 }
+/* A 44px chromeless tap target: the floor the design brief puts touch targets
+   at, with no chrome of its own, for icon rows that sit on a picture or inside
+   another pill. Feed mode's action bar, the Story player's chevrons and its
+   close all want exactly this, which is why it lives here rather than three
+   times in their own blocks. `--icon` stays 40px: every screen older than Feed
+   mode uses it at that size. */
+.btn--tap {
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+}
 /* `--danger` marks a destructive action; Settings introduced it. */
 .btn--danger {
   border-color: var(--accent);
@@ -1027,7 +1042,12 @@ button {
   display: flex;
   flex-direction: column;
   min-height: 100dvh;
-  background: var(--bg);
+  /* --scrim-ink, NOT --bg. "The player is dark in both themes" has to include
+     its own background: with --bg here the light theme painted the header strip
+     cream and then put --accent-ink text on it, which is 1.0:1 - the exact
+     failure the fixed scrim exists to prevent, hidden by the decision to
+     screenshot this screen in one theme. */
+  background: var(--scrim-ink);
   /* Every colour inside the player comes from --accent-ink, --scrim-*,
      --accent or a mix of those, because those are the values that do NOT vary
      with the theme. A theme token here (--text, --muted, --surface,
@@ -1037,11 +1057,13 @@ button {
      have no scrim and sit on plain --bg, so there they are correct. */
   color: var(--accent-ink);
 }
-/* The two scrim-less states sit on plain --bg, so they take the theme's own
-   text colour rather than the player's fixed ink. */
+/* The two scrim-less states have no picture and no scrim, so they hand the
+   background and the ink back to the theme: a dark panel with --text on it
+   would fail in the light theme the same way the header just did. */
 .story--empty {
   gap: var(--s-4);
   padding: var(--s-4);
+  background: var(--bg);
   color: var(--text);
 }
 .story__loading {
@@ -1117,10 +1139,11 @@ button {
   font-size: var(--fs-caption);
   opacity: 0.7;
 }
+/* `.btn` sets `color: var(--text)`, which is the theme's ink and therefore the
+   wrong ink here; every button on the player has to say so explicitly. */
 .story__close {
   flex: none;
-  border: 0;
-  background: transparent;
+  color: var(--accent-ink);
 }
 
 /* The Frame: the picture full-bleed, the scrim over it, the copy over that. */
@@ -1247,10 +1270,8 @@ button {
   position: absolute;
   top: 50%;
   z-index: 3;
-  width: 44px;
-  min-height: 44px;
   margin-top: -22px;
-  border-color: color-mix(in srgb, var(--accent-ink) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-ink) 14%, transparent);
   background: var(--scrim-ink);
   color: var(--accent-ink);
 }
@@ -1586,12 +1607,6 @@ button {
   padding: var(--s-2) var(--s-3);
 }
 .feed__action {
-  justify-content: center;
-  width: 44px;
-  min-height: 44px;
-  padding: 0;
-  border: 0;
-  background: transparent;
   color: var(--text);
 }
 .feed__action--on {

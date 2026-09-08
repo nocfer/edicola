@@ -66,7 +66,7 @@ test("a name with no letters at all falls back to its characters", () => {
   assert.equal(monogramFor("24 Ore"), "OR");
 });
 
-test("a blank or missing name gives the placeholder, never an exception", () => {
+test("a blank or missing name gives the ? glyph, never an exception", () => {
   assert.equal(monogramFor(""), "?");
   assert.equal(monogramFor("   "), "?");
   assert.equal(monogramFor(null), "?");

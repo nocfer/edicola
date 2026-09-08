@@ -55,6 +55,11 @@ that repo is the reference implementation.
   excluded on purpose).
 - Type-check: `npm run typecheck` (`checkJs`, lenient). Globals stashed on
   `window` are declared in `src/globals.d.ts`.
+- Screenshot a screen: `node tools/screenshot.mjs <url> <out.png> --theme dark
+  --lang it [--viewmode feed] [--offline]`. `--viewmode` seeds
+  `edicola.viewmode`; `--offline` cuts the network **and** clears the HTTP cache
+  before navigating, which is what makes the Cover-dominant offline feed
+  actually appear instead of a picture served from the last run.
 - **After any Shell change run `npm run stamp`.** It rewrites `CACHE` in `sw.js`
   from a hash of the `SHELL` files; CI fails on a stale stamp. If you add or
   remove a Shell file, update `SHELL` in `sw.js`, then stamp.
@@ -87,9 +92,26 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
 - **Theming changes tokens, never rules.** The only theme-scoped selector is the
   token block `:root[data-theme='light'] { --… }`. No raw colour, space, radius
   or font literal where a token exists.
-- **Routing is hash-based**: `#/` Today, `#/item/:id` Reader, `#/saved`,
-  `#/publications`, `#/settings`. The Reader is a full-screen push that hides
-  the tab bar.
+- **Routing is hash-based**: `#/` Today, `#/item/:id` Reader,
+  `#/story/:publicationId` Story player, `#/saved`, `#/publications`,
+  `#/settings`. The Reader and the Story player are full-screen pushes that
+  hide the tab bar (`hidesTabBar` in `router.js`).
+- **Today is one screen with two View Modes** (ADR-0011), List and Feed, not two
+  screens: one route, one `today-model.js` computing both shapes from the same
+  card objects, two templates that decide nothing. The choice is persisted in
+  `localStorage` as `edicola.viewmode` and seeded in `main.js`'s boot block.
+- **The Story player is dark in both themes**, deliberately. Its `--scrim-ink`
+  and `--scrim-flat` are defined once on bare `:root` and NOT redefined in the
+  light block, because `--accent-ink` over a light scrim scores 1.6:1. This is
+  legal under "themes change tokens, never rules" — the rules are identical,
+  the token simply does not vary — and it is commented on both sides. Do not
+  "complete" the light theme there. Everything inside `.story` takes its colour
+  from `--accent-ink`, `--scrim-*`, `--accent` or a `color-mix` of those; a
+  theme token there inverts and puts dark ink on a dark scrim.
+- **Seen is not Read.** A Story Frame marks its Item Seen (`markItemSeen`);
+  only the Reader marks Read. Rings dim on Seen, Unread counts fall only on
+  Read. `seen` is a plain non-indexed boolean, so it needed no `db.version(n)`
+  block (ADR-0008 is additive-only; only declared indexes constrain shape).
 - **Sync runs on the page thread, chunked and yielding** (no Web Worker: `DOMParser` and DOMPurify are unavailable in workers), on open (if the last Sync is
   older than 15 min) or on demand. Concurrency 4, round-robin across Enabled
   Publications, newest first, one retry then mark Summary-only. Pre-fetch 10

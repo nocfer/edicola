@@ -7,6 +7,13 @@ talks to publishers directly.
 
 ## Language
 
+Each entry's `_Avoid_` line lists what **not to call that term** — not words
+banned from the codebase. "Story" is the wrong name for an Item and the right
+name for a reel; "card" is the wrong name for a Frame and the right name for a
+row in Feed mode; an Item is never "a headline", though the title a card sets
+large is called the headline, as the design does. When two entries seem to
+collide, this is why.
+
 ### Sources
 
 **Publication**:

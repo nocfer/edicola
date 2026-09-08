@@ -28,9 +28,10 @@
 // artboard and this is the answer to that gap, not an omission to fill in. See
 // .scratch/feed-view-mode/spec.md, "the finding that matters".
 
+import { revokeObjectUrls } from "../article-render.js";
 import { resolveCoverSources } from "../cover.js";
 import { getDatabase, imageKeyFor } from "../db.js";
-import { formatRelative, t } from "../i18n.js";
+import { formatRelative, t, tCount } from "../i18n.js";
 import { markItemSeen } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { state, update } from "../state.js";
@@ -60,6 +61,7 @@ const SWIPE_PX = 60;
  * @property {number} index Which Frame is showing, 0-based.
  * @property {boolean} done The reel is finished and the end panel is up.
  * @property {Set<string>} marked Items already marked Seen this visit.
+ * @property {Set<string>} brokenPhotos Picture URLs that failed to load.
  */
 
 /** @type {ScreenState} */
@@ -73,6 +75,7 @@ const screen = {
   index: 0,
   done: false,
   marked: new Set(),
+  brokenPhotos: new Set(),
 };
 
 // --- Loading ---------------------------------------------------------------
@@ -98,7 +101,7 @@ async function load(publicationId) {
       imageKeyFor,
       createObjectURL: (blob) => URL.createObjectURL(blob),
     });
-    releaseObjectUrls(previous);
+    revoke(previous);
     screen.publication = publication ?? null;
     screen.items = items;
     screen.coverSources = resolved.sources;
@@ -111,15 +114,15 @@ async function load(publicationId) {
   update();
 }
 
-/** @param {string[]} urls */
-function releaseObjectUrls(urls) {
-  for (const url of urls) {
-    try {
-      URL.revokeObjectURL(url);
-    } catch {
-      // Already gone.
-    }
-  }
+/**
+ * Release object URLs this player is done with, through the same helper the
+ * Reader uses for an Article's images.
+ * @param {string[]} urls
+ */
+function revoke(urls) {
+  revokeObjectUrls(urls, {
+    revokeObjectURL: (url) => URL.revokeObjectURL(url),
+  });
 }
 
 /**
@@ -139,6 +142,7 @@ function ensureLoaded(publicationId) {
   screen.index = 0;
   screen.done = false;
   screen.marked = new Set();
+  screen.brokenPhotos = new Set();
   void load(publicationId);
 }
 
@@ -199,6 +203,20 @@ let swipeFrom = null;
 function installListeners() {
   if (installed || typeof window === "undefined") return;
   installed = true;
+
+  // Leaving the player releases its pictures, and marks the reel stale so
+  // re-entry reloads rather than rendering against `blob:` URLs that have just
+  // been revoked. `pagehide` covers a reload or a closed tab.
+  window.addEventListener("hashchange", () => {
+    if (onStory()) return;
+    revoke(screen.objectUrls);
+    screen.objectUrls = [];
+    screen.status = "idle";
+  });
+  window.addEventListener("pagehide", () => {
+    revoke(screen.objectUrls);
+    screen.objectUrls = [];
+  });
 
   window.addEventListener("keydown", (event) => {
     if (!onStory()) return;
@@ -345,7 +363,7 @@ function pips(index, total) {
  * @param {TodayCard} frame
  */
 function frameBackdrop(frame) {
-  const photo = frame.cover.kind === "cover" ? null : frame.cover.url;
+  const photo = framePhoto(frame);
   if (photo) {
     return html`<img
       class="story__photo"
@@ -353,11 +371,40 @@ function frameBackdrop(frame) {
       alt=""
       decoding="async"
       referrerpolicy="no-referrer"
+      @error=${onPhotoError}
     />`;
   }
   return html`<span class="story__watermark" aria-hidden="true"
     >${frame.monogram}</span
   >`;
+}
+
+/**
+ * The picture this Frame can actually show, or null for the Cover. A URL that
+ * has already failed counts as no picture: a full-screen Frame is the worst
+ * place to leave the hole Covers exist to fill, which is why the Feed's cards
+ * do the same.
+ * @param {TodayCard} frame
+ * @returns {string | null}
+ */
+function framePhoto(frame) {
+  const { kind, url } = frame.cover;
+  if (kind === "cover" || !url) return null;
+  return screen.brokenPhotos.has(url) ? null : url;
+}
+
+/**
+ * A Frame picture that will not load: hide it now, remember the URL so no
+ * later render offers it again, and redraw so the Cover takes the slot.
+ * @param {Event} event
+ */
+function onPhotoError(event) {
+  const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+  const url = img.getAttribute("src");
+  img.hidden = true;
+  if (!url) return;
+  screen.brokenPhotos.add(url);
+  update();
 }
 
 /**
@@ -367,7 +414,7 @@ function frameBackdrop(frame) {
  * @param {TodayCard} frame
  */
 function frameBody(frame) {
-  const cover = frame.cover.kind === "cover";
+  const cover = framePhoto(frame) === null;
   return html`
     <div
       class="story__frame ${
@@ -417,7 +464,7 @@ function advanceControls(total) {
     ></button>
     <button
       type="button"
-      class="btn btn--icon story__nav story__nav--back"
+      class="btn btn--tap story__nav story__nav--back"
       aria-label=${t("story.previous")}
       title=${t("story.previous")}
       ?disabled=${screen.index === 0}
@@ -427,7 +474,7 @@ function advanceControls(total) {
     </button>
     <button
       type="button"
-      class="btn btn--icon story__nav story__nav--next"
+      class="btn btn--tap story__nav story__nav--next"
       aria-label=${t("story.next")}
       title=${t("story.next")}
       @click=${() => goTo(screen.index + 1, total)}
@@ -470,8 +517,7 @@ function endPanel(reel) {
       <div class="story__end">
         <span class="story__endtitle">${t("story.endTitle")}</span>
         <p class="story__endbody">
-          ${t("story.endBody", {
-            count: reel.frames.length,
+          ${tCount("story.endBody", reel.frames.length, {
             name: reel.name,
           })}
         </p>
@@ -519,7 +565,7 @@ function playerHeader(reel, index, total) {
         >
         <button
           type="button"
-          class="btn btn--icon story__close"
+          class="btn btn--tap story__close"
           aria-label=${t("story.close")}
           title=${t("story.close")}
           @click=${close}
