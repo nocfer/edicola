@@ -33,6 +33,7 @@ import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
 import { shareItem, toggleItemSaved } from "../item-actions.js";
 import { markPublicationRead } from "../item-state.js";
+import { motionToken, prefersReducedMotion, rubberBand } from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
@@ -60,11 +61,11 @@ import {
 /** Pull distance (CSS px) that arms a refresh. */
 const PULL_TRIGGER_PX = 72;
 
-/** Pull distance the indicator stops growing at. */
+/** Pull distance the surface stops moving at. */
 const PULL_MAX_PX = 112;
 
-/** Fraction of the finger's travel the indicator follows, for a rubber feel. */
-const PULL_RESISTANCE = 0.5;
+/** Finger travel the surface follows 1:1 before the rubber band takes over. */
+const PULL_GRIP_PX = 64;
 
 /** Debounce on the reload a Sync's progress triggers. */
 const RELOAD_DEBOUNCE_MS = 250;
@@ -248,6 +249,16 @@ function refresh() {
     });
 }
 
+/**
+ * What the two Refresh buttons do: the same Sync as the gesture, and the same
+ * motion, so the visible twin of the gesture is a visible twin of the pull.
+ */
+function refreshFromButton() {
+  if (state.sync.running) return;
+  playRefreshPull();
+  refresh();
+}
+
 /** @param {string|null} publicationId */
 function setFilter(publicationId) {
   screen.menuFor = null;
@@ -335,6 +346,120 @@ function setPull(distance) {
 }
 
 /**
+ * A duration token in milliseconds. CSS writes durations in seconds and
+ * `el.animate()` counts in milliseconds, so every WAAPI duration in this file
+ * goes through here rather than through a number typed twice (ADR-0012).
+ * @param {string} name
+ * @returns {number}
+ */
+function motionMs(name) {
+  return Number.parseFloat(motionToken(name)) * 1000;
+}
+
+/**
+ * The three elements the pull moves, or nulls when Today is not on screen. The
+ * strip carries the opacity and the ring carries the turn, because a transform
+ * on the strip would take the word beside the spinner around with it.
+ */
+function pullElements() {
+  return {
+    surface: /** @type {HTMLElement|null} */ (
+      document.querySelector(".today__surface")
+    ),
+    strip: /** @type {HTMLElement|null} */ (
+      document.querySelector(".today__pull")
+    ),
+    ring: /** @type {HTMLElement|null} */ (
+      document.querySelector(".today__pullring")
+    ),
+  };
+}
+
+/**
+ * How the spinner looks at a given pull distance: it fades in, grows to its own
+ * size and turns most of a revolution by the time the pull arms. One function
+ * so the inline style the template writes and the keyframes the button plays
+ * cannot disagree about what "a pull in progress" looks like.
+ * @param {number} distance
+ * @returns {{ opacity: number, transform: string }}
+ */
+function spinnerAt(distance) {
+  const p = Math.min(1, distance / PULL_TRIGGER_PX);
+  return {
+    opacity: p,
+    transform: `scale(${(0.7 + 0.3 * p).toFixed(3)}) rotate(${Math.round(220 * p)}deg)`,
+  };
+}
+
+/**
+ * Let go: the surface settles back where it belongs on `--ease-spring` while
+ * the spinner fades out and the progress bar takes over. The redraw happens
+ * first, so the DOM is already in its resting state and the animation is the
+ * only thing that has to be undone — it has no `fill`, so nothing is.
+ *
+ * Under reduced motion there is nothing to settle: the surface never travelled.
+ * @param {number} distance Where the finger left the surface, in CSS px.
+ */
+function settle(distance) {
+  const { surface, strip, ring } = pullElements();
+  setPull(0);
+  if (!surface || distance === 0 || prefersReducedMotion()) return;
+  surface.animate(
+    [{ transform: `translateY(${distance}px)` }, { transform: "none" }],
+    { duration: motionMs("--dur-slow"), easing: motionToken("--ease-spring") },
+  );
+  const timing = { duration: motionMs("--dur"), easing: motionToken("--ease") };
+  const from = spinnerAt(distance);
+  strip?.animate([{ opacity: from.opacity }, { opacity: 0 }], timing);
+  // The redraw has already put the ring back to its resting scale. Holding
+  // where the finger left it for the length of the fade is what stops it
+  // shrinking and unwinding in front of a reader who has just let go.
+  ring?.animate([{ transform: from.transform }], timing);
+}
+
+/**
+ * The Refresh button's twin of the gesture: the surface travels out to the arm
+ * threshold and comes back on the same spring, in one animation whose middle
+ * keyframe is where the finger would have been. A button that Syncs while the
+ * gesture springs is the same Sync described two different ways.
+ */
+function playRefreshPull() {
+  const { surface, strip, ring } = pullElements();
+  if (!surface || prefersReducedMotion()) return;
+  const out = motionMs("--dur-pop");
+  const total = out + motionMs("--dur-slow");
+  const arm = out / total;
+  const ease = motionToken("--ease");
+  surface.animate(
+    [
+      { transform: "none", easing: ease },
+      {
+        offset: arm,
+        transform: `translateY(${PULL_TRIGGER_PX}px)`,
+        easing: motionToken("--ease-spring"),
+      },
+      { transform: "none" },
+    ],
+    { duration: total },
+  );
+  strip?.animate(
+    [
+      { opacity: 0, easing: ease },
+      { offset: arm, opacity: 1, easing: ease },
+      { opacity: 0 },
+    ],
+    { duration: total },
+  );
+  ring?.animate(
+    [
+      { transform: spinnerAt(0).transform, easing: ease },
+      { offset: arm, transform: spinnerAt(PULL_TRIGGER_PX).transform },
+    ],
+    { duration: total },
+  );
+}
+
+/**
  * Touch pull-to-refresh, plus the scroll memory that survives a trip to the
  * Reader. Both are window listeners installed once: a view renders a template
  * and cannot own an event handler across redraws, and `main.js` (ticket 01)
@@ -372,7 +497,7 @@ function installListeners() {
       // Only now do we own the gesture, so the browser's own overscroll and a
       // sideways swipe are left alone.
       if (event.cancelable) event.preventDefault();
-      setPull(Math.min(PULL_MAX_PX, travel * PULL_RESISTANCE));
+      setPull(rubberBand(travel, PULL_GRIP_PX, PULL_MAX_PX));
     },
     { passive: false },
   );
@@ -380,8 +505,9 @@ function installListeners() {
   const release = () => {
     if (pullFrom === null) return;
     pullFrom = null;
-    const armed = screen.pull >= PULL_TRIGGER_PX;
-    setPull(0);
+    const distance = screen.pull;
+    const armed = distance >= PULL_TRIGGER_PX;
+    settle(distance);
     if (armed) refresh();
   };
   window.addEventListener("touchend", release, { passive: true });
@@ -497,7 +623,7 @@ function headerControls() {
       aria-label=${t("today.refresh")}
       title=${t("today.refresh")}
       ?disabled=${sync.running}
-      @click=${refresh}
+      @click=${refreshFromButton}
     >
       <span class="ico" aria-hidden="true">↻</span>
     </button>
@@ -560,18 +686,36 @@ function progressBar(sync) {
   `;
 }
 
-/** The pull-to-refresh affordance; nothing at all until a finger moves. */
+/**
+ * The pull-to-refresh affordance: a spinner and a word, pinned just above the
+ * surface's own top edge, so the pull reveals it rather than opening a gap that
+ * pushes Today down. It is always in the DOM and invisible at rest — `settle`
+ * fades it out after the finger has gone, which it cannot do to a node the
+ * redraw has already removed.
+ *
+ * Under reduced motion the surface stays put, so there is no gap to be revealed
+ * in and nothing may travel into one: styles.css puts the strip back in flow
+ * there and it is simply not rendered until a finger moves. The affordance
+ * appears where it is, at full opacity, without the scale or the turn — the one
+ * shift is the row taking its own space, which is what "instant instead of
+ * animated" means rather than a thing sliding over the title.
+ */
 function pullIndicator() {
-  if (screen.pull === 0) return nothing;
-  const armed = screen.pull >= PULL_TRIGGER_PX;
+  const reduced = prefersReducedMotion();
+  if (reduced && screen.pull === 0) return nothing;
+  const spin = spinnerAt(screen.pull);
   return html`
     <div
       class="today__pull"
-      style=${`height:${screen.pull}px`}
+      style=${`opacity:${reduced ? 1 : spin.opacity}`}
       aria-hidden="true"
     >
+      <span
+        class="today__pullring"
+        style=${`transform:${reduced ? "none" : spin.transform}`}
+      ></span>
       <span class="today__pulltext"
-        >${armed ? t("today.release") : t("today.pull")}</span
+        >${screen.pull >= PULL_TRIGGER_PX ? t("today.release") : t("today.pull")}</span
       >
     </div>
   `;
@@ -1055,7 +1199,7 @@ function refreshAction() {
       type="button"
       class="btn btn--primary"
       ?disabled=${state.sync.running}
-      @click=${refresh}
+      @click=${refreshFromButton}
     >
       ${state.sync.running ? t("sync.running") : t("sync.now")}
     </button>
@@ -1113,9 +1257,16 @@ export function todayView(appState) {
   const loading = screen.status === "idle" || screen.status === "loading";
 
   return html`
-    <section class="screen">
-      ${screenHeader(appState, t("today.title"), nothing, headerControls())}
+    <section
+      class="screen today__surface"
+      style=${
+        screen.pull === 0 || prefersReducedMotion()
+          ? nothing
+          : `transform:translateY(${screen.pull}px)`
+      }
+    >
       ${pullIndicator()}
+      ${screenHeader(appState, t("today.title"), nothing, headerControls())}
       <div class="screen__body today__body">
         ${statusBar()}
         ${

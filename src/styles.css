@@ -816,17 +816,53 @@ button {
   transition: width var(--dur) var(--ease);
 }
 
-/* Pull to refresh: the row only exists while a finger is moving; its height is
-   the pull distance, set inline by the view. */
+/* Pull to refresh: the surface moves, so the affordance is a strip pinned just
+   above the surface's own top edge rather than a row that grows and pushes
+   Today down. `bottom: 100%` is what makes it travel with the surface and
+   arrive exactly as the pull reveals it, and the view sets the opacity. The
+   whole thing is inert: a finger is already busy elsewhere. */
+.today__surface {
+  position: relative;
+}
 .today__pull {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  left: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  background: var(--bg);
+  pointer-events: none;
+}
+/* The spinner. It does not spin by itself: the view turns it with the pull, so
+   the ring reports the finger rather than the passing of time. Kept here with
+   the strip it belongs to, and not near .reader__spinner, which looks the same
+   and means the opposite. */
+.today__pullring {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--hairline);
+  border-top-color: var(--accent);
+  border-radius: var(--r-pill);
 }
 .today__pulltext {
   color: var(--faint);
   font-size: var(--fs-caption);
+}
+/* No surface travel under reduced motion means no gap for the strip to arrive
+   in, and an absolute strip would land on top of the title instead. Back into
+   flow it goes, taking its own row at the top of the screen for as long as the
+   finger is down. The view renders nothing at all until then, so this costs an
+   idle reader no space. Kept with the strip rather than in the motion reset at
+   the top of the file, which is about durations. */
+@media (prefers-reduced-motion: reduce) {
+  .today__pull {
+    position: static;
+  }
 }
 
 /* Filter chips. A Publication's chip and its overflow button read as one pill:

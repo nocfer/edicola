@@ -83,3 +83,25 @@ export function growFrom(origin, panel, { duration, easing }) {
     { duration, easing, fill: "both" },
   );
 }
+
+/**
+ * The rubber band a pull gesture rides: the surface follows the finger 1:1 for
+ * the first `grip` pixels and at a third of its travel beyond that, clamped at
+ * `max`. Pure arithmetic, so it is unit tested rather than eyeballed.
+ *
+ * Two phases rather than one flat fraction because a surface that moves at half
+ * speed from the very first pixel never feels attached to the finger — it feels
+ * like something being dragged through treacle. Tracking 1:1 while the gesture
+ * is still ambiguous, then resisting, is what makes the screen read as a sheet
+ * held down by its own weight.
+ *
+ * @param {number} travel How far the finger has moved down, in CSS px.
+ * @param {number} grip The travel followed 1:1.
+ * @param {number} max The furthest the surface will ever go.
+ * @returns {number} The distance the surface should move, never negative.
+ */
+export function rubberBand(travel, grip, max) {
+  if (travel <= 0) return 0;
+  const eased = travel <= grip ? travel : grip + (travel - grip) / 3;
+  return Math.min(max, eased);
+}
