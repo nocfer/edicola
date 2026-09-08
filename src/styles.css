@@ -98,7 +98,13 @@
   --dur: 0.2s;
   --dur-slow: 0.54s; /* Story open / close */
   --dur-pop: 0.42s; /* Save, ring tap */
+  --dur-frame: 0.32s; /* a Story Frame arriving, and its pip filling */
+  --dur-arrive: 0.28s; /* content landing inside a panel that has just opened */
+  --delay-arrive: 0.14s; /* held back so it lands inside, not travels with */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Accelerating out, with no ease at the end: for content that is leaving and
+     should be gone rather than lingering. The mirror of --ease. */
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   /* Stiffness 190, damping 26. Settles without ever crossing 1, so nothing
      that carries text overshoots and snaps back. */
   --ease-spring: linear(0, 0.0396, 0.1311, 0.2448,
@@ -1071,6 +1077,12 @@ button {
      failure the fixed scrim exists to prevent, hidden by the decision to
      screenshot this screen in one theme. */
   background: var(--scrim-ink);
+  /* The grow (D1) carries the Publication's Cover colour on this element as an
+     inline background-color and clears it on `finished`, so the panel is never
+     neutral for a frame; the transition is what keeps that hand-back from being
+     a snap on the header strip, which is the one part of the panel the Frame
+     does not cover. Under reduced motion the reset below zeroes it. */
+  transition: background-color var(--dur) var(--ease);
   /* Every colour inside the player comes from --accent-ink, --scrim-*,
      --accent or a mix of those, because those are the values that do NOT vary
      with the theme. A theme token here (--text, --muted, --surface,
@@ -1104,22 +1116,38 @@ button {
   gap: var(--s-2);
   padding: var(--s-2) 0 var(--s-3);
 }
-/* Position pips. One segment per Frame, filled up to the current one. There is
-   deliberately no transition and no animation here: they show where you are,
-   never how long you have. */
+/* Position pips. One segment per Frame, filled up to the current one. The fill
+   is a plain CSS transition on the pressed class rather than anything scripted,
+   which is the whole guarantee: the class changes only when the Frame under it
+   changes, so a pip cannot fill ahead of the swap it is reporting. They show
+   where you are, never how long you have. */
 .story__pips {
   display: flex;
   gap: var(--s-1);
   padding: 0 var(--s-4);
 }
 .story__pip {
+  position: relative;
   flex: 1;
   height: 3px;
   border-radius: var(--r-pill);
   background: color-mix(in srgb, var(--accent-ink) 25%, transparent);
+  overflow: hidden;
 }
-.story__pip--on {
+/* --dur-frame is the arriving Frame's own duration, and the pip runs it too:
+   the two are the same event reported twice, so they cannot be allowed to
+   drift. src/views/story.js reads the same token for the in-animation. */
+.story__pip::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: scaleX(0);
+  transform-origin: left;
   background: var(--accent-ink);
+  transition: transform var(--dur-frame) var(--ease);
+}
+.story__pip--on::after {
+  transform: scaleX(1);
 }
 .story__ident {
   display: flex;
