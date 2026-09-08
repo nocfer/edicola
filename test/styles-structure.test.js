@@ -257,6 +257,8 @@ test("every motion token JS reads is declared on bare :root", () => {
     "--dur",
     "--dur-slow",
     "--dur-pop",
+    "--dur-arrive",
+    "--stagger",
     "--ease",
     "--ease-spring",
     "--ease-pop",

@@ -33,6 +33,7 @@ import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
 import { shareItem, toggleItemSaved } from "../item-actions.js";
 import { markPublicationRead } from "../item-state.js";
+import { motionToken, prefersReducedMotion } from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
@@ -82,6 +83,7 @@ const RELOAD_DEBOUNCE_MS = 250;
  * @property {string[]} objectUrls Object URLs `coverSources` created; revoked
  *   on the next load and on `pagehide` (never on leaving Today — the rows stay
  *   in memory and render again on the way back).
+ * @property {Set<string>} arrived Item ids whose arrival animation has played.
  * @property {number} pull Current pull distance in CSS px, 0 when idle.
  * @property {string} syncMark Signature of the `state.sync` we last reacted to.
  * @property {number} scrollY Where the reader was in the list.
@@ -96,6 +98,7 @@ const screen = {
   brokenThumbs: new Set(),
   coverSources: new Map(),
   objectUrls: [],
+  arrived: new Set(),
   pull: 0,
   syncMark: "",
   scrollY: 0,
@@ -477,6 +480,78 @@ async function refreshReadState() {
   }
 }
 
+// --- Items arriving --------------------------------------------------------
+
+/**
+ * How many cards the stagger counts before every later one starts together.
+ * Past the fourth a reader reads the delay as lag, and an offline Sync can
+ * land thirty Items at once (design D5).
+ */
+const STAGGER_CAP = 4;
+
+/**
+ * Rise the cards that have just appeared into place, and only those. Both View
+ * Modes come through here: a List row and a Feed post card carry the same
+ * `data-item-id`, so neither template decides anything about the entrance.
+ *
+ * **What is new is an Item id, not a DOM node.** This is the whole difficulty
+ * of the ticket. `update()` redraws Today for every state change — a filter
+ * chip, a scroll write, a Sync progress tick — so anything that keys off "a
+ * render happened" replays the stagger on renders that brought nothing.
+ * lit-html's keyed `repeat` looks like the answer and is not: it does reuse
+ * the node behind an id it already has, but filtering to one Publication and
+ * then back destroys and rebuilds every other card's node, and each of them
+ * would make a second entrance. So the screen remembers the ids it has
+ * animated and animates an id exactly once, whatever becomes of its node.
+ *
+ * The set is never pruned. An id is a few dozen bytes, the set dies with the
+ * page, and an Item Evicted and re-fetched inside one session is not worth a
+ * second entrance either.
+ *
+ * Queued as a microtask because it needs the committed DOM: `renderApp` calls
+ * this view, commits, and then the microtask runs — after the nodes exist and
+ * before the browser has painted them, so nothing flashes at full opacity
+ * first.
+ * @returns {void}
+ */
+function playArrivals() {
+  // Reduced motion is a branch, not the stylesheet's reset: `el.animate()`
+  // ignores `transition-duration: 0s !important` entirely (ADR-0012). The
+  // cards still arrive, they just fade where they are instead of rising, and
+  // they keep the same delays so a burst is still legible as a burst.
+  const reduced = prefersReducedMotion();
+  const duration =
+    Number.parseFloat(motionToken(reduced ? "--dur-fast" : "--dur-arrive")) *
+    1000;
+  const step = Number.parseFloat(motionToken("--stagger")) * 1000;
+  const easing = reduced ? "linear" : motionToken("--ease");
+  let nth = 0;
+  for (const el of document.querySelectorAll(".today__body [data-item-id]")) {
+    const id = el.getAttribute("data-item-id");
+    if (!id || screen.arrived.has(id)) continue;
+    screen.arrived.add(id);
+    el.animate(
+      reduced
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [
+            { opacity: 0, transform: "translateY(14px) scale(.99)" },
+            { opacity: 1, transform: "none" },
+          ],
+      {
+        duration,
+        // `backwards` and not `both`: the fill is only needed for the delay,
+        // to hold a card that has not started yet out of sight. The end of the
+        // animation is the card's own resting state, so a forwards fill would
+        // pin every card in the feed under a finished animation forever.
+        fill: "backwards",
+        delay: Math.min(nth, STAGGER_CAP) * step,
+        easing,
+      },
+    );
+    nth += 1;
+  }
+}
+
 // --- Templates -------------------------------------------------------------
 
 /**
@@ -654,6 +729,7 @@ function itemCard(card) {
   return html`
     <a
       class="card today__card ${card.read ? "today__card--read" : ""}"
+      data-item-id=${card.id}
       href=${hrefFor("reader", { id: card.id })}
       aria-label=${t("today.cardAria", {
         title: card.title,
@@ -885,7 +961,7 @@ function feedCard(card) {
     when,
   });
   return html`
-    <article class="card card--flush feed__card">
+    <article class="card card--flush feed__card" data-item-id=${card.id}>
       <div class="feed__head">
         <span class="feed__avatar ramp ramp--${card.coverIndex}"
           >${card.monogram}</span
@@ -1111,6 +1187,9 @@ export function todayView(appState) {
     coverSources: feed ? screen.coverSources : null,
   });
   const loading = screen.status === "idle" || screen.status === "loading";
+  // After the commit, not before it: the cards this render adds have to exist
+  // before they can be animated. See `playArrivals`.
+  queueMicrotask(playArrivals);
 
   return html`
     <section class="screen">
