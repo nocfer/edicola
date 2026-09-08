@@ -22,8 +22,16 @@ replaced mid-flight, which is the whole of what a spring library sells.
 time, and written out as `linear()` ramps — so the runtime has no solver in it.
 
 **3. View Transitions, progressively.** List ↔ Feed, and Today → Reader. One
-`document.startViewTransition` wrapper in `src/render.js`; where the API is
-missing the render simply happens, as it does today.
+`document.startViewTransition` wrapper; where the API is missing the render
+simply happens, as it does today.
+
+That wrapper is `withViewTransition` in `src/motion.js`, not in `src/render.js`
+as this ADR first said. `render.js` is nothing but pinned CDN re-exports, which
+is what lets it carry `@ts-nocheck` honestly, and `main.js`'s `renderApp` is
+not the only place a redraw starts — `update()` in `state.js` notifies inline
+and lit commits inline, so wrapping the *write* wraps the whole redraw, and the
+wrapper can live beside the other two primitives without either module
+learning about View Transitions.
 
 ## Why not a library
 
@@ -46,8 +54,8 @@ does natively. Four candidates were weighed:
 
 ## What this obliges us to write instead
 
-`src/motion.js`, a Shell file with three named exports, holds the two things
-every animation has to get right and would otherwise get wrong once per screen.
+`src/motion.js`, a Shell file of named exports, holds the two things every
+animation has to get right and would otherwise get wrong once per screen.
 
 `motionToken(name)` reads a duration or an easing off `:root`, so a WAAPI
 animation and the CSS transition of the same thing cannot drift apart; the

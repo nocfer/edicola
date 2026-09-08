@@ -97,8 +97,13 @@ Two of these fail in ways that are not obvious:
   `prefers-reduced-motion` block zeroes `transition-duration`, which covers CSS
   transitions and nothing else — `el.animate()` ignores that rule entirely, so
   ask `prefersReducedMotion()` in JS and verify by forcing the query on rather
-  than by trusting the reset. No motion library: the reasoning, and the four
-  candidates that were weighed, are in
+  than by trusting the reset. A redraw that should cross-dissolve rather than
+  cut goes through `withViewTransition(mutate)` from the same module: `update()`
+  notifies inline and lit commits inline, so wrapping the write wraps the whole
+  redraw, and it skips the transition under reduced motion because the
+  `::view-transition` pseudo tree is a UA animation the reset does not reach.
+  No motion library: the reasoning, and the four candidates that were weighed,
+  are in
   [ADR-0012](docs/adr/0012-motion-is-three-platform-primitives-not-a-library.md).
 - **Every write that should redraw goes through `update()`** in
   `src/state.js`. One mutable store, one subscriber (`render`).
@@ -154,7 +159,8 @@ other gate: a merge once spliced a whole screen block inside
 `@media (prefers-reduced-motion: reduce)`, leaving the file brace-balanced and
 the Settings screen nearly unstyled. It asserts that each screen block still
 has a top-level rule, that the file is brace-balanced, that the reduced-motion
-reset still carries its declaration, and that no selector has one of its
+reset still carries its declaration, that the `::view-transition` pseudo tree is
+still retimed onto `--dur` at the top level, and that no selector has one of its
 properties declared twice by non-adjacent rules. Do not delete it.
 
 ## The Catalog

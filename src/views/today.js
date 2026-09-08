@@ -33,7 +33,11 @@ import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, LOCALES, t, tCount } from "../i18n.js";
 import { shareItem, toggleItemSaved } from "../item-actions.js";
 import { markPublicationRead } from "../item-state.js";
-import { motionToken, prefersReducedMotion } from "../motion.js";
+import {
+  motionToken,
+  prefersReducedMotion,
+  withViewTransition,
+} from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
 import { showToast, state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
@@ -261,12 +265,26 @@ function setFilter(publicationId) {
  * Switch View Mode. The write goes through the store like every other write;
  * `main.js` persists it to `edicola.viewmode` as a side effect of the redraw,
  * so this screen does not touch storage.
+ *
+ * The redraw is wrapped in a View Transition so the two presentations
+ * cross-dissolve rather than cut. `update()` notifies inline and lit commits
+ * inline, so the whole swap happens inside the callback; without the API, or
+ * under reduced motion, `withViewTransition` just calls it.
  * @param {import('../state.js').ViewMode} viewMode
  */
 function setViewMode(viewMode) {
   if (state.viewMode === viewMode) return;
   screen.menuFor = null;
-  update({ viewMode });
+  // A mode switch is not an arrival, so every Item already loaded counts as
+  // arrived before the swap. The cards on screen are in the set already, and
+  // the ones this line is for are the ones a landing Sync has put in
+  // `screen.items` but not yet on screen: `load()` assigns `screen.items` and
+  // only then awaits its cover sources, so a tap inside that window makes this
+  // redraw the first render an arriving Item appears in — and the View
+  // Transition would capture it at `opacity: 0`, still behind its stagger
+  // delay. The cross-dissolve is its entrance instead.
+  for (const item of screen.items) screen.arrived.add(item.id);
+  withViewTransition(() => update({ viewMode }));
 }
 
 /**
@@ -558,11 +576,21 @@ function playArrivals() {
  * The View Mode toggle and the refresh control, both in the screen header
  * beside the title (boards 01 and 11). The toggle is the `seg` primitive with
  * `aria-pressed` on each half, so the pair reads as one two-state control.
+ *
+ * Which mode is on is a class on the group as well as `aria-pressed` on the
+ * halves, because the fill is one pill that slides between the two segments
+ * (D4) rather than a background each half paints for itself.
  */
 function headerControls() {
   const sync = state.sync;
   return html`
-    <span class="seg today__modes" role="group" aria-label=${t("today.viewMode")}>
+    <span
+      class="seg today__modes ${
+        state.viewMode === "feed" ? "today__modes--feed" : ""
+      }"
+      role="group"
+      aria-label=${t("today.viewMode")}
+    >
       ${viewModeButton("list", listIcon, "today.viewList", "today.viewListAria")}
       ${viewModeButton("feed", feedIcon, "today.viewFeed", "today.viewFeedAria")}
     </span>
