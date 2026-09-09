@@ -115,6 +115,8 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {string} monogram
  * @property {number} coverIndex
  * @property {TodayCard[]} frames One per Unread Item; empty means no reel.
+ * @property {number} startIndex Which Frame the player opens on: the first not
+ *   yet Seen, 0 when the whole reel is Seen (a replay — the dim ring says so).
  */
 
 /**
@@ -373,12 +375,21 @@ export function buildStoryReel(items, publicationsById, options = {}) {
     filterPublicationId: publicationId,
   });
   const frames = model.cards.filter((card) => !card.read);
+  // Where the player opens. `seen` is read from the rows rather than carried on
+  // the card, because a Frame is the same object the feed renders and the feed
+  // has no use for the field.
+  const seen = new Set();
+  for (const item of items || []) if (item?.seen) seen.add(String(item.id));
   return {
     publicationId,
     name: model.filterName ?? publicationId,
     monogram: monogramFor(model.filterName ?? publicationId),
     coverIndex: coverIndexFor(publicationId),
     frames,
+    startIndex: Math.max(
+      0,
+      frames.findIndex((card) => !seen.has(card.id)),
+    ),
   };
 }
 

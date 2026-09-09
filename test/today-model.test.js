@@ -646,6 +646,37 @@ test("a Read Item is out of the reel; a Seen one is still in it", () => {
   );
 });
 
+test("a reel opens at the first Frame that has not been Seen", () => {
+  // The reader tapped through three Frames, closed the player and came back:
+  // they must land on the fourth, not replay what they already looked at.
+  // `seen` is written on display and is what places them (ticket 03).
+  const reel = buildStoryReel(
+    [
+      item("a", NOW, { seen: true }),
+      item("b", NOW - 1000, { seen: true }),
+      item("c", NOW - 2000, { seen: true }),
+      item("d", NOW - 3000),
+      item("e", NOW - 4000),
+    ],
+    PUBS,
+    { publicationId: "bbc-news", now: NOW },
+  );
+  assert.equal(reel.frames.length, 5, "a Seen Frame stays in the reel");
+  assert.equal(reel.startIndex, 3);
+  assert.equal(reel.frames[reel.startIndex].id, "d");
+});
+
+test("a reel every Frame of which is Seen opens at the top again", () => {
+  // Nothing left to catch up on, so the tap is a replay rather than a dead
+  // end. The ring is already dim, which is what tells the reader that.
+  const reel = buildStoryReel(
+    [item("a", NOW, { seen: true }), item("b", NOW - 1000, { seen: true })],
+    PUBS,
+    { publicationId: "bbc-news", now: NOW },
+  );
+  assert.equal(reel.startIndex, 0);
+});
+
 test("a Publication with nothing Unread has no reel", () => {
   const reel = buildStoryReel([item("a", NOW, { read: true })], PUBS, {
     publicationId: "bbc-news",

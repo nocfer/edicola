@@ -19,7 +19,9 @@
 // **A Frame marks the Item Seen, never Read.** `markItemSeen` writes that one
 // field (item-state.js); only the Reader marks Read. So a full pass through a
 // reel dims its ring and leaves the Publication's Unread count exactly where it
-// was, which is the guarantee the whole rings design rests on.
+// was, which is the guarantee the whole rings design rests on. Seen is also
+// what places the reader: the player opens on the reel's `startIndex`, the
+// first Frame not yet Seen.
 //
 // **The player is dark in both themes, by decision.** Its scrim is
 // `--scrim-ink`, defined once on bare `:root` and deliberately not redefined
@@ -124,6 +126,7 @@ async function load(publicationId) {
     screen.coverSources = resolved.sources;
     screen.objectUrls = resolved.objectUrls;
     screen.status = "ready";
+    screen.index = currentReel().startIndex;
   } catch (error) {
     console.warn("The Story could not be read:", error);
     screen.status = "error";
@@ -148,10 +151,12 @@ function revoke(urls) {
 }
 
 /**
- * Open (or re-open) the reel the route names. A different Publication resets
- * the position and the Seen bookkeeping; the same one, re-entered, starts at
- * the top again, because a reader who came back to a ring asked for the reel,
- * not for where they stopped.
+ * Open (or re-open) the reel the route names, resetting the position and the
+ * Seen bookkeeping. Where it actually opens is the reel's answer, not this
+ * one's: `load` asks for `startIndex` once the rows are in hand, and that is
+ * the first Frame not yet Seen, so a reader who closed the player halfway and
+ * came back carries on rather than tapping through the same Frames again. The
+ * index is 0 here only because nothing is loaded yet.
  * @param {string} publicationId
  */
 function ensureLoaded(publicationId) {
