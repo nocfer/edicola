@@ -22,6 +22,16 @@ function itemsFor(pub, count, extra = {}) {
 
 const ids = (items) => items.map((i) => i.id);
 
+/**
+ * `planArticleFetches` with the clock pinned to the fixture's own epoch.
+ * It now skips Items that Eviction would delete on age, so a fixture dated
+ * T0 read against the real `Date.now()` would empty every queue here the day
+ * these dates fall outside `maxAgeDays`. Passing `now` keeps these tests about
+ * ordering and caps, which is what they are for.
+ */
+const planArticles = (items, limits = {}) =>
+  planArticleFetches(items, { now: T0, ...limits });
+
 test("planFeedFetches orders never-synced first, then least recently synced, then name", () => {
   const pubs = [
     { id: "c", name: "Corriere", lastSyncedAt: T0 - 1 * DAY },
@@ -63,7 +73,7 @@ test("planArticleFetches interleaves three Publications of sizes 1, 5 and 20 rou
   const a = itemsFor("a", 1);
   const b = itemsFor("b", 5);
   const c = itemsFor("c", 20);
-  const queue = planArticleFetches([a, b, c], { prefetchPerPublication: 10 });
+  const queue = planArticles([a, b, c], { prefetchPerPublication: 10 });
   assert.deepEqual(ids(queue), [
     "a-00",
     "b-00",
@@ -87,18 +97,18 @@ test("planArticleFetches interleaves three Publications of sizes 1, 5 and 20 rou
 });
 
 test("planArticleFetches defaults the cap to DEFAULT_RETENTION.prefetchPerPublication", () => {
-  const queue = planArticleFetches([itemsFor("c", 20)]);
+  const queue = planArticles([itemsFor("c", 20)]);
   assert.equal(DEFAULT_RETENTION.prefetchPerPublication, 10);
   assert.equal(queue.length, 10);
 });
 
 test("planArticleFetches enforces a custom cap per Publication", () => {
-  const queue = planArticleFetches([itemsFor("a", 4), itemsFor("b", 4)], {
+  const queue = planArticles([itemsFor("a", 4), itemsFor("b", 4)], {
     prefetchPerPublication: 2,
   });
   assert.deepEqual(ids(queue), ["a-00", "b-00", "a-01", "b-01"]);
   assert.deepEqual(
-    planArticleFetches([itemsFor("a", 3)], { prefetchPerPublication: 0 }),
+    planArticles([itemsFor("a", 3)], { prefetchPerPublication: 0 }),
     [],
   );
 });
@@ -109,15 +119,15 @@ test("planArticleFetches skips Items that have an Article or are Summary-only", 
     { id: "a-has", publicationId: "a", publishedAt: T0 + 1, hasArticle: true },
     { id: "a-sum", publicationId: "a", publishedAt: T0 + 2, summaryOnly: true },
   ];
-  assert.deepEqual(ids(planArticleFetches([items])), ["a-00", "a-01"]);
+  assert.deepEqual(ids(planArticles([items])), ["a-00", "a-01"]);
 });
 
 test("planArticleFetches takes newest first within a Publication regardless of input order", () => {
   const items = itemsFor("a", 4).reverse();
-  assert.deepEqual(
-    ids(planArticleFetches([items], { prefetchPerPublication: 2 })),
-    ["a-00", "a-01"],
-  );
+  assert.deepEqual(ids(planArticles([items], { prefetchPerPublication: 2 })), [
+    "a-00",
+    "a-01",
+  ]);
 });
 
 test("planArticleFetches is deterministic on equal dates (ties by id)", () => {
@@ -126,8 +136,8 @@ test("planArticleFetches is deterministic on equal dates (ties by id)", () => {
     { id: "m", publicationId: "p", publishedAt: T0 },
     { id: "a", publicationId: "p", publishedAt: T0 },
   ];
-  const once = ids(planArticleFetches([same]));
-  const again = ids(planArticleFetches([same.slice().reverse()]));
+  const once = ids(planArticles([same]));
+  const again = ids(planArticles([same.slice().reverse()]));
   assert.deepEqual(once, ["a", "m", "z"]);
   assert.deepEqual(again, once);
 });
@@ -136,31 +146,50 @@ test("planArticleFetches accepts a Map or a flat Item list, keeping Publication 
   const a = itemsFor("a", 1);
   const b = itemsFor("b", 2);
   const expected = ["a-00", "b-00", "b-01"];
-  const fromArrays = ids(planArticleFetches([a, b]));
+  const fromArrays = ids(planArticles([a, b]));
   const fromMap = ids(
-    planArticleFetches(
+    planArticles(
       new Map([
         ["a", a],
         ["b", b],
       ]),
     ),
   );
-  const fromFlat = ids(planArticleFetches([...a, ...b]));
+  const fromFlat = ids(planArticles([...a, ...b]));
   assert.deepEqual(fromArrays, expected);
   assert.deepEqual(fromMap, expected);
   assert.deepEqual(fromFlat, expected);
   // Flat input groups by first appearance, so a Publication seen first leads.
-  assert.deepEqual(ids(planArticleFetches([...b, ...a])), [
-    "b-00",
-    "a-00",
-    "b-01",
+  assert.deepEqual(ids(planArticles([...b, ...a])), ["b-00", "a-00", "b-01"]);
+});
+
+test("planArticleFetches skips Items that Eviction will delete on age", () => {
+  // Wired Italia's Feed serves thirty Items all about seventy days old against
+  // a thirty-day `maxAgeDays`. Before this filter a Sync fetched ten Articles
+  // and their images and then Eviction deleted every one of them in the same
+  // run: forty requests for a Publication the reader still saw empty.
+  const fresh = { id: "fresh", publicationId: "p", publishedAt: T0 - 2 * DAY };
+  const stale = { id: "stale", publicationId: "p", publishedAt: T0 - 70 * DAY };
+  assert.deepEqual(ids(planArticles([fresh, stale], { maxAgeDays: 30 })), [
+    "fresh",
   ]);
+  // A Feed that is entirely stale queues nothing at all.
+  assert.deepEqual(ids(planArticles([stale], { maxAgeDays: 30 })), []);
+});
+
+test("planArticleFetches applies no age cutoff when maxAgeDays does not bound one", () => {
+  const stale = { id: "stale", publicationId: "p", publishedAt: T0 - 70 * DAY };
+  for (const maxAgeDays of [0, -1, Number.POSITIVE_INFINITY]) {
+    assert.deepEqual(
+      ids(planArticles([stale], { maxAgeDays })),
+      ["stale"],
+      `maxAgeDays=${maxAgeDays}`,
+    );
+  }
 });
 
 test("planArticleFetches handles empty input and empty Publications", () => {
-  assert.deepEqual(planArticleFetches([]), []);
-  assert.deepEqual(planArticleFetches(new Map()), []);
-  assert.deepEqual(ids(planArticleFetches([[], itemsFor("b", 1), []])), [
-    "b-00",
-  ]);
+  assert.deepEqual(planArticles([]), []);
+  assert.deepEqual(planArticles(new Map()), []);
+  assert.deepEqual(ids(planArticles([[], itemsFor("b", 1), []])), ["b-00"]);
 });

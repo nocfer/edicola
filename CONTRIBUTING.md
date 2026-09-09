@@ -253,9 +253,13 @@ and its standards drift between runs, so **when a judgement finding shows up
 twice, write the check and stop paying for it.**
 
 **A Publication is scored on the Articles Sync attempted**, not on every Item
-it stored. Retention caps the prefetch at ten per Publication, so a Feed with
-thirty Items always has a tail nothing touched: ANSA reads 9/28 scored that way
-and 9/10 scored honestly, and only one of those numbers is about ANSA.
+it stored. Retention caps the prefetch at ten per Publication, and Pre-fetch
+skips Items older than `maxAgeDays` because Eviction deletes those at the end
+of the same run, so a Feed with thirty Items always has a tail nothing touched:
+ANSA reads 9/28 scored that way and 9/10 scored honestly, and only one of those
+numbers is about ANSA. A Publication that stores Items and reports no error but
+ends up empty has usually hit the age rule — Wired Italia's whole Feed is about
+seventy days old — and the run says so in its `no-items` finding.
 
 **`test/qa-baseline.json` is what makes this a regression test.** The corpus is
 live news, so two runs differ because the news differs, and an absolute rate

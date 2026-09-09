@@ -364,6 +364,18 @@ button {
   color: var(--muted);
   cursor: default;
 }
+/* A chip a finger has to hit takes the design brief's 44px floor; a chip that
+   is only a label (`--muted`, the Offline badge) keeps the 32px above, because
+   nobody presses it and a 44px badge reads as a button. Selected on the element
+   and not with a modifier so a new interactive chip cannot forget it. */
+button.chip,
+a.chip {
+  min-height: 44px;
+  /* Wider than the 32px chip's --s-3 too: at 44px tall a short label like
+     "Italy" inside a pill radius comes out as a circle beside its longer
+     neighbours, which reads as a different kind of control. */
+  padding: 0 var(--s-4);
+}
 .seg {
   display: inline-flex;
   flex-wrap: wrap;
@@ -412,7 +424,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: var(--s-2);
-  min-height: 40px;
+  /* The design brief's floor for anything a finger presses. */
+  min-height: 44px;
   padding: 0 var(--s-4);
   border: 1px solid var(--hairline);
   border-radius: var(--r-control);
@@ -437,6 +450,10 @@ button {
 }
 .btn--icon {
   width: 40px;
+  /* Held at 40 deliberately while `.btn` sits at the brief's 44: every screen
+     older than Feed mode uses `--icon` at this size, and `--tap` below is the
+     44px variant for the ones that want the floor. */
+  min-height: 40px;
   padding: 0;
   border-radius: var(--r-pill);
 }

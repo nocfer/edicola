@@ -158,6 +158,7 @@ export async function runSync({
     keepPerPublication = DEFAULT_RETENTION.keepPerPublication,
     prefetchPerPublication = DEFAULT_RETENTION.prefetchPerPublication,
     maxImageBytesPerArticle = DEFAULT_RETENTION.maxImageBytesPerArticle,
+    maxAgeDays = DEFAULT_RETENTION.maxAgeDays,
   } = limits;
 
   /** A fresh inert document for one HTML string, built from the injected DOM. */
@@ -255,6 +256,8 @@ export async function runSync({
   /** @type {any[]} */
   const articleQueue = planArticleFetches(byPublication, {
     prefetchPerPublication,
+    maxAgeDays,
+    now: now(),
   });
   let articlesDone = 0;
   onProgress({

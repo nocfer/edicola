@@ -173,6 +173,11 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   numbers are **Retention defaults the reader can change**, and `sync-client.js`
   passes the stored limits into `runSync` — a Sync that ignores them makes the
   whole Retention card decorative, which is a bug that shipped once.
+  **Pre-fetch also skips Items older than `maxAgeDays`**, because Eviction
+  deletes them at the end of the same run: Wired Italia's Feed is thirty Items
+  all about seventy days old against a thirty-day limit, and a Sync used to
+  fetch ten Articles and their images and then throw every one away, leaving
+  the reader an empty Publication that had cost forty requests.
 - **Persistent storage** is requested on first Sync
   (`navigator.storage.persist()`).
 

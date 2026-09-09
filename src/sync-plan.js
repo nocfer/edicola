@@ -13,6 +13,9 @@ import {
 
 /** @typedef {import("./retention.js").ItemRecord} ItemRecord */
 
+/** Milliseconds in a day, for the Eviction age cutoff. */
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
 /**
  * The minimal Publication shape the planners consume. Ticket 07 aligns the
  * Dexie `publications` table to these fields; extra fields are carried
@@ -68,24 +71,45 @@ function comparePublications(a, b) {
 /**
  * One interleaved queue of Items whose Articles a Sync should Pre-fetch.
  *
- * Per Publication only Items with no Article and not marked Summary-only are
- * considered, newest first, capped at `prefetchPerPublication`. The capped
- * lists are then merged round-robin: the newest Item of each Publication in
- * Publication order, then the second newest of each, and so on, so no single
- * large Feed monopolises the start of the queue. Publications that run out
- * simply drop out of later rounds.
+ * Per Publication only Items with no Article, not marked Summary-only, and
+ * young enough to survive Eviction are considered, newest first, capped at
+ * `prefetchPerPublication`. The capped lists are then merged round-robin: the
+ * newest Item of each Publication in Publication order, then the second newest
+ * of each, and so on, so no single large Feed monopolises the start of the
+ * queue. Publications that run out simply drop out of later rounds.
+ *
+ * The age filter is not a nicety. Wired Italia's Feed serves thirty Items that
+ * are all about seventy days old, and `maxAgeDays` is thirty: without it a Sync
+ * fetched ten Articles and their images over the network and then Eviction
+ * deleted every one of them in the same run, leaving the reader an empty
+ * Publication that had cost them forty requests. Pre-fetching an Article for an
+ * Item this Sync is about to Evict is work nobody can ever read.
  *
  * @param {ItemsByPublication} itemsByPublication
- * @param {{ prefetchPerPublication?: number }} [limits]
+ * @param {{ prefetchPerPublication?: number, maxAgeDays?: number, now?: number }} [limits]
  * @returns {ItemRecord[]}
  */
 export function planArticleFetches(itemsByPublication, limits = {}) {
-  const { prefetchPerPublication = DEFAULT_RETENTION.prefetchPerPublication } =
-    limits;
+  const {
+    prefetchPerPublication = DEFAULT_RETENTION.prefetchPerPublication,
+    maxAgeDays = DEFAULT_RETENTION.maxAgeDays,
+    now = Date.now(),
+  } = limits;
   const cap = Math.max(0, Math.floor(prefetchPerPublication));
+  // `maxAgeDays` of 0 or less means Eviction keeps nothing on age, so no cutoff
+  // could be honoured; a non-finite one means no age limit at all.
+  const cutoff =
+    Number.isFinite(maxAgeDays) && maxAgeDays > 0
+      ? now - maxAgeDays * MS_PER_DAY
+      : Number.NEGATIVE_INFINITY;
   const lanes = groups(itemsByPublication).map((group) =>
     group
-      .filter((item) => !item.hasArticle && !item.summaryOnly)
+      .filter(
+        (item) =>
+          !item.hasArticle &&
+          !item.summaryOnly &&
+          timeOf(item.publishedAt) >= cutoff,
+      )
       .sort(compareItemsNewestFirst)
       .slice(0, cap),
   );

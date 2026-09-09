@@ -156,7 +156,9 @@ export function checkContent({ publication, items, articles, windowFor }) {
       "high",
       pid,
       null,
-      `${publication.name} stored no Items${publication.lastError ? ` (lastError: ${publication.lastError})` : ""}.`,
+      publication.lastError
+        ? `${publication.name} stored no Items (lastError: ${publication.lastError}).`
+        : `${publication.name} stored no Items and reported no error, so the Feed answered and nothing survived. Either it carries no Items Edicola can read, or every one of them is older than Retention's maxAgeDays and Eviction removed them in the same Sync. Fetch the Feed and look at its dates.`,
     );
     return out;
   }
