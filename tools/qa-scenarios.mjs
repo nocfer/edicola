@@ -24,7 +24,6 @@
 //   node tools/qa-scenarios.mjs --theme light --lang it
 //
 //   --out <dir>      screenshots (default qa/scenarios)
-//   --url <base>     default http://localhost:8000/
 //   --keep-going     report every failure instead of stopping at the first
 //
 // Exits 1 when a scenario's expected copy is missing, or any check fires.
@@ -35,6 +34,9 @@ import { fileURLToPath } from "node:url";
 import { evaluate, goto, launch, reload, sleep } from "./testing/cdp.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
+
+/** Where `npm start` serves the app. */
+const BASE_URL = "http://localhost:8000/";
 
 /** A day in ms, for `publishedAt` values that read as recent. */
 const DAY = 24 * 60 * 60 * 1000;
@@ -58,7 +60,6 @@ const DAY = 24 * 60 * 60 * 1000;
  * @property {string} seed Page-side statements.
  * @property {string} [expect] i18n key whose text must appear.
  * @property {string[]} [absent] i18n keys whose text must NOT appear.
- * @property {string} [viewmode]
  */
 
 /** @type {Scenario[]} */
@@ -188,7 +189,6 @@ const item = (over) => ({
 /** @param {string[]} argv */
 function parseArgs(argv) {
   const opts = {
-    url: "http://localhost:8000/",
     out: join(ROOT, "qa/scenarios"),
     only: null,
     theme: "dark",
@@ -199,7 +199,6 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--keep-going") opts.keepGoing = true;
     else if (a === "--only") opts.only = argv[++i].split(",");
-    else if (a === "--url") opts.url = argv[++i];
     else if (a === "--out") opts.out = resolve(argv[++i]);
     else if (a === "--theme") opts.theme = argv[++i];
     else if (a === "--lang") opts.lang = argv[++i];
@@ -228,10 +227,10 @@ async function main() {
         localStorage.setItem('edicola.lang', ${JSON.stringify(opts.lang)});
       } catch (e) {}`,
     });
-    await goto(browser.cdp, opts.url, 2500);
+    await goto(browser.cdp, BASE_URL, 2500);
     if (!(await evaluate(browser.cdp, "return !!window.__edicolaBooted;"))) {
       throw new Error(
-        `The app did not boot at ${opts.url}. Is \`npm start\` running?`,
+        `The app did not boot at ${BASE_URL}. Is \`npm start\` running?`,
       );
     }
 
@@ -246,9 +245,7 @@ async function main() {
       const route = scenario.route ?? `#/item/${seeded}`;
       await evaluate(
         browser.cdp,
-        `location.hash = ${JSON.stringify(route)};
-         ${scenario.viewmode ? `localStorage.setItem('edicola.viewmode', ${JSON.stringify(scenario.viewmode)});` : ""}
-         return null;`,
+        `location.hash = ${JSON.stringify(route)}; return null;`,
       );
       await reload(browser.cdp, 1600);
       await sleep(400);

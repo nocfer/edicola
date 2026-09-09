@@ -140,7 +140,7 @@ function textOf(html, windowFor) {
  * @typedef {object} ContentInput
  * @property {{ id: string, name: string, lastError: string | null }} publication
  * @property {any[]} items Rows from `items` for this Publication.
- * @property {Map<string, any> | Record<string, any>} articles Article rows by `itemId`.
+ * @property {Map<string, any>} articles Article rows by `itemId`.
  * @property {(html: string) => { document: Document }} windowFor
  */
 
@@ -156,8 +156,7 @@ export function checkContent({ publication, items, articles, windowFor }) {
   /** @type {Finding[]} */
   const out = [];
   const pid = publication.id;
-  const articleFor = (id) =>
-    articles instanceof Map ? articles.get(id) : articles[id];
+  const articleFor = (id) => articles.get(id);
 
   if (items.length === 0) {
     add(

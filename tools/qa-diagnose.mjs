@@ -38,14 +38,16 @@ const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const REPORT_PATH = join(ROOT, "qa/report.json");
 const FIXTURE_DIR = join(ROOT, "test/fixtures/articles");
 
+/** Per-request budget; publishers that are going to answer do so well inside it. */
+const FETCH_TIMEOUT_MS = 20000;
+
 /** @param {string[]} argv */
 function parseArgs(argv) {
-  const opts = { url: null, publication: null, save: null, timeout: 20000 };
+  const opts = { url: null, publication: null, save: null };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--publication") opts.publication = argv[++i];
     else if (a === "--save") opts.save = argv[++i];
-    else if (a === "--timeout") opts.timeout = Number(argv[++i]);
     else if (a.startsWith("--")) throw new Error(`Unknown option ${a}`);
     else opts.url = a;
   }
@@ -104,7 +106,7 @@ async function main() {
   }
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), opts.timeout);
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   /** @type {Response} */
   let response;
   try {

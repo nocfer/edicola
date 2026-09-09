@@ -26,7 +26,6 @@
 //   node tools/qa-run.mjs --no-shots            # counts and findings only, fast
 //   node tools/qa-run.mjs --write-baseline      # record today's rates as the baseline
 //
-//   --url <base>       default http://localhost:8000/  (npm start must be up)
 //   --out <dir>        default qa/
 //   --proxy <template> Proxy template with {url}. By default the run starts its
 //                      own relay on localhost and uses that, because the
@@ -56,13 +55,15 @@ import { evaluate, goto, launch, reload, sleep } from "./testing/cdp.js";
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const BASELINE_PATH = join(ROOT, "test/qa-baseline.json");
 
+/** Where `npm start` serves the app. */
+const BASE_URL = "http://localhost:8000/";
+
 /** How far an article rate may fall below the baseline before it is a regression. */
 const REGRESSION_MARGIN = 0.2;
 
 /** @param {string[]} argv */
 function parseArgs(argv) {
   const opts = {
-    url: "http://localhost:8000/",
     out: join(ROOT, "qa"),
     only: null,
     shots: true,
@@ -81,7 +82,6 @@ function parseArgs(argv) {
     else if (a === "--write-baseline") opts.writeBaseline = true;
     else if (a === "--only")
       opts.only = argv[++i].split(",").map((s) => s.trim());
-    else if (a === "--url") opts.url = argv[++i];
     else if (a === "--out") opts.out = resolve(argv[++i]);
     else if (a === "--proxy") opts.proxy = argv[++i];
     else if (a === "--profile") opts.profile = argv[++i];
@@ -147,8 +147,6 @@ const attempted = items.filter(
 return {
   id: entry.id,
   name: entry.name,
-  siteUrl: entry.siteUrl,
-  truncated: Boolean(entry.truncated),
   lastError: publication.lastError,
   syncError,
   items: items.length,
@@ -275,14 +273,14 @@ async function main() {
   /** @type {any[]} */
   const results = [];
   try {
-    await goto(browser.cdp, opts.url, 2500);
+    await goto(browser.cdp, BASE_URL, 2500);
     const booted = await evaluate(
       browser.cdp,
       "return !!window.__edicolaBooted;",
     );
     if (!booted)
       throw new Error(
-        `The app did not boot at ${opts.url}. Is \`npm start\` running?`,
+        `The app did not boot at ${BASE_URL}. Is \`npm start\` running?`,
       );
 
     if (proxyTemplate) {
@@ -445,7 +443,7 @@ function report(results, opts) {
 
   const payload = {
     startedAt: new Date().toISOString(),
-    url: opts.url,
+    url: BASE_URL,
     publications: results,
     counts: {
       publications: results.length,
@@ -463,19 +461,19 @@ function report(results, opts) {
     /** @type {Record<string, { articleRate: number, recordedAt: string }>} */
     const next = { ...baseline };
     for (const result of results) {
-      // A Publication that produced nothing does not get a baseline. Recording
-      // 0 would make its breakage the expected state, and no future run could
-      // ever regress against it — the entry would quietly legitimise exactly
-      // the failure the baseline exists to catch. Leaving it out keeps it
-      // listed as a Publication with no baseline, which is the truth.
-      if (result.error || result.articleRate === 0) continue;
+      // A Publication that produced nothing does not get a baseline, and loses
+      // the one it had. Recording 0 would make its breakage the expected state
+      // and no future run could regress against it — the entry would quietly
+      // legitimise exactly the failure the baseline exists to catch. Absent
+      // means "no baseline", which is the truth.
+      if (result.error || result.articleRate === 0) {
+        delete next[result.id];
+        continue;
+      }
       next[result.id] = {
         articleRate: Number(result.articleRate.toFixed(2)),
         recordedAt: new Date().toISOString().slice(0, 10),
       };
-    }
-    for (const result of results) {
-      if (result.error || result.articleRate === 0) delete next[result.id];
     }
     writeFileSync(BASELINE_PATH, `${JSON.stringify(next, null, 2)}\n`);
     console.error(`baseline written to ${BASELINE_PATH}`);

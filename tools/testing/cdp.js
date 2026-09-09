@@ -38,7 +38,7 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {number} [timeoutMs]
  * @returns {Promise<number>}
  */
-export async function waitForPort(profile, timeoutMs = 15000) {
+async function waitForPort(profile, timeoutMs = 15000) {
   const file = join(profile, "DevToolsActivePort");
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -66,7 +66,7 @@ export async function waitForPort(profile, timeoutMs = 15000) {
  * @param {string} wsUrl
  * @returns {CdpSession}
  */
-export function connect(wsUrl) {
+function connect(wsUrl) {
   const ws = new WebSocket(wsUrl);
   let nextId = 1;
   /** @type {Map<number, { resolve: (v: any) => void, reject: (e: Error) => void }>} */
@@ -125,7 +125,6 @@ export function connect(wsUrl) {
  * A launched browser and the session driving its one page.
  * @typedef {object} Browser
  * @property {CdpSession} cdp
- * @property {string} profile Absolute path to the profile directory.
  * @property {string[]} errors Console errors and uncaught exceptions, appended
  *   as they arrive. Callers snapshot and splice it per step.
  * @property {() => Promise<void>} close Kills Chrome; removes a throwaway profile.
@@ -139,7 +138,6 @@ export function connect(wsUrl) {
  * @property {number} [height]
  * @property {number} [scale] deviceScaleFactor.
  * @property {string} [chrome] Chrome binary.
- * @property {string[]} [args] Extra Chrome flags.
  */
 
 /**
@@ -155,7 +153,6 @@ export async function launch({
   height = 844,
   scale = 2,
   chrome: chromePath = DEFAULT_CHROME,
-  args = [],
 } = {}) {
   const throwaway = !profileOption;
   const profile = profileOption
@@ -175,7 +172,6 @@ export async function launch({
       "--no-default-browser-check",
       "--hide-scrollbars",
       `--window-size=${width},${height}`,
-      ...args,
       "about:blank",
     ],
     { stdio: "ignore" },
@@ -223,7 +219,6 @@ export async function launch({
 
   return {
     cdp,
-    profile,
     errors,
     async close() {
       cdp.close();

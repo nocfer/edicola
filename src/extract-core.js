@@ -281,19 +281,10 @@ export function extractArticle(html, { url, windowFor, Readability, purify }) {
  * @returns {Article}
  */
 export function articleFromFeed(html, { url, title = "", windowFor, purify }) {
+  // No early return for empty input: the path below already answers
+  // `no-content` for it, because an empty body sanitizes to an empty body and
+  // counts zero words.
   const source = String(html || "").trim();
-  if (!source) {
-    return {
-      ok: false,
-      title,
-      byline: null,
-      excerpt: "",
-      html: "",
-      wordCount: 0,
-      imageUrls: [],
-      reason: "no-content",
-    };
-  }
 
   // A Feed body is a fragment, so it is wrapped before parsing; `url` is the
   // Item's own link and not the Feed's, because a relative path in the body is
