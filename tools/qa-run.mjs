@@ -345,7 +345,16 @@ async function main() {
           }
         }
         if (result.sampleArticleId) {
-          await route(browser.cdp, `#/item/${result.sampleArticleId}`);
+          // Percent-encoded exactly as `pathFor('reader')` does it in
+          // src/router.js. An Item id is `publicationId + ":" + the Feed's own
+          // id`, which for most Publications is the Original's URL, slashes
+          // and query string included — interpolated raw it matched no route,
+          // so every Reader shot and the Reader entry of the check corpus were
+          // photographs of "Page not found".
+          await route(
+            browser.cdp,
+            `#/item/${encodeURIComponent(result.sampleArticleId)}`,
+          );
           result.shots.push(
             await shoot(browser.cdp, join(shotDir, `${id}-reader.png`)),
           );
