@@ -15,8 +15,6 @@
 // - The codebase is English; the `it` table below is the only Italian in src/.
 
 export const en = {
-  "app.name": "Edicola",
-  "app.tagline": "Your newsstand, offline.",
   "app.loading": "Loading…",
   "app.offline": "Offline",
   // Save and Share are offered by two screens — the Reader's header and Feed
@@ -360,8 +358,6 @@ export const en = {
 };
 
 export const it = {
-  "app.name": "Edicola",
-  "app.tagline": "La tua edicola, anche offline.",
   "app.loading": "Caricamento…",
   "app.offline": "Offline",
   "app.save": "Salva",

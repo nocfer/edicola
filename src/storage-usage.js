@@ -77,7 +77,7 @@ export function estimateValueBytes(value) {
  * @param {Record<string, unknown>} row
  * @returns {number}
  */
-export function estimateRowBytes(row) {
+function estimateRowBytes(row) {
   return estimateValueBytes(row);
 }
 

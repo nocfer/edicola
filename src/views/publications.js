@@ -27,7 +27,6 @@ import {
   setPublicationEnabled,
 } from "../catalog.js";
 import { getDatabase } from "../db.js";
-import { createFetcher } from "../fetcher.js";
 import { LANG_KEY, LOCALES, t, tCount } from "../i18n.js";
 import {
   countUnreadByPublication,
@@ -35,7 +34,7 @@ import {
 } from "../item-state.js";
 import { html, nothing, repeat } from "../render.js";
 import { parseRoute } from "../router.js";
-import { getSettingsStore } from "../settings.js";
+import { getSettingsStore, pageFetcher } from "../settings.js";
 import { showToast, state, update } from "../state.js";
 import { syncNow } from "../sync-client.js";
 import { emptyState, screenHeader } from "./layout.js";
@@ -107,19 +106,6 @@ const screen = {
     saving: false,
   },
 };
-
-/**
- * The fetcher for the add-by-URL lookup: the browser's `fetch`, the default
- * Proxy and `navigator.onLine` (ADR-0001), the same combination
- * `sync-client.js` builds for a Sync.
- * @returns {import('../fetcher.js').Fetcher}
- */
-function pageFetcher() {
-  return createFetcher({
-    fetch: (input, init) => globalThis.fetch(input, init),
-    onLine: () => navigator.onLine,
-  });
-}
 
 /** @param {unknown} error */
 function errorKindOf(error) {
@@ -423,7 +409,7 @@ async function lookUp() {
   update();
   try {
     const findings = await findFeeds(add.url, {
-      fetcher: pageFetcher(),
+      fetcher: await pageFetcher(),
       DOMParser,
     });
     add.status = "found";

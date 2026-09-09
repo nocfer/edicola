@@ -18,7 +18,7 @@ import { DEFAULT_RETENTION, timeOf } from "./retention.js";
 import { planArticleFetches, planFeedFetches } from "./sync-plan.js";
 
 /** Feeds and Articles fetched at once (spec: concurrency 4). */
-export const DEFAULT_CONCURRENCY = 4;
+const DEFAULT_CONCURRENCY = 4;
 
 /** Failure kinds that a second attempt cannot improve on. */
 const FINAL_FAILURES = new Set([

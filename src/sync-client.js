@@ -12,20 +12,19 @@ import {
   sanitizeSummaryInBrowser,
 } from "./extract.js";
 import { parseFeed } from "./feed.js";
-import { createFetcher } from "./fetcher.js";
-import { effectiveProxyTemplate, getSettingsStore } from "./settings.js";
+import { getSettingsStore, pageFetcher } from "./settings.js";
 import { state, update } from "./state.js";
 import { getSyncStore } from "./store.js";
 import { runSync } from "./sync.js";
 
 /** Sync on open when the last one is older than this (spec: 15 minutes). */
-export const DEFAULT_STALE_MS = 15 * 60 * 1000;
+const DEFAULT_STALE_MS = 15 * 60 * 1000;
 
 /** Periodic Background Sync tag registered with the service worker. */
-export const PERIODIC_SYNC_TAG = "edicola-sync";
+const PERIODIC_SYNC_TAG = "edicola-sync";
 
 /** Shortest interval we ask the browser for; it throttles as it pleases. */
-export const PERIODIC_SYNC_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
+const PERIODIC_SYNC_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
 
 /**
  * `type` of the message the service worker posts to open clients when its
@@ -33,7 +32,7 @@ export const PERIODIC_SYNC_MIN_INTERVAL_MS = 12 * 60 * 60 * 1000;
  * pipeline (no `DOMParser`, no DOMPurify — ADR-0007), so all it can do is wake
  * a page that is open; `startSyncMessageListener` answers with `syncIfStale`.
  */
-export const PERIODIC_SYNC_MESSAGE = "periodic-sync";
+const PERIODIC_SYNC_MESSAGE = "periodic-sync";
 
 /** @typedef {import('./sync.js').SyncSummary} SyncSummary */
 /** @typedef {import('./store.js').SyncStore} SyncStore */
@@ -62,30 +61,6 @@ function scopeKey(publicationIds) {
  */
 function publish(patch) {
   update({ sync: { ...state.sync, ...patch } });
-}
-
-/**
- * The fetcher the page uses: the browser's `fetch`, the reader's Proxy and
- * `navigator.onLine` as the offline tiebreaker (ADR-0001). The template comes
- * from the `settings` table on every run, so a Proxy saved in Settings takes
- * effect on the next Sync without a reload; a missing or invalid row falls back
- * to the shipped default (`effectiveProxyTemplate`).
- * @returns {Promise<import('./fetcher.js').Fetcher>}
- */
-async function pageFetcher() {
-  let proxyTemplate;
-  try {
-    proxyTemplate = effectiveProxyTemplate(
-      await (await getSettingsStore()).getProxyTemplate(),
-    );
-  } catch {
-    proxyTemplate = effectiveProxyTemplate("");
-  }
-  return createFetcher({
-    fetch: (input, init) => globalThis.fetch(input, init),
-    onLine: () => navigator.onLine,
-    proxyTemplate,
-  });
 }
 
 /**
@@ -186,7 +161,7 @@ export async function syncIfStale(maxAgeMs = DEFAULT_STALE_MS) {
  * @param {SyncStore} [store]
  * @returns {Promise<boolean | 'unsupported'>}
  */
-export async function requestPersistentStorage(store = getSyncStore()) {
+async function requestPersistentStorage(store = getSyncStore()) {
   const recorded = await store.getMeta(META_KEYS.persistentStorage);
   if (recorded === true) return true;
   /** @type {boolean | 'unsupported'} */
@@ -209,7 +184,7 @@ export async function requestPersistentStorage(store = getSyncStore()) {
  * @param {number} [minInterval]
  * @returns {Promise<boolean>}
  */
-export async function registerPeriodicSync(
+async function registerPeriodicSync(
   minInterval = PERIODIC_SYNC_MIN_INTERVAL_MS,
 ) {
   if (!("serviceWorker" in navigator)) return false;
@@ -236,7 +211,7 @@ export async function registerPeriodicSync(
  * content is stale. Returns an unsubscribe function.
  * @returns {() => void}
  */
-export function startSyncMessageListener() {
+function startSyncMessageListener() {
   if (!("serviceWorker" in navigator)) return () => {};
   /** @param {MessageEvent} event */
   const onMessage = (event) => {

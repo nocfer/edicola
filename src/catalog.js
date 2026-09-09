@@ -23,8 +23,7 @@ import { discoverFeeds, FeedParseError, parseFeed } from "./feed.js";
 import { FetchFailure } from "./fetcher.js";
 
 /** Where the shipped Catalog lives, relative to this module. */
-export const CATALOG_URL = new URL("../data/catalog.json", import.meta.url)
-  .href;
+const CATALOG_URL = new URL("../data/catalog.json", import.meta.url).href;
 
 /**
  * Group key the Publications screen files Custom Publications under, instead of
@@ -315,7 +314,7 @@ export function guessOrigin(feedLanguage, fallback = {}) {
  * @param {typeof globalThis.fetch} [fetchImpl]
  * @returns {Promise<Catalog>}
  */
-export async function loadCatalog(fetchImpl = (url) => globalThis.fetch(url)) {
+async function loadCatalog(fetchImpl = (url) => globalThis.fetch(url)) {
   const response = await fetchImpl(CATALOG_URL);
   if (!response.ok) {
     throw new Error(`Catalog request failed with ${response.status}`);

@@ -37,7 +37,7 @@ export const DEFAULT_PROXY_TEMPLATE =
 export const DEFAULT_PROXY_SERVICE = "cors-get-proxy (Cloudflare Worker)";
 
 /** Default cap for `fetchBlob`: the spec's per-Article image budget (5 MiB). */
-export const DEFAULT_MAX_BLOB_BYTES = 5 * 1024 * 1024;
+const DEFAULT_MAX_BLOB_BYTES = 5 * 1024 * 1024;
 
 /** Placeholder a Proxy template must contain; replaced by the encoded target. */
 const URL_PLACEHOLDER = "{url}";

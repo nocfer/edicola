@@ -36,7 +36,6 @@ import {
   windowFor as browserWindowFor,
 } from "../extract.js";
 import { fetchArticleNow } from "../fetch-one.js";
-import { createFetcher } from "../fetcher.js";
 import { formatDate, formatRelative, t, tCount } from "../i18n.js";
 import { toggleItemSaved, shareItem } from "../item-actions.js";
 import { setReadingPosition } from "../item-state.js";
@@ -54,7 +53,7 @@ import {
 } from "../reading-position.js";
 import { html, nothing, unsafeHTML } from "../render.js";
 import { goBack, hrefFor, parseRoute } from "../router.js";
-import { effectiveProxyTemplate, getSettingsStore } from "../settings.js";
+import { pageFetcher } from "../settings.js";
 import { state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
 import { bookmarkIcon, emptyState, shareIcon } from "./layout.js";
@@ -426,29 +425,6 @@ function needsExtraction() {
   if (!item || screen.article || screen.fetching) return false;
   if (!state.online || !item.link) return false;
   return !attempted.has(item.id);
-}
-
-/**
- * The fetcher this screen uses: the browser's `fetch`, the reader's own Proxy
- * from the `settings` table, and `navigator.onLine` as the offline tiebreaker
- * (ADR-0001). Same shape as `sync-client.js`'s `pageFetcher`; a missing or
- * invalid row falls back to the shipped default.
- * @returns {Promise<import('../fetcher.js').Fetcher>}
- */
-async function pageFetcher() {
-  let proxyTemplate;
-  try {
-    proxyTemplate = effectiveProxyTemplate(
-      await (await getSettingsStore()).getProxyTemplate(),
-    );
-  } catch {
-    proxyTemplate = effectiveProxyTemplate("");
-  }
-  return createFetcher({
-    fetch: (input, init) => globalThis.fetch(input, init),
-    onLine: () => navigator.onLine,
-    proxyTemplate,
-  });
 }
 
 /**

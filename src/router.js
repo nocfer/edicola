@@ -22,14 +22,6 @@
  * @property {string} path  normalized path after the `#`, e.g. `/saved`
  */
 
-/** Screens reachable from the bottom tab bar, in display order. */
-export const TABS = /** @type {const} */ ([
-  "today",
-  "saved",
-  "publications",
-  "settings",
-]);
-
 /** @type {Record<string, RouteName>} */
 const STATIC_PATHS = {
   "/": "today",
@@ -71,7 +63,7 @@ export function parseRoute(hash) {
  * @param {Record<string, string>} [params]
  * @returns {string}
  */
-export function pathFor(name, params = {}) {
+function pathFor(name, params = {}) {
   switch (name) {
     case "today":
       return "/";
@@ -96,11 +88,6 @@ export function hrefFor(name, params = {}) {
   return `#${pathFor(name, params)}`;
 }
 
-/** Whether a Route belongs to a bottom tab (the Reader and 404 do not). */
-export function isTabRoute(/** @type {Route} */ route) {
-  return TABS.includes(/** @type {any} */ (route.name));
-}
-
 /**
  * The Reader and the Story player are full-screen pushes: they hide the tab
  * bar. Both are routes rather than overlays so the browser's own back gesture
@@ -111,7 +98,7 @@ export function hidesTabBar(/** @type {Route} */ route) {
 }
 
 /** The Route for the current `location.hash`. */
-export function currentRoute() {
+function currentRoute() {
   return parseRoute(typeof location === "undefined" ? "" : location.hash);
 }
 
