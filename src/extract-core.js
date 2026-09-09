@@ -381,6 +381,18 @@ export function toPlainText(html, windowFor) {
   return textOf(document.body);
 }
 
+/**
+ * Words in an HTML fragment, counted the way `extractArticle` counts them.
+ * Used by `tools/check-catalog.mjs` to score a Feed's own Summaries.
+ *
+ * @param {string} html
+ * @param {WindowFor} windowFor
+ * @returns {number}
+ */
+export function countWordsInHtml(html, windowFor) {
+  return countWords(toPlainText(html, windowFor));
+}
+
 // --- before Readability ------------------------------------------------------
 
 /**
