@@ -191,6 +191,17 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   only fetches the Original when that body misses the same `MIN_ARTICLE_WORDS`
   floor Extraction has to clear. Readability is NOT run on a Feed body — it is
   already only the article — but the same `ARTICLE_PURIFY_CONFIG` is.
+  **What Readability would have dropped is dropped by hand instead**: a Feed
+  appends things to its own body that an Original never shows, so
+  `dropFeedFooter` takes out an unrendered `[gallery …]` shortcode and the
+  short, linked run after the Article's last `<hr>` — HDblog closes all twenty
+  Items with a rotating affiliate advert and a "keep reading" link. The
+  thresholds there come from measuring the whole Catalog, not from taste:
+  Galileo and openDemocracy put 200-465 words after a rule and that is the
+  Article. Two more cleanups are shared with Extraction because both sources
+  need them: an anchor whose only content is an undescribed image is unwrapped
+  (HDblog links every photo to itself, TechRadar wraps affiliate banners), and
+  an image the publisher never described gets `alt=""`.
   **The choice happens inside `prefetchArticle`, on the already-capped queue,
   so both sources answer to one `prefetchPerPublication` budget**; storing Feed
   Articles during the Feed phase gave each Publication its cap twice and made

@@ -230,7 +230,7 @@ in `content:encoded`, Atom `content`, or a `description` that is not a summary
 at all — so Sync tries that body first and fetches the Original only when it
 misses the same `MIN_ARTICLE_WORDS` floor Extraction has to clear.
 
-Three things about it are easy to get wrong:
+Four things about it are easy to get wrong:
 
 1. **Readability is not run on a Feed body.** Its job is finding the article
    inside a page of navigation, and a syndicated body is already only the
@@ -242,7 +242,21 @@ Three things about it are easy to get wrong:
    already age-filtered. A draft that stored Feed Articles during the Feed
    phase gave each Publication its cap twice over, which is the same shape as
    the bug that once made the whole Retention card decorative.
-3. **`truncated` is not consulted.** It is hand-maintained Catalog metadata and
+3. **A Feed body needs the cleanup Readability would have done.** A publisher
+   appends to its syndicated body what its own page never shows, so
+   `dropFeedFooter` removes an unrendered `[gallery …]` shortcode and the
+   short, linked run of blocks after the Article's last `<hr>` — HDblog closes
+   every Item with a rotating affiliate advert and a "CLICCA QUI PER CONTINUARE
+   A LEGGERE" link, which the Reader's own footer already offers. Its
+   thresholds were measured over the whole Catalog rather than chosen: Galileo
+   and openDemocracy use a rule *inside* the Article and carry 200 to 465 words
+   after the last one, so a footer is capped at 40 words and has to contain a
+   link. Re-measure before touching either number. Two related cleanups sit in
+   `hardenLinks` and `filterImages` instead, because both Article sources need
+   them: an anchor whose only content is an undescribed image has no accessible
+   name by any route and is unwrapped, and an image the publisher never
+   described gets `alt=""` rather than no attribute at all.
+4. **`truncated` is not consulted.** It is hand-maintained Catalog metadata and
    it was wrong in both directions — hdblog was marked Summary-only while
    carrying full text, which is why its Originals being behind a bot check cost
    readers Articles the publisher had already syndicated. The body in front of

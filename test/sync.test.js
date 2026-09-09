@@ -778,6 +778,77 @@ test("the whole Article in `description` counts too, when there is no content:en
   assert.equal(calls.filter((c) => c.kind === "text").length, 1);
 });
 
+test("markup a Feed escaped inside its own CDATA reaches the Reader as tags", async () => {
+  // HDblog's shape: CDATA, so the XML parse decodes nothing, and the inner tags
+  // are entity-escaped anyway. Read verbatim, the Reader shows a literal
+  // `<strong>` in the middle of a sentence.
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({
+        body: `&lt;p&gt;${new Array(260).fill("parola").join(" ")}&lt;/p&gt;&lt;p&gt;Chiuso da &lt;strong&gt;LoveFrom&lt;/strong&gt;.&lt;/p&gt;`,
+      }),
+    },
+  });
+  await runSync({ ...feedFirstDeps, store, fetcher, now: fakeClock() });
+
+  const article = articles.get("feed-test:item-0");
+  assert.ok(
+    article,
+    "the body clears the floor, so it is stored as an Article",
+  );
+  assert.match(article.html, /<strong>LoveFrom<\/strong>/);
+  assert.doesNotMatch(
+    article.html,
+    /&lt;\/?[a-z]/,
+    "no escaped tag may survive into stored Article HTML",
+  );
+});
+
+test("the Feed's own footer after the Article does not reach the Reader", async () => {
+  // HDblog's shape: the Article, a rule, a rotating affiliate advert, and an
+  // `<h2>` link back to the Original the Reader already offers in its footer.
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({
+        body: `${FULL_BODY}<p>Chiude qui.[gallery ids="285039,285038"]</p><hr><div>Piccolo prezzo? <a href="https://shop.test/x">Honor 400</a>, compralo da <a href="https://shop.test/go">Amazon a 130 euro</a>.</div><h2><a href="https://feed.test/0">CLICCA QUI PER CONTINUARE A LEGGERE</a></h2>`,
+      }),
+    },
+  });
+  await runSync({ ...feedFirstDeps, store, fetcher, now: fakeClock() });
+
+  const { html } = articles.get("feed-test:item-0");
+  assert.doesNotMatch(html, /CONTINUARE A LEGGERE/, "the CTA link is footer");
+  assert.doesNotMatch(html, /Honor 400/, "so is the advert above it");
+  assert.doesNotMatch(html, /<hr>/, "and the rule that separated them");
+  assert.doesNotMatch(
+    html,
+    /\[gallery/,
+    "an unrendered shortcode is not prose",
+  );
+  assert.match(html, /Chiude qui\./, "the Article's own last words stay");
+});
+
+test("a long section after a rule is the Article, not a footer", async () => {
+  // Galileo and openDemocracy use a rule inside the Article and carry 208 to
+  // 465 words after the last one. Losing that would be losing the Article.
+  const tail = `<p>${new Array(80).fill("coda").join(" ")} <a href="https://feed.test/x">nota</a></p>`;
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({
+        body: `${FULL_BODY}<hr>${tail}`,
+      }),
+    },
+  });
+  await runSync({ ...feedFirstDeps, store, fetcher, now: fakeClock() });
+
+  const { html } = articles.get("feed-test:item-0");
+  assert.match(html, /coda/, "the section after the rule is prose");
+  assert.match(html, /<hr>/, "so the rule belongs to the Article");
+});
+
 test("a Feed body under the floor falls through and the Original is fetched", async () => {
   const { store, articles } = memoryStore([FEED_PUB]);
   const { fetcher, calls } = scriptedFetcher({

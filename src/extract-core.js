@@ -60,6 +60,37 @@ const LAZY_SRCSET_ATTRIBUTES = ["data-srcset", "data-lazy-srcset"];
 
 const SKIPPED_TEXT_TAGS = new Set(["script", "style", "noscript", "template"]);
 
+/**
+ * A closing tag sitting in a text node, once the parse has decoded the Feed's
+ * entities: the fingerprint of a body whose own markup was escaped.
+ *
+ * A CLOSING tag is the signal and not any tag, because prose that mentions
+ * `<canvas>` once means it literally, and decoding that would delete the word
+ * when the sanitizer drops the element it became.
+ */
+const TAG_LEFT_AS_TEXT = /<\/[a-z][a-z0-9]*>/i;
+
+/**
+ * A WordPress shortcode a Feed left unrendered in its own body, e.g.
+ * `[gallery ids="1,2,3"]`. Named one by one on purpose: over the whole Catalog
+ * the only real shortcode is `gallery`, while a generic `[word …]` pattern
+ * matches the bracketed insertions Italian and British reporting is full of —
+ * `[Jack] said`, `[ndr]`, `[the minister]` — and would eat them.
+ */
+const FEED_SHORTCODE =
+  /\[\/?(?:gallery|caption|embed|playlist|video|audio|wpvideo)\b[^\]]{0,200}\]/gi;
+
+/**
+ * Words below which a run of blocks after the Article's last horizontal rule
+ * is the Feed's footer rather than the Article's ending.
+ *
+ * ponytail: a threshold, and the corpus is what sets it. HDblog's footer — a
+ * rotating affiliate advert and a "click here to keep reading" link — is 23
+ * words, while Galileo and openDemocracy use a rule inside the Article and
+ * carry 208 to 465 words after the last one. Re-measure before moving it.
+ */
+const MAX_FEED_FOOTER_WORDS = 40;
+
 const BLOCK_TAGS = new Set([
   "address",
   "article",
@@ -293,6 +324,7 @@ export function articleFromFeed(html, { url, title = "", windowFor, purify }) {
     `<!doctype html><html><body>${source}</body></html>`,
     url,
   );
+  decodeTagsLeftAsText(document);
   promoteLazyImages(document);
   absolutizeUrls(document, url);
 
@@ -301,6 +333,7 @@ export function articleFromFeed(html, { url, title = "", windowFor, purify }) {
     ...ARTICLE_PURIFY_CONFIG,
     RETURN_DOM: true,
   });
+  dropFeedFooter(body);
   hardenLinks(body, url);
   const imageUrls = filterImages(body);
   const text = textOf(body);
@@ -394,6 +427,39 @@ export function countWordsInHtml(html, windowFor) {
 }
 
 // --- before Readability ------------------------------------------------------
+
+/**
+ * Re-parse text that is really markup the Feed escaped inside its own body.
+ *
+ * HDblog puts its Article in CDATA — so the XML parse decodes nothing — and
+ * escapes the inner tags anyway, so `<strong>` arrives as text and the Reader
+ * showed a literal tag in the middle of a sentence, `<h2>` headings included.
+ * Only text nodes are touched, so an escaped tag inside an attribute (Physics
+ * World's `data-caption`) is left alone, and never inside `code` or `pre`,
+ * where markup as text is the point. Everything is sanitized afterwards like
+ * any other Feed body, so decoding cannot smuggle a tag past DOMPurify.
+ *
+ * ponytail: one text node at a time, so a pair split across two nodes stays
+ * text. No Feed in the Catalog does that; widen the scan if one starts.
+ *
+ * @param {Document} document
+ */
+function decodeTagsLeftAsText(document) {
+  // 4 is NodeFilter.SHOW_TEXT, which is a window global this module never has.
+  const walker = document.createTreeWalker(document.body, 4);
+  /** @type {any[]} */
+  const targets = [];
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    if (!TAG_LEFT_AS_TEXT.test(node.nodeValue || "")) continue;
+    if (node.parentElement?.closest("code, pre")) continue;
+    targets.push(node);
+  }
+  for (const node of targets) {
+    const holder = document.createElement("div");
+    holder.innerHTML = node.nodeValue || "";
+    node.replaceWith(...holder.childNodes);
+  }
+}
 
 /**
  * Copy lazy-load attributes into `src`/`srcset` so Readability keeps the image
@@ -506,6 +572,57 @@ function firstAttribute(el, names) {
 // --- after DOMPurify ---------------------------------------------------------
 
 /**
+ * Drop what a Feed appends to its own body and the Original never shows.
+ *
+ * Only the Feed path runs this. Readability does the same job for an Original
+ * by ignoring everything outside the article it found, which is the quality
+ * gap ADR-0013 accepted when the Feed body became an Article source: "inline
+ * promotions and the publisher's own image wrappers survive where Readability
+ * would have dropped them".
+ *
+ * Three things, each measured over the whole Catalog rather than guessed:
+ *
+ * 1. An unrendered shortcode, `[gallery ids="285039,285038,285037"]` in the
+ *    middle of a sentence.
+ * 2. The footer after the last horizontal rule, when it is short enough to be
+ *    a footer — HDblog closes every Article with a rotating affiliate advert
+ *    and a "CLICCA QUI PER CONTINUARE A LEGGERE" link, and the Reader already
+ *    offers the Original in its own footer. A link is required so a short
+ *    editorial note after a rule survives.
+ * 3. Whatever rule or empty block is left at the end once those are gone.
+ *
+ * @param {HTMLElement} root Sanitized Article body.
+ */
+function dropFeedFooter(root) {
+  const walker = root.ownerDocument.createTreeWalker(root, 4 /* TEXT_NODE */);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    const text = node.nodeValue || "";
+    const cleaned = text.replace(FEED_SHORTCODE, "");
+    if (cleaned !== text) node.nodeValue = cleaned;
+  }
+
+  const blocks = [...root.children];
+  const rule = blocks.findLastIndex((el) => el.tagName === "HR");
+  if (rule > -1) {
+    const footer = blocks.slice(rule + 1);
+    const words = countWords(footer.map((el) => textOf(el)).join(" "));
+    if (
+      words < MAX_FEED_FOOTER_WORDS &&
+      footer.some((el) => el.querySelector("a"))
+    ) {
+      for (const el of footer) el.remove();
+      blocks[rule].remove();
+    }
+  }
+
+  for (let last = root.lastElementChild; last; last = root.lastElementChild) {
+    const empty = !textOf(last).trim() && !last.querySelector("img");
+    if (last.tagName !== "HR" && !empty) break;
+    last.remove();
+  }
+}
+
+/**
  * Every link opens in a new tab without an opener handle. In-page `#anchor`
  * links point at the Original when `baseUrl` is given: `id`s are stripped, so
  * they could not scroll the Reader anyway.
@@ -514,6 +631,22 @@ function firstAttribute(el, names) {
  */
 function hardenLinks(root, baseUrl) {
   for (const a of root.querySelectorAll("a[href]")) {
+    // An anchor whose only content is an undescribed image has no accessible
+    // name by any route, so it is unusable with a screen reader and unlabelled
+    // to everyone else. Measured over the Catalog it is never a link a reader
+    // would want: HDblog wraps all nine of its photos in a link to the same
+    // photo, TechRadar wraps affiliate banners. Unwrap it, keep the picture.
+    const wrapped = a.querySelector("img");
+    if (
+      wrapped &&
+      !(a.textContent || "").trim() &&
+      !wrapped.getAttribute("alt") &&
+      !a.getAttribute("title")
+    ) {
+      a.replaceWith(...a.childNodes);
+      continue;
+    }
+
     const href = (a.getAttribute("href") || "").trim();
     if (baseUrl && href.startsWith("#")) {
       try {
@@ -538,6 +671,12 @@ function filterImages(root) {
   const urls = [];
   const seen = new Set();
   for (const img of root.querySelectorAll("img")) {
+    // The publisher described none of these: HDblog every picture, Linkiesta
+    // half of them. An empty `alt` is the honest answer — a screen reader
+    // skips an undescribed decoration instead of announcing a CDN filename —
+    // and it stops a missing attribute here looking like one of our own
+    // templates forgetting it.
+    if (!img.hasAttribute("alt")) img.setAttribute("alt", "");
     const src = (img.getAttribute("src") || "").trim();
     if (/^https?:\/\//i.test(src)) {
       if (seen.has(src)) {

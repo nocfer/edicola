@@ -202,6 +202,53 @@ test("small data: images stay inline but off the list; large ones are removed", 
   assert.doesNotMatch(a.html, /alt="large"/);
 });
 
+test("a link wrapped round an undescribed image is unwrapped, image kept", () => {
+  // HDblog links every photo to the same photo, TechRadar wraps affiliate
+  // banners; either way the anchor has no accessible name by any route.
+  const a = extract(
+    proseOriginal(
+      '<a href="https://cdn.test/photo.jpg"><img src="https://cdn.test/photo.jpg"></a>',
+    ),
+    "https://example.test/article",
+  );
+  assert.equal(a.ok, true);
+  assert.doesNotMatch(a.html, /<a /, "the nameless anchor should be gone");
+  assert.match(a.html, /<img/, "the picture stays");
+  assert.deepEqual(a.imageUrls, ["https://cdn.test/photo.jpg"]);
+});
+
+test("a link round an image keeps its anchor when either one carries a name", () => {
+  const described = extract(
+    proseOriginal(
+      '<a href="https://example.test/more"><img src="https://cdn.test/p.jpg" alt="A parked car"></a>',
+    ),
+    "https://example.test/article",
+  );
+  assert.match(described.html, /<a [^>]*href="https:\/\/example.test\/more"/);
+
+  const titled = extract(
+    proseOriginal(
+      '<a href="https://example.test/more" title="Read more"><img src="https://cdn.test/p.jpg"></a>',
+    ),
+    "https://example.test/article",
+  );
+  assert.match(titled.html, /<a [^>]*href="https:\/\/example.test\/more"/);
+});
+
+test("an image the publisher never described gets an empty alt", () => {
+  const a = extract(
+    proseOriginal('<img src="https://cdn.test/photo.jpg">'),
+    "https://example.test/article",
+  );
+  assert.match(a.html, /<img[^>]*alt=""/);
+  // A description the publisher did write is left exactly as it is.
+  const described = extract(
+    proseOriginal('<img src="https://cdn.test/p.jpg" alt="A parked car">'),
+    "https://example.test/article",
+  );
+  assert.match(described.html, /alt="A parked car"/);
+});
+
 test("too few words is too-short and still returns the HTML", () => {
   const a = extract(proseOriginal("", 6), "https://example.test/short");
   assert.equal(a.ok, false);

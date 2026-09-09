@@ -55,10 +55,12 @@ publisher had already handed us. Enabling this path moved hdblog from 20% to
 - Fewer network requests per Sync, and more content available offline sooner.
 - Publications whose Originals are gated but whose Feeds are not now produce
   Articles. Publications that gate both still do not, and stay Summary-only.
-- Article quality now varies by source. Publisher Feed markup is rougher than
-  reader mode: inline promotions and the publisher's own image wrappers survive
-  where Readability would have dropped them. The word floor is the only quality
-  gate, and `tools/qa-checks.js` is where a specific recurring defect gets
-  caught.
+- Article quality varies by source, and closing the gap is manual. Publisher
+  Feed markup is rougher than reader mode, so the promotions and image wrappers
+  Readability would have dropped are dropped deliberately instead:
+  `dropFeedFooter` for what a Feed appends to its own body, and, in the steps
+  both sources share, unwrapping an anchor whose only content is an undescribed
+  image. The word floor is not a quality gate for anything else, and
+  `tools/qa-checks.js` is where the next recurring defect gets caught.
 - `ARTICLE_PURIFY_CONFIG` is now load-bearing for two inputs. Loosening it to
   accommodate one publisher's markup loosens it for every Original too.
