@@ -37,7 +37,7 @@ export const SKIP_WAITING_MESSAGE = "skip-waiting";
 export const RELOAD_GUARD_KEY = "edicola.versionReload";
 
 /** How long to wait for `controllerchange` before reloading anyway. */
-export const CONTROLLER_CHANGE_TIMEOUT_MS = 4000;
+const CONTROLLER_CHANGE_TIMEOUT_MS = 4000;
 
 /**
  * Compare two dotted version strings numerically, segment by segment: -1 when
@@ -138,7 +138,7 @@ function publish(patch) {
  * @param {() => void} input.onWaiting
  * @returns {void}
  */
-export function watchForWaitingWorker({ registration, onWaiting }) {
+function watchForWaitingWorker({ registration, onWaiting }) {
   if (registration.waiting && registration.active) onWaiting();
 
   /** @param {any} worker */

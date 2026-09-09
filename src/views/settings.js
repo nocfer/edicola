@@ -76,7 +76,7 @@ let loading = false;
  * fills in when the database answers.
  * @returns {void}
  */
-export function loadSettings() {
+function loadSettings() {
   if (loading || appState.settings.loaded) return;
   loading = true;
   void (async () => {

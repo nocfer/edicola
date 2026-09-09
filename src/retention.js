@@ -67,7 +67,7 @@ export function timeOf(value) {
  * @param {ItemRecord} b
  * @returns {number}
  */
-export function compareItemsOldestFirst(a, b) {
+function compareItemsOldestFirst(a, b) {
   const ta = timeOf(a.publishedAt);
   const tb = timeOf(b.publishedAt);
   if (ta !== tb) return ta < tb ? -1 : 1;

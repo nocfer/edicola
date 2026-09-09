@@ -12,14 +12,14 @@
 export const MIN_ARTICLE_WORDS = 200;
 
 /** Largest inline `data:` image kept in Article HTML, in characters (~bytes). */
-export const MAX_INLINE_DATA_IMAGE_CHARS = 32 * 1024;
+const MAX_INLINE_DATA_IMAGE_CHARS = 32 * 1024;
 
 /**
  * Above this share of link text over all text, an Extraction is navigation
  * (a category index, a homepage), not an Article. Mirrors the link-density
  * cutoff Readability itself uses when cleaning link lists.
  */
-export const MAX_LINK_DENSITY = 0.5;
+const MAX_LINK_DENSITY = 0.5;
 
 /**
  * @typedef {object} Article
@@ -102,7 +102,7 @@ const BLOCK_TAGS = new Set([
  * or SVG. `class`, `id`, `style` and every `on*` handler go; `srcset`/`sizes`
  * go too, so a rewritten `src` (ticket 10) is the only source the browser sees.
  */
-export const ARTICLE_PURIFY_CONFIG = Object.freeze({
+const ARTICLE_PURIFY_CONFIG = Object.freeze({
   ALLOWED_TAGS: [
     "p",
     "br",
@@ -180,7 +180,7 @@ export const ARTICLE_PURIFY_CONFIG = Object.freeze({
 });
 
 /** DOMPurify config for Feed Summaries: text-level tags only. */
-export const SUMMARY_PURIFY_CONFIG = Object.freeze({
+const SUMMARY_PURIFY_CONFIG = Object.freeze({
   ALLOWED_TAGS: ["p", "br", "em", "strong", "a", "ul", "ol", "li"],
   ALLOWED_ATTR: ["href"],
   ALLOW_DATA_ATTR: false,
@@ -379,17 +379,6 @@ export function toPlainText(html, windowFor) {
     `<!doctype html><html><body>${html}</body></html>`,
   );
   return textOf(document.body);
-}
-
-/**
- * Words in an HTML fragment, counted the way `extractArticle` counts them.
- *
- * @param {string} html
- * @param {WindowFor} windowFor
- * @returns {number}
- */
-export function countWordsInHtml(html, windowFor) {
-  return countWords(toPlainText(html, windowFor));
 }
 
 // --- before Readability ------------------------------------------------------

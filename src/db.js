@@ -21,7 +21,7 @@
 import { Dexie } from "https://esm.sh/dexie@4.4.5";
 
 /** IndexedDB database name. Stable for the life of the app. */
-export const DB_NAME = "edicola";
+const DB_NAME = "edicola";
 
 /** Current Dexie schema version; equals the highest `db.version(n)` below. */
 export const SCHEMA_VERSION = 1;
@@ -142,7 +142,7 @@ export const META_KEYS = Object.freeze({
  * @param {string} [name]
  * @returns {EdicolaDb}
  */
-export function createDatabase(name = DB_NAME) {
+function createDatabase(name = DB_NAME) {
   const db = new Dexie(name);
   db.version(1).stores({
     publications: "id, country, category",

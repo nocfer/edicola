@@ -45,10 +45,10 @@ export const MIB = 2 ** 20;
  * because it is in the shipped Catalog, answers no CORS header of its own (so a
  * success really did go through the Proxy) and is small.
  */
-export const PROXY_TEST_FEED_URL = "https://feeds.bbci.co.uk/news/rss.xml";
+const PROXY_TEST_FEED_URL = "https://feeds.bbci.co.uk/news/rss.xml";
 
 /** Longest body the Proxy test reads before deciding; a Feed head is enough. */
-export const PROXY_TEST_MAX_BYTES = 256 * 1024;
+const PROXY_TEST_MAX_BYTES = 256 * 1024;
 
 /**
  * Everything the `settings` table holds, with every field present.
@@ -196,6 +196,40 @@ export function effectiveProxyTemplate(stored) {
  */
 export function usesDefaultProxy(stored) {
   return effectiveProxyTemplate(stored) === DEFAULT_PROXY_TEMPLATE;
+}
+
+/**
+ * The fetcher every page-side caller uses: the browser's `fetch`, the reader's
+ * own Proxy from the `settings` table, and `navigator.onLine` as the offline
+ * tiebreaker (ADR-0001). The template is read on every call, so a Proxy saved
+ * in Settings takes effect without a reload; a missing or unreadable row falls
+ * back to the shipped default.
+ *
+ * Written once because three callers need it — a Sync, the Reader's own
+ * Extraction and the Publications screen's add-by-URL lookup — and the third
+ * copy had already drifted: it built its fetcher with no template at all, so
+ * a reader who configured a Proxy had it honoured everywhere except the one
+ * screen where a Feed is looked up.
+ *
+ * Lives here rather than in `fetcher.js` because it is the settings table that
+ * decides the template, and `fetcher.js` must stay free of the store.
+ *
+ * @returns {Promise<import('./fetcher.js').Fetcher>}
+ */
+export async function pageFetcher() {
+  let proxyTemplate;
+  try {
+    proxyTemplate = effectiveProxyTemplate(
+      await (await getSettingsStore()).getProxyTemplate(),
+    );
+  } catch {
+    proxyTemplate = effectiveProxyTemplate("");
+  }
+  return createFetcher({
+    fetch: (input, init) => globalThis.fetch(input, init),
+    onLine: () => navigator.onLine,
+    proxyTemplate,
+  });
 }
 
 /**
