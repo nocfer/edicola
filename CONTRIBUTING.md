@@ -203,7 +203,16 @@ node tools/check-catalog.mjs --fetch    # schema, plus a live fetch and parse of
 
 `--fetch` requests every `feedUrl` and parses it with the app's own `parseFeed`,
 so a Feed that answers 200 with a document Edicola finds no Items in fails here
-rather than sitting empty in somebody's Today. It needs the test DOM: run
+rather than sitting empty in somebody's Today. It also **measures how much
+Article each Feed carries** and fails when `truncated` contradicts it. That flag
+became load-bearing with ADR-0013, and the Publications screen turns it into
+"full text fetched from the site" in front of the reader, so a wrong value is
+both a wrong sentence and a missed Article — hdblog was marked Summary-only
+while syndicating full text, and its Originals sit behind a bot check, so its
+readers got nothing. Only unambiguous drift fails: a Feed whose median Item is
+a little under the floor (il Giorno sits near 180 words against 200) is
+genuinely borderline, and a weekly job that opens an issue over twenty words
+teaches everyone to close it unread. It needs the test DOM: run
 `npm test` (or `node tools/ensure-test-deps.mjs`) at least once first, otherwise
 it says so and falls back to checking the root element only.
 
@@ -297,6 +306,49 @@ a bug. The baseline records the expected rate per Publication and the run
 reports the delta against it. Without it every run re-argues the same thirty
 questions. Re-record it with `--write-baseline` when a rate moves for a reason
 you have checked, and say so in the pull request.
+
+**The empty and error states are a separate, repeatable suite.**
+`tools/qa-scenarios.mjs` seeds IndexedDB directly and opens the screen, so a
+state that depends on a database shape rather than a route can be checked the
+same way twice:
+
+```
+npm start
+npm run qa:scenarios
+node tools/qa-scenarios.mjs --theme light --lang it --only all-failed
+```
+
+Each scenario declares the rows it wants, the route, and the **i18n key** whose
+copy must appear — resolved through the app's own dictionary, so renaming a key
+fails the scenario instead of silently passing against a hardcoded English
+string, and the Italian run really asserts Italian. It also runs
+`checkRendered` on every screen, which is how the mechanical checks reach the
+empty states a live run never produces. No publisher is contacted; the one
+scenario that needs an Original points at a paywall-teaser fixture served by
+`npm start`, so the real on-demand Extraction runs and lands on `too-short`
+every time. Add a scenario whenever you add a state — that is cheaper than
+reaching it by hand once.
+
+It runs in `.github/workflows/ui-scenarios.yml` on push, in both themes and
+both Languages, and is deliberately **not** in `ci.yml`: the app loads lit and
+Dexie from esm.sh at runtime, so this job is not hermetic and an esm.sh outage
+would fail unrelated changes.
+
+**Every check must stay quiet on healthy content**, and the corpus at the end
+of `test/qa-checks.test.js` is what enforces it. Four checks failed that bar
+after shipping — one fired on the Italian words "nulla" and "annullato", one
+called 595 words against 599 a loss, one conflated a failed Feed with an empty
+one, and one fired on 27 of 27 healthy Articles. The corpus runs the checks
+over known-good content and asserts silence, including against real captured
+app markup:
+
+```
+node tools/qa-run.mjs --only open --capture-dom test/fixtures/screens
+```
+
+Refresh those fixtures when a template changes; never hand-edit them, because
+their whole value is being what the app really emits. A check that cannot pass
+the corpus does not belong in the file.
 
 `tools/qa-diagnose.mjs` explains one failure. Node has no CORS, so it fetches
 the same Original directly and runs the same `extractArticle` over it, and the

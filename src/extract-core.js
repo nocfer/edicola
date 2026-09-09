@@ -548,10 +548,18 @@ function filterImages(root) {
   for (const img of root.querySelectorAll("img")) {
     const src = (img.getAttribute("src") || "").trim();
     if (/^https?:\/\//i.test(src)) {
-      if (!seen.has(src)) {
-        seen.add(src);
-        urls.push(src);
+      if (seen.has(src)) {
+        // The same picture twice in one body is decoration, not content. It is
+        // usually a no-JS placeholder: BBC articles carry three copies of a
+        // grey "image unavailable" PNG with no lazy attribute to promote, so
+        // `promoteLazyImages` cannot help and the reader used to get three grey
+        // boxes and a download for one of them. A publisher who really did
+        // repeat a photo loses nothing worth keeping.
+        img.remove();
+        continue;
       }
+      seen.add(src);
+      urls.push(src);
     } else if (
       src.startsWith("data:image/") &&
       src.length <= MAX_INLINE_DATA_IMAGE_CHARS

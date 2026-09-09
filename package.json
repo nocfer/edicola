@@ -9,6 +9,7 @@
     "test": "node --test",
     "check:imports": "node tools/check-imports.mjs",
     "qa": "node tools/qa-run.mjs",
+    "qa:scenarios": "node tools/qa-scenarios.mjs",
     "stamp": "node tools/stamp-sw.mjs",
     "stamp:check": "node tools/stamp-sw.mjs --check",
     "lint": "npx -y @biomejs/biome@2 check .",

@@ -4,9 +4,13 @@
 // cry wolf over a healthy Publication.
 
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
+import { extractArticle } from "../src/extract-core.js";
 import { checkContent, checkRendered } from "../tools/qa-checks.js";
-import { windowFor } from "../tools/testing/dom.js";
+import { Readability, purifierFor, windowFor } from "../tools/testing/dom.js";
 
 /** @param {Partial<any>} [over] */
 function item(over = {}) {
@@ -213,3 +217,113 @@ test('an image with no alt attribute is a low finding, alt="" is not', () => {
     !ids(rendered('<img src="a.jpg" alt="">')).includes("image-without-alt"),
   );
 });
+
+// --- The healthy corpus ----------------------------------------------------
+//
+// Every check here is only useful if it stays quiet on content that is fine.
+// Four of them did not: `placeholder-in-title` fired on the Italian words
+// "nulla" and "annullato", `article-shorter-than-summary` called 595 words
+// against 599 a loss, `no-items` conflated a failed Feed with an empty one,
+// and a `duplicate-hero` check fired on 27 of 27 healthy Articles before it
+// was removed. Each of those shipped, ran against the live web, and produced a
+// report nobody could trust.
+//
+// So: run the checks over known-good content and assert silence. A check that
+// cannot pass this does not belong in the file.
+//
+// The rendered fixtures are the app's own `body.innerHTML`, captured with
+// `node tools/qa-run.mjs --only open --capture-dom test/fixtures/screens`.
+// Refresh them when a template changes; do not hand-edit them, because the
+// point is that they are what the app really emits.
+
+const SCREENS = resolve(fileURLToPath(import.meta.url), "../fixtures/screens");
+
+/** @param {string} name */
+function screenFixture(name) {
+  return readFileSync(resolve(SCREENS, `${name}.html`), "utf8");
+}
+
+test("checkContent stays quiet on a healthy Publication built from a real Article", () => {
+  // A real page through the real Extraction, so the Article HTML under test is
+  // the shape the pipeline actually stores rather than a hand-written stub.
+  const purify = purifierFor(windowFor());
+  const extracted = extractArticle(
+    readFileSync(
+      resolve(
+        fileURLToPath(import.meta.url),
+        "../fixtures/articles/bbc-news-long-article.html",
+      ),
+      "utf8",
+    ),
+    {
+      url: "https://www.bbc.co.uk/news/articles/cr4vn1e207go",
+      windowFor,
+      Readability,
+      purify,
+    },
+  );
+  assert.ok(extracted.ok, "the fixture should extract, or this proves nothing");
+
+  const items = [1, 2, 3].map((n) => ({
+    id: `bbc:${n}`,
+    publicationId: "bbc",
+    title: `A perfectly ordinary headline ${n}`,
+    link: `https://www.bbc.co.uk/news/${n}`,
+    summaryText: "A short trailer for the piece.",
+    thumbnailUrl: `https://ichef.bbci.co.uk/news/${n}.jpg`,
+    hasArticle: true,
+    summaryOnlyReason: null,
+  }));
+  const findings = checkContent({
+    publication: { id: "bbc", name: "BBC News", lastError: null },
+    items,
+    articles: new Map(
+      items.map((item) => [item.id, { ...extracted, itemId: item.id }]),
+    ),
+    windowFor,
+  });
+  assert.deepEqual(findings, []);
+});
+
+test("checkContent stays quiet on Italian headlines that merely contain placeholder words", () => {
+  // Real headlines from a live run. Both contain the substring "null".
+  const titles = [
+    "Arrestato per uno scambio di persona: con quella violenza non c'entrava nulla",
+    "Temptation Island, annullato il licenziamento del partecipante-poliziotto",
+    "Il nulla osta è arrivato senza alcuna nota",
+  ];
+  const items = titles.map((title, n) => ({
+    id: `it:${n}`,
+    publicationId: "it",
+    title,
+    link: `https://example.test/${n}`,
+    summaryText: "Sommario.",
+    thumbnailUrl: null,
+    hasArticle: true,
+    summaryOnlyReason: null,
+  }));
+  const findings = checkContent({
+    publication: { id: "it", name: "Testata", lastError: null },
+    items,
+    articles: new Map(),
+    windowFor,
+  });
+  assert.deepEqual(findings, []);
+});
+
+for (const screen of ["today-list", "today-feed", "reader"]) {
+  test(`checkRendered stays quiet on the real ${screen} markup`, () => {
+    const window = windowFor(
+      `<!doctype html><html><body>${screenFixture(screen)}</body></html>`,
+    );
+    const findings = checkRendered({
+      document: window.document,
+      screen,
+    });
+    // jsdom lays nothing out, so every box is 0x0 and the tap-target and
+    // overflow checks cannot fire here — those two are covered in the browser
+    // by tools/qa-run.mjs, and this corpus covers the content-shaped ones:
+    // unnamed controls, placeholder text, leaked i18n keys, missing alt.
+    assert.deepEqual(findings, []);
+  });
+}

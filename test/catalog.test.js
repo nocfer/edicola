@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { MIN_ARTICLE_WORDS } from "../src/extract-core.js";
 import {
-  validateCatalog,
+  bodyWordsOf,
   feedKind,
   renderTable,
+  validateCatalog,
 } from "../tools/check-catalog.mjs";
+import { DOMParser } from "../tools/testing/dom.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const catalog = JSON.parse(
@@ -144,4 +147,45 @@ test("renderTable lists failures first and escapes pipes", () => {
   assert.match(lines[0], /^\| Result \|/);
   assert.match(lines[2], /^\| FAIL \| b \| 403 \| a\\\|b \|/);
   assert.match(lines[3], /^\| ok \| a \| 200 \| rss \|/);
+});
+
+// --- How much Article the Feed itself carries ------------------------------
+
+test("bodyWordsOf takes the median, so one long Item does not make a Feed full-text", () => {
+  const long = `<p>${new Array(900).fill("word").join(" ")}</p>`;
+  const short = "<p>Six words in this one here.</p>";
+  const feed = {
+    items: [
+      { contentHtml: long, summaryHtml: "" },
+      ...new Array(8).fill({ contentHtml: short, summaryHtml: "" }),
+    ],
+  };
+  const measured = bodyWordsOf(feed, DOMParser);
+  assert.equal(measured.field, "contentHtml");
+  assert.ok(
+    measured.words < MIN_ARTICLE_WORDS,
+    `one long Item among nine should not clear the floor, got ${measured.words}`,
+  );
+});
+
+test("bodyWordsOf finds the Article in `description` when there is no content:encoded", () => {
+  // The il Foglio and Guardian shape: the whole piece in `description`.
+  const body = `<p>${new Array(400).fill("parola").join(" ")}</p>`;
+  const feed = {
+    items: new Array(5).fill({ contentHtml: "", summaryHtml: body }),
+  };
+  const measured = bodyWordsOf(feed, DOMParser);
+  assert.equal(measured.field, "summaryHtml");
+  assert.ok(measured.words >= MIN_ARTICLE_WORDS);
+});
+
+test("bodyWordsOf reports nothing for a Feed of pure Summaries", () => {
+  const feed = {
+    items: new Array(5).fill({
+      contentHtml: "",
+      summaryHtml: "<p>A one-line teaser.</p>",
+    }),
+  };
+  const measured = bodyWordsOf(feed, DOMParser);
+  assert.ok(measured.words < MIN_ARTICLE_WORDS / 2);
 });

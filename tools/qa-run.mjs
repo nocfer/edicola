@@ -36,6 +36,10 @@
 //                      which measures the relay and not the product
 //   --shipped-proxy    use whatever the app is configured with instead, which
 //                      is how you check the shipped default is still alive
+//   --capture-dom <dir>  also write each screen's rendered `body.innerHTML`
+//                      there, to refresh the fixtures the network-free check
+//                      corpus in test/qa-checks.test.js runs against. Real app
+//                      markup beats anybody's guess at what the app emits
 //   --profile <dir>    Chrome profile to reuse (default: throwaway)
 //   --timeout <ms>     per-Publication Sync budget (default 120000)
 //
@@ -64,6 +68,7 @@ function parseArgs(argv) {
     shots: true,
     proxy: null,
     shippedProxy: false,
+    captureDom: null,
     profile: null,
     timeout: 120000,
     writeBaseline: false,
@@ -72,6 +77,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--no-shots") opts.shots = false;
     else if (a === "--shipped-proxy") opts.shippedProxy = true;
+    else if (a === "--capture-dom") opts.captureDom = resolve(argv[++i]);
     else if (a === "--write-baseline") opts.writeBaseline = true;
     else if (a === "--only")
       opts.only = argv[++i].split(",").map((s) => s.trim());
@@ -336,6 +342,9 @@ async function main() {
           result.findings.push(
             ...(await renderedFindings(browser.cdp, `Today (${mode})`, id)),
           );
+          if (opts.captureDom) {
+            await captureDom(browser.cdp, opts.captureDom, `today-${mode}`);
+          }
         }
         if (result.sampleArticleId) {
           await route(browser.cdp, `#/item/${result.sampleArticleId}`);
@@ -345,6 +354,9 @@ async function main() {
           result.findings.push(
             ...(await renderedFindings(browser.cdp, "Reader", id)),
           );
+          if (opts.captureDom) {
+            await captureDom(browser.cdp, opts.captureDom, "reader");
+          }
         }
       }
 
@@ -372,6 +384,24 @@ async function main() {
   }
 
   report(results, opts);
+}
+
+/**
+ * Write the rendered `body.innerHTML` to `<dir>/<name>.html`.
+ *
+ * The check corpus in test/qa-checks.test.js asserts that `checkRendered`
+ * finds nothing in a healthy screen, and that assertion is only worth anything
+ * if the markup it reads is the markup the app really emits. A hand-written
+ * fixture drifts from the templates and quietly stops covering them.
+ *
+ * @param {import('./testing/cdp.js').CdpSession} cdp
+ * @param {string} dir
+ * @param {string} name
+ */
+async function captureDom(cdp, dir, name) {
+  const html = await evaluate(cdp, "return document.body.innerHTML;");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, `${name}.html`), `${html}\n`);
 }
 
 /**

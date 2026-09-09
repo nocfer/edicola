@@ -259,3 +259,32 @@ test("toPlainText drops tags, separates blocks and collapses whitespace", () => 
   assert.equal(toPlainText("", windowFor), "");
   assert.equal(toPlainText("<script>x()</script><p>y</p>", windowFor), "y");
 });
+
+test("extraction keeps one copy of a repeated image", () => {
+  // BBC articles carry three copies of a grey "image unavailable" PNG with no
+  // lazy attribute to promote, so the reader used to get three grey boxes and
+  // a wasted download. The QA check corpus found this.
+  const html = `<!doctype html><html><body><article>
+    <img src="https://cdn.test/grey.png" aria-label="image unavailable">
+    <p>${new Array(220).fill("word").join(" ")}</p>
+    <img src="https://cdn.test/grey.png" aria-label="image unavailable">
+    <img src="https://cdn.test/real.jpg">
+    <img src="https://cdn.test/grey.png" aria-label="image unavailable">
+  </article></body></html>`;
+  const article = extract(html, "https://cdn.test/a");
+  assert.ok(article.ok);
+  assert.deepEqual(article.imageUrls, [
+    "https://cdn.test/grey.png",
+    "https://cdn.test/real.jpg",
+  ]);
+  const rendered = windowFor(
+    `<!doctype html><html><body>${article.html}</body></html>`,
+  );
+  const srcs = [...rendered.document.querySelectorAll("img")].map((img) =>
+    img.getAttribute("src"),
+  );
+  assert.deepEqual(srcs, [
+    "https://cdn.test/grey.png",
+    "https://cdn.test/real.jpg",
+  ]);
+});

@@ -1,0 +1,125 @@
+
+    <!-- Screens render here (lit-html, src/main.js). The fallback copy is
+         Italian; data-i18n attributes translate it before main.js removes it. -->
+    <main class="app app--with-tabbar" id="screen">
+      
+    <!----><!--?lit$088577230$-->
+    <section class="screen">
+      <!--?lit$088577230$-->
+    <header class="screen__header">
+      <!--?lit$088577230$-->
+      <h1 class="screen__title"><!--?lit$088577230$-->Page not found</h1>
+      <!--?lit$088577230$-->
+      <!--?lit$088577230$-->
+    </header>
+  
+      <div class="screen__body">
+        <!--?lit$088577230$-->
+    <div class="card empty">
+      <p class="empty__text"><!--?lit$088577230$-->That address does not exist in Edicola.</p>
+      <!--?lit$088577230$--><a class="btn btn--primary" href="#/"><!--?lit$088577230$-->Go to Today</a>
+    </div>
+  
+      </div>
+    </section>
+  <!--?lit$088577230$--><!--?lit$088577230$--><!--?--></main>
+
+    <!-- Bottom tab bar. Static so it shows before the modules load; main.js
+         sets aria-current and hides it on the Reader route. -->
+    <nav class="tabbar" id="tabbar" aria-label="Sections" data-i18n-aria="nav.aria" title="Sections">
+      <a class="tabbar__tab" href="#/" data-route="today">
+        <svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"></path><path d="M18 14h-8"></path><path d="M15 18h-5"></path><path d="M10 6h8v4h-8V6Z"></path></svg>
+        <span data-i18n="nav.today">Today</span>
+      </a>
+      <a class="tabbar__tab" href="#/saved" data-route="saved">
+        <svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+        <span data-i18n="nav.saved">Saved</span>
+      </a>
+      <a class="tabbar__tab" href="#/publications" data-route="publications">
+        <svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg>
+        <span data-i18n="nav.publications">Publications</span>
+      </a>
+      <a class="tabbar__tab" href="#/settings" data-route="settings">
+        <svg class="ico" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" x2="14" y1="4" y2="4"></line><line x1="10" x2="3" y1="4" y2="4"></line><line x1="21" x2="12" y1="12" y2="12"></line><line x1="8" x2="3" y1="12" y2="12"></line><line x1="21" x2="16" y1="20" y2="20"></line><line x1="12" x2="3" y1="20" y2="20"></line><line x1="14" x2="14" y1="2" y2="6"></line><line x1="8" x2="8" y1="10" y2="14"></line><line x1="16" x2="16" y1="18" y2="22"></line></svg>
+        <span data-i18n="nav.settings">Settings</span>
+      </a>
+    </nav>
+
+    <!-- Boot watchdog (classic script, BEFORE the modules so it runs even when
+         they fail to link). main.js sets window.__edicolaBooted at the end of a
+         successful init. If the app has not booted shortly after load — the
+         signature of a stale cached module bricking the Shell — drop the
+         service worker and all caches and reload once from the network, so a
+         broken client heals itself without any user-side cache clearing. A
+         one-shot sessionStorage guard prevents a reload loop when the network
+         itself is down. -->
+    <script>
+      (function () {
+        var HEAL = 'edicola-selfheal';
+        window.addEventListener('load', function () {
+          setTimeout(function () {
+            if (window.__edicolaBooted) {
+              sessionStorage.removeItem(HEAL); // healthy: let a future break heal again
+              return;
+            }
+            if (sessionStorage.getItem(HEAL)) return; // already tried this session
+            sessionStorage.setItem(HEAL, '1');
+            var done = function () {
+              window.location.reload();
+            };
+            var regs = navigator.serviceWorker
+              ? navigator.serviceWorker.getRegistrations().then(function (rs) {
+                  return Promise.all(rs.map(function (r) { return r.unregister(); }));
+                })
+              : Promise.resolve();
+            regs
+              .then(function () {
+                return window.caches ? caches.keys() : [];
+              })
+              .then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+              })
+              .then(done, done);
+          }, 3500);
+        });
+      })();
+    </script>
+    <script type="module" src="./src/main.js"></script>
+    <script>
+      // Register the service worker (offline / install). updateViaCache:'none'
+      // makes the browser always revalidate sw.js from the network instead of
+      // honoring its HTTP max-age, so a shipped fix reaches clients on the next
+      // visit even if an upstream cache set a long TTL.
+      //
+      // There is deliberately NO automatic reload on `controllerchange` here
+      // (ADR-0008): a new Shell must never swap itself in mid-article. sw.js
+      // waits instead of calling skipWaiting(), src/update.js notices the
+      // waiting worker and shows the update prompt, and only the reader's
+      // confirmation activates it and reloads every tab together. Registration
+      // stays in this classic script so it happens even if the modules fail to
+      // link and the self-heal watchdog above has to step in.
+      if ('serviceWorker' in navigator) {
+        const loaded = new Promise((resolve) => window.addEventListener('load', resolve));
+        loaded.then(() => {
+          navigator.serviceWorker
+            .register('./sw.js', { updateViaCache: 'none' })
+            .then((reg) => reg.update())
+            .catch((err) => console.warn('Service worker not registered:', err));
+        });
+        // On the very first load the page fetched its esm.sh modules before any
+        // worker controlled it, so they are not in the worker's cache yet. Once
+        // the worker is active and the module graph has loaded, hand it the
+        // list so "offline after one online load" does not depend on the HTTP
+        // cache. Harmless on later loads: the worker skips what it has.
+        Promise.all([navigator.serviceWorker.ready, loaded]).then(([reg]) => {
+          const urls = performance
+            .getEntriesByType('resource')
+            .map((e) => e.name)
+            .filter((u) => u.indexOf('https://esm.sh/') === 0);
+          if (urls.length && reg.active) reg.active.postMessage({ type: 'warm-cdn', urls });
+        });
+      }
+    </script>
+  
+
+

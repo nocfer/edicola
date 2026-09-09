@@ -1,0 +1,63 @@
+name: UI scenarios
+
+# The empty and error states of Today and the Reader, driven from a seeded
+# IndexedDB rather than from a Sync (tools/qa-scenarios.mjs). These are the
+# screens nobody can reach twice the same way by hand: each one depends on a
+# database shape, so verifying `today.allFailed` used to mean forcing a broken
+# Proxy and taking a screenshot from a second process sharing the first one's
+# Chrome profile.
+#
+# Deliberately NOT part of ci.yml. That workflow is hermetic, and this one is
+# not: the app loads lit and Dexie from esm.sh at runtime (ADR-0002), so an
+# esm.sh outage fails this job through no fault of the change under test. It
+# runs on push and on demand and is not a required check — treat a red run as
+# "look at it", not "the branch is broken". No publisher is contacted, which is
+# what separates it from the Catalog and QA runs.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # ES modules will not load from file:// (ADR-0002), so the app needs a
+      # server even to boot.
+      - name: Serve the app
+        run: |
+          npm start &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8000/ >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8000/ >/dev/null
+
+      - name: Both themes, both Languages
+        env:
+          CHROME: /usr/bin/google-chrome
+        run: |
+          status=0
+          for theme in dark light; do
+            for lang in en it; do
+              echo "--- $theme / $lang"
+              node tools/qa-scenarios.mjs \
+                --theme "$theme" --lang "$lang" --keep-going || status=1
+            done
+          done
+          exit $status
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-scenarios
+          path: qa/scenarios
+          if-no-files-found: warn

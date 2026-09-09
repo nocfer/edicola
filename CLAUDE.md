@@ -85,6 +85,25 @@ that repo is the reference implementation.
   transport, i.e. the Proxy. `too-short` on a real article: a paywall teaser,
   ADR-0004 says we stop. `no-content`: Readability found no prose on a page that
   loaded, which is ours to fix — `--save <name>` keeps the HTML as a fixture.
+- **`node tools/qa-scenarios.mjs` is the repeatable half of the QA work.** It
+  seeds IndexedDB directly and opens the screen, so the empty and error states
+  — which depend on a database shape, not a route — are checkable twice the
+  same way. Each scenario names the **i18n key** whose copy must appear, resolved
+  through the app's own dictionary, so a renamed key fails instead of passing
+  against a hardcoded string. Add a scenario when you add a state. Runs in
+  `.github/workflows/ui-scenarios.yml`, both themes and both Languages, and
+  **not** in `ci.yml`, which stays hermetic (the app loads lit and Dexie from
+  esm.sh, so this job is not).
+- **`node tools/check-catalog.mjs --fetch` also audits how much Article each
+  Feed carries** and fails when `truncated` contradicts it, with a dead band so
+  only unambiguous drift fails. ADR-0013 made that flag matter, and the
+  Publications screen turns it into "full text fetched from the site" for the
+  reader.
+- **Every check must stay quiet on healthy content.** The corpus at the end of
+  `test/qa-checks.test.js` enforces it, against real captured app markup
+  (`node tools/qa-run.mjs --only open --capture-dom test/fixtures/screens`;
+  refresh, never hand-edit). Four checks failed that bar after shipping. A check
+  that cannot pass the corpus does not belong in `qa-checks.js`.
 - **QA has a mechanical half and a judgement half.** `tools/qa-checks.js` holds
   the mechanical one (duplicated hero image, control with no accessible name,
   i18n key on screen), tested in `test/qa-checks.test.js`. The screenshots hold

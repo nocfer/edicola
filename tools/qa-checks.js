@@ -259,7 +259,7 @@ export function checkContent({ publication, items, articles, windowFor }) {
           "medium",
           pid,
           item.id,
-          `The same image appears more than once in the Article: ${src}`,
+          `The same image appears more than once in the Article: ${src}. Extraction deduplicates images (see filterImages in extract-core.js), so this should be unreachable — if it fires, that dedup regressed.`,
         );
         break;
       }
@@ -329,6 +329,7 @@ export function checkRendered({ document, screen, publicationId = null }) {
   for (const el of document.querySelectorAll(
     'button, [role="button"], a[href]',
   )) {
+    const classes = String(el.className || "");
     const name =
       (el.textContent || "").trim() ||
       el.getAttribute("aria-label") ||
@@ -343,12 +344,26 @@ export function checkRendered({ document, screen, publicationId = null }) {
         publicationId,
         null,
         where(
-          `a ${el.tagName.toLowerCase()}${el.className ? `.${String(el.className).split(" ")[0]}` : ""} has no accessible name, so it is unusable with a screen reader and unlabelled to everyone else.`,
+          `a ${el.tagName.toLowerCase()}${classes ? `.${classes.split(" ")[0]}` : ""} has no accessible name, so it is unusable with a screen reader and unlabelled to everyone else.`,
         ),
       );
     }
+    // Two exemptions, both deliberate rather than convenient.
+    //
+    // `.btn--icon` is held at 40px by a decision recorded in styles.css: every
+    // screen older than Feed mode uses it at that size, and `.btn--tap` is the
+    // 44px variant for the ones that want the floor. Reporting it forever would
+    // train everyone to ignore this check.
+    //
+    // A bare `<a>` with no control styling is a link inside prose, and its
+    // target is its own text — "Open original" at 214x20 is ordinary typography,
+    // not an undersized button.
+    const isControl =
+      el.tagName !== "A" || /\b(btn|chip|tab|seg)\b/.test(classes);
     const box = el.getBoundingClientRect();
     if (
+      isControl &&
+      !classes.includes("btn--icon") &&
       box.width > 0 &&
       (box.width < MIN_TAP_TARGET || box.height < MIN_TAP_TARGET)
     ) {

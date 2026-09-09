@@ -22,6 +22,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { MIN_ARTICLE_WORDS, countWordsInHtml } from "../src/extract-core.js";
 import { FeedParseError, parseFeed } from "../src/feed.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
@@ -262,6 +263,7 @@ export function feedKind(body) {
  * @property {string} status  HTTP status, or the error name.
  * @property {string} detail  Feed kind on success, reason on failure.
  * @property {number|null} items  Items `parseFeed` found, or null when it did not run.
+ * @property {number} [words]  Median words of Article the Feed body carries.
  */
 
 /**
@@ -341,7 +343,52 @@ async function checkFeed(publication, fetchImpl, DomParser = null) {
           items: 0,
         };
       }
-      return { id, feedUrl, ok: true, status, detail: kind, items };
+      // NOT named `body`: the outer `const body` holding the Feed text lives in
+      // this same block, and shadowing it here put `parseFeed(body, …)` above
+      // into the temporal dead zone. Every Feed then failed with a
+      // ReferenceError that the catch below reported as "does not parse".
+      const carried = bodyWordsOf(feed, DomParser);
+      // `truncated` claims the Feed carries Summaries only. The Publications
+      // screen turns a true value into "full text fetched from the site", so a
+      // wrong flag is a wrong sentence in front of the reader, and a wrong one
+      // hid a real win: hdblog was marked Summary-only while syndicating full
+      // text, and because its Originals sit behind a bot check its readers got
+      // no Article at all. The flag is a claim; the Feed is the fact.
+      //
+      // Only UNAMBIGUOUS drift fails, with a dead band between the two tests.
+      // A Feed whose median Item is a little under the floor (il Giorno sits at
+      // ~180 words against 200) is genuinely borderline, and a weekly job that
+      // opens an issue over twenty words teaches everyone to close it unread.
+      // The costly error is the hdblog direction, and that one is never
+      // borderline.
+      const truncated = Boolean(publication.truncated);
+      const carriesArticles = carried.words >= MIN_ARTICLE_WORDS;
+      const carriesNothingLike = carried.words < MIN_ARTICLE_WORDS / 2;
+      if (
+        (truncated && carriesArticles) ||
+        (!truncated && carriesNothingLike)
+      ) {
+        return {
+          id,
+          feedUrl,
+          ok: false,
+          status,
+          detail: carriesArticles
+            ? `truncated:true but the median Item carries ~${carried.words} words in ${carried.field} — set truncated:false`
+            : `truncated:false but the median Item carries only ~${carried.words} words — set truncated:true`,
+          items,
+          words: carried.words,
+        };
+      }
+      return {
+        id,
+        feedUrl,
+        ok: true,
+        status,
+        detail: kind,
+        items,
+        words: carried.words,
+      };
     } catch (err) {
       const reason = err instanceof FeedParseError ? err.reason : "parse error";
       return {
@@ -370,6 +417,50 @@ async function checkFeed(publication, fetchImpl, DomParser = null) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * How much Article the Feed itself carries: the median word count over the
+ * first few Items, and which field it came from.
+ *
+ * ADR-0013 makes the Feed body an Article source, so this is not trivia: it is
+ * the difference between one network request per Item and two. `content:encoded`
+ * and Atom `content` are the usual home, but a few Publications (il Foglio, the
+ * Guardian) put the whole piece in `description`, which is why both are
+ * measured and the larger wins.
+ *
+ * The median rather than the mean, because one long Item among nineteen short
+ * ones does not make a Feed full-text.
+ *
+ * @param {{ items: any[] }} feed
+ * @param {DomParserCtor} DomParser
+ * @returns {{ words: number, field: string }}
+ */
+export function bodyWordsOf(feed, DomParser) {
+  const windowFor = (/** @type {string} */ html) => ({
+    document: new DomParser().parseFromString(
+      `<!doctype html><html><body>${html || ""}</body></html>`,
+      "text/html",
+    ),
+  });
+  const sample = feed.items.slice(0, 9);
+  /** @type {{ words: number, field: string }} */
+  let best = { words: 0, field: "none" };
+  for (const field of ["contentHtml", "summaryHtml"]) {
+    const counts = sample
+      .map((item) => {
+        try {
+          return countWordsInHtml(item[field] || "", windowFor);
+        } catch {
+          return 0;
+        }
+      })
+      .sort((a, b) => a - b);
+    if (counts.length === 0) continue;
+    const median = counts[Math.floor(counts.length / 2)];
+    if (median > best.words) best = { words: median, field };
+  }
+  return best;
 }
 
 /**
@@ -412,8 +503,8 @@ export async function fetchCatalog(
 export function renderTable(results) {
   const rows = [...results].sort((a, b) => Number(a.ok) - Number(b.ok));
   const lines = [
-    "| Result | Publication | Status | Detail | Items | Feed |",
-    "| --- | --- | --- | --- | --- | --- |",
+    "| Result | Publication | Status | Detail | Items | Body words | Feed |",
+    "| --- | --- | --- | --- | --- | --- | --- |",
   ];
   for (const r of rows) {
     const cells = [
@@ -422,6 +513,7 @@ export function renderTable(results) {
       r.status,
       r.detail,
       r.items ?? "—",
+      r.words ?? "—",
       r.feedUrl,
     ].map((c) => String(c).replace(/\|/g, "\\|"));
     lines.push(`| ${cells.join(" | ")} |`);
