@@ -118,8 +118,8 @@
       "category": "technology",
       "feedUrl": "https://www.hdblog.it/feed/",
       "siteUrl": "https://www.hdblog.it",
-      "truncated": true,
-      "note": "content:encoded carries the opening of the Article and ends with a continue-reading link."
+      "truncated": false,
+      "note": "Full text in content:encoded, despite a one-line description. Feed linked from the site. Originals are behind a JavaScript bot check that answers 429, so the Feed body is the only way to read them and Extraction of the Original always fails."
     },
     {
       "id": "focus",

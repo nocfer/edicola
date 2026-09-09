@@ -212,6 +212,34 @@ and opens a `needs-triage` issue when a Feed dies. Fixing one means finding the
 publisher's new advertised Feed, or removing the entry and adding it to the
 omissions table in `docs/catalog.md` with what you saw.
 
+## An Article has two sources
+
+The body the Feed carried, or Extraction of the Original
+([ADR-0013](docs/adr/0013-the-feed-body-is-an-article-source.md)). Fourteen of
+the thirty Catalog Publications syndicate the whole Article — 200 to 1168 words
+in `content:encoded`, Atom `content`, or a `description` that is not a summary
+at all — so Sync tries that body first and fetches the Original only when it
+misses the same `MIN_ARTICLE_WORDS` floor Extraction has to clear.
+
+Three things about it are easy to get wrong:
+
+1. **Readability is not run on a Feed body.** Its job is finding the article
+   inside a page of navigation, and a syndicated body is already only the
+   article. The same `ARTICLE_PURIFY_CONFIG` is still applied, and that config
+   is now load-bearing for two inputs: loosening it for one publisher's markup
+   loosens it for every extracted Original too.
+2. **Both sources share one budget.** The choice happens inside
+   `prefetchArticle`, on a queue already capped at `prefetchPerPublication` and
+   already age-filtered. A draft that stored Feed Articles during the Feed
+   phase gave each Publication its cap twice over, which is the same shape as
+   the bug that once made the whole Retention card decorative.
+3. **`truncated` is not consulted.** It is hand-maintained Catalog metadata and
+   it was wrong in both directions — hdblog was marked Summary-only while
+   carrying full text, which is why its Originals being behind a bot check cost
+   readers Articles the publisher had already syndicated. The body in front of
+   the pipeline is a fact; the flag is a claim. It stays as documentation and
+   as something the Publications screen shows.
+
 ## Product QA against the live web
 
 Every gate above runs against fixtures. None of them says whether a reader who

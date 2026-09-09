@@ -92,12 +92,16 @@ test("the same image twice in one Article is reported once", () => {
   assert.deepEqual(ids(findings), ["duplicate-image-in-article"]);
 });
 
-test("a thumbnail that is also the Article's first image is a duplicate hero", () => {
+test("a thumbnail that is also the Article's first image is not a finding", () => {
+  // `thumbnailUrl` renders on Today cards and nowhere else, so nothing shows
+  // the picture twice on one screen, and `feed.js` derives the thumbnail from
+  // the first image of the Feed body — making the two equal for every Article
+  // built from a Feed. Flagging it fired on 27 of 27 healthy Articles.
   const findings = run(
     [item({ thumbnailUrl: "https://example.test/hero.jpg" })],
     [article({ html: '<img src="https://example.test/hero.jpg"><p>x</p>' })],
   );
-  assert.ok(ids(findings).includes("duplicate-hero"));
+  assert.deepEqual(findings, []);
 });
 
 test("one thumbnail shared by most Items is a publisher placeholder", () => {

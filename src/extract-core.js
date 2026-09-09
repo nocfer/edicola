@@ -250,6 +250,90 @@ export function extractArticle(html, { url, windowFor, Readability, purify }) {
 }
 
 /**
+ * Build an Article out of the body a Feed already handed us, with no
+ * Readability pass and no second network request.
+ *
+ * Fourteen of the thirty Publications in the Catalog syndicate the whole
+ * Article in the Feed — `content:encoded`, Atom `content`, or in a few cases a
+ * `description` that is not a summary at all — between two hundred and eleven
+ * hundred words. Sync used to drop all of it on the floor and then fetch the
+ * Original to derive the same text again, which is a wasted request per Item
+ * and, for a publisher that gates the Original behind a bot challenge, an
+ * Article the reader never got at all despite it having arrived with the Feed.
+ *
+ * Readability is deliberately not run here. Its job is to find the article
+ * inside a page full of navigation, and this input is already only the article:
+ * a publisher chose these bytes as the syndicated body. So the steps are the
+ * ones that make any third-party HTML safe and self-contained — resolve
+ * relative URLs against the Item's own link, sanitize with the SAME
+ * `ARTICLE_PURIFY_CONFIG` the Extraction path uses, harden the links, drop the
+ * images we cannot store — and then the same quality floor decides whether the
+ * result is an Article at all.
+ *
+ * Returns the identical `Article` shape as `extractArticle`, so the caller
+ * stores it through one path and neither the Reader nor the database can tell
+ * which source it came from.
+ *
+ * @param {string} html RAW Feed body: `contentHtml`, or `summaryHtml` when the
+ *   Feed puts the whole Article there.
+ * @param {{ url: string, title?: string, windowFor: WindowFor, purify: Purifier }} deps
+ *   `url` is the Item's link, used as the base for relative URLs.
+ * @returns {Article}
+ */
+export function articleFromFeed(html, { url, title = "", windowFor, purify }) {
+  const source = String(html || "").trim();
+  if (!source) {
+    return {
+      ok: false,
+      title,
+      byline: null,
+      excerpt: "",
+      html: "",
+      wordCount: 0,
+      imageUrls: [],
+      reason: "no-content",
+    };
+  }
+
+  // A Feed body is a fragment, so it is wrapped before parsing; `url` is the
+  // Item's own link and not the Feed's, because a relative path in the body is
+  // relative to the Original.
+  const { document } = windowFor(
+    `<!doctype html><html><body>${source}</body></html>`,
+    url,
+  );
+  promoteLazyImages(document);
+  absolutizeUrls(document, url);
+
+  /** @type {HTMLElement} */
+  const body = purify.sanitize(document.body.innerHTML, {
+    ...ARTICLE_PURIFY_CONFIG,
+    RETURN_DOM: true,
+  });
+  hardenLinks(body, url);
+  const imageUrls = filterImages(body);
+  const text = textOf(body);
+  const wordCount = countWords(text);
+  const linkDensity = linkDensityOf(body, text);
+
+  /** @type {Article["reason"]} */
+  let reason = null;
+  if (wordCount === 0 || linkDensity > MAX_LINK_DENSITY) reason = "no-content";
+  else if (wordCount < MIN_ARTICLE_WORDS) reason = "too-short";
+
+  return {
+    ok: reason === null,
+    title: collapseWhitespace(title),
+    byline: null,
+    excerpt: "",
+    html: body.innerHTML,
+    wordCount,
+    imageUrls,
+    reason,
+  };
+}
+
+/**
  * Apply a URL-to-URL map to every `img src` in sanitized Article HTML. The
  * Reader uses it to point images at stored blobs. `mapFn` returns the new URL,
  * or null/undefined to leave that image untouched. The input must already be

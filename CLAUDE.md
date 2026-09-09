@@ -166,6 +166,18 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   only the Reader marks Read. Rings dim on Seen, Unread counts fall only on
   Read. `seen` is a plain non-indexed boolean, so it needed no `db.version(n)`
   block (ADR-0008 is additive-only; only declared indexes constrain shape).
+- **An Article has two sources** (ADR-0013): the body the Feed carried, or
+  Extraction of the Original. Fourteen of the thirty Catalog Publications
+  syndicate full text (200-1168 words), so Sync tries the Feed body first and
+  only fetches the Original when that body misses the same `MIN_ARTICLE_WORDS`
+  floor Extraction has to clear. Readability is NOT run on a Feed body — it is
+  already only the article — but the same `ARTICLE_PURIFY_CONFIG` is.
+  **The choice happens inside `prefetchArticle`, on the already-capped queue,
+  so both sources answer to one `prefetchPerPublication` budget**; storing Feed
+  Articles during the Feed phase gave each Publication its cap twice and made
+  the Retention setting a lie. The Publication's `truncated` flag is **not**
+  consulted: it is hand-maintained and was wrong in both directions (hdblog
+  claimed Summary-only while carrying full text).
 - **Sync runs on the page thread, chunked and yielding** (no Web Worker: `DOMParser` and DOMPurify are unavailable in workers), on open (if the last Sync is
   older than 15 min) or on demand. Concurrency 4, round-robin across Enabled
   Publications, newest first, one retry then mark Summary-only. Pre-fetch 10

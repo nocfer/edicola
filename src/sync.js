@@ -63,6 +63,10 @@ const FINAL_FAILURES = new Set([
  *   `Article` (see extract-core.js): `{ ok, title, byline, html, wordCount,
  *   imageUrls, reason }`.
  * @property {(html: string) => string} sanitizeSummary
+ * @property {((html: string, url: string, title?: string) => any) | null}
+ *   [articleFromFeed] Builds an Article out of the body the Feed already
+ *   carried (see extract-core.js). Omit it to switch the Feed-first path off,
+ *   which is what the pipeline tests that predate it do.
  * @property {any} DOMParser The constructor: the browser global, or the export
  *   from tools/testing/dom.js.
  * @property {() => number} [now] Epoch ms; defaults to `Date.now`.
@@ -146,6 +150,7 @@ export async function runSync({
   parseFeed,
   extractArticle,
   sanitizeSummary,
+  articleFromFeed = null,
   DOMParser,
   now = Date.now,
   limits = {},
@@ -191,6 +196,14 @@ export async function runSync({
     bytesStored: 0,
   };
 
+  /**
+   * Feed body per Item id, for this run. Populated in the Feed phase and read
+   * in the Articles phase, so the choice between "the Feed already gave us the
+   * Article" and "fetch the Original" happens at ONE place, against ONE budget.
+   * @type {Map<string, string>}
+   */
+  const feedBodies = new Map();
+
   const enabled = await store.getEnabledPublications();
   const wanted = publicationIds
     ? enabled.filter((p) => publicationIds.includes(p.id))
@@ -223,6 +236,17 @@ export async function runSync({
       const rows = feed.items.map((item) =>
         itemRowFor(item, publication.id, fetchedAt, sanitizeSummary, windowFor),
       );
+      // Keep each Item's Feed body for the Articles phase, which prefers it to
+      // fetching the Original. Held in memory for this run only: it is the text
+      // we have already parsed, and storing it would duplicate whatever the
+      // Articles phase decides to keep.
+      if (articleFromFeed) {
+        for (const [index, row] of rows.entries()) {
+          const source = feed.items[index];
+          const body = source?.contentHtml || source?.summaryHtml;
+          if (body) feedBodies.set(row.id, body);
+        }
+      }
       summary.itemsStored += await store.upsertItems(rows);
       await store.trimItems(publication.id, { keepPerPublication });
       await store.setPublicationSynced(publication.id, {
@@ -308,6 +332,40 @@ export async function runSync({
    * @returns {Promise<void>}
    */
   async function prefetchArticle(item) {
+    // The Feed body first, when there is one and it is a whole Article.
+    //
+    // Fourteen of the thirty Publications in the Catalog syndicate full text,
+    // and Sync used to discard it and fetch the Original to derive the same
+    // words again: one wasted round trip per Item, and for a publisher who
+    // gates the Original behind a bot check, an Article the reader never got
+    // despite the publisher having syndicated it themselves.
+    //
+    // This sits inside `prefetchArticle`, not in the Feed phase, on purpose.
+    // The queue it runs on is already capped at `prefetchPerPublication` and
+    // already age-filtered, so both sources answer to one budget. Storing Feed
+    // Articles earlier gave a Publication its cap twice over and made the
+    // reader's Retention setting a lie.
+    //
+    // The Publication's `truncated` flag is deliberately not consulted: it is
+    // hand-maintained Catalog metadata and it is wrong in both directions,
+    // whereas the body in front of us is a fact. A body under the word floor
+    // simply falls through to the Original below.
+    if (articleFromFeed) {
+      const body = feedBodies.get(item.id);
+      if (body && item.link) {
+        /** @type {any} */
+        let fromFeed = null;
+        try {
+          fromFeed = articleFromFeed(body, item.link, item.title);
+        } catch {
+          fromFeed = null;
+        }
+        if (fromFeed?.ok) {
+          await storeArticle(item, fromFeed);
+          return;
+        }
+      }
+    }
     if (!item.link) {
       await store.markSummaryOnly(item.id, "no-link");
       summary.articlesSummaryOnly += 1;
@@ -328,11 +386,23 @@ export async function runSync({
       summary.articlesSummaryOnly += 1;
       return;
     }
+    await storeArticle(item, article);
+  }
+
+  /**
+   * Store one Article and its images, whichever source produced it. Both the
+   * Feed body and the Extraction of an Original arrive here as the same
+   * `Article` shape, so the database cannot tell them apart and neither can
+   * the Reader.
+   * @param {any} item
+   * @param {any} article
+   */
+  async function storeArticle(item, article) {
     const images = await fetchImages(article.imageUrls);
     const bytes = byteLength(article.html);
     await store.putArticle({
       itemId: item.id,
-      title: article.title,
+      title: article.title || item.title,
       byline: article.byline,
       html: article.html,
       wordCount: article.wordCount,

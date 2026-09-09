@@ -8,6 +8,7 @@
 
 import { META_KEYS } from "./db.js";
 import {
+  articleFromFeedInBrowser,
   extractArticleInBrowser,
   sanitizeSummaryInBrowser,
 } from "./extract.js";
@@ -135,6 +136,7 @@ export function syncNow({ publicationIds } = {}) {
         fetcher: await pageFetcher(),
         parseFeed,
         extractArticle: extractArticleInBrowser,
+        articleFromFeed: articleFromFeedInBrowser,
         sanitizeSummary: sanitizeSummaryInBrowser,
         DOMParser,
         limits: await pageLimits(),

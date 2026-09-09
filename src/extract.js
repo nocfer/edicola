@@ -5,7 +5,11 @@
 import { Readability } from "https://esm.sh/@mozilla/readability@0.6.0";
 // @ts-expect-error
 import { default as createDOMPurify } from "https://esm.sh/dompurify@3.2.6";
-import { extractArticle, sanitizeSummary } from "./extract-core.js";
+import {
+  articleFromFeed,
+  extractArticle,
+  sanitizeSummary,
+} from "./extract-core.js";
 
 const purify = createDOMPurify(window);
 
@@ -33,4 +37,16 @@ export function extractArticleInBrowser(html, url) {
 /** @param {string} html */
 export function sanitizeSummaryInBrowser(html) {
   return sanitizeSummary(html, purify);
+}
+
+/**
+ * An Article built from the body the Feed already carried, for the Items whose
+ * Publication syndicates full text. Same output as `extractArticleInBrowser`,
+ * no network request.
+ * @param {string} html RAW Feed body
+ * @param {string} url The Item's link, the base for relative URLs
+ * @param {string} [title]
+ */
+export function articleFromFeedInBrowser(html, url, title = "") {
+  return articleFromFeed(html, { url, title, windowFor, purify });
 }

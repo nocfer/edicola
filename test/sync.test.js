@@ -13,7 +13,11 @@ import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Readability, purifierFor, windowFor } from "../tools/testing/dom.js";
 import { DOMParser } from "../tools/testing/dom.js";
-import { extractArticle, sanitizeSummary } from "../src/extract-core.js";
+import {
+  articleFromFeed,
+  extractArticle,
+  sanitizeSummary,
+} from "../src/extract-core.js";
 import { parseFeed } from "../src/feed.js";
 import { FetchFailure } from "../src/fetcher.js";
 import { planItemTrim } from "../src/retention.js";
@@ -36,6 +40,20 @@ const deps = {
     extractArticle(html, { url, windowFor, Readability, purify }),
   sanitizeSummary: (/** @type {string} */ html) =>
     sanitizeSummary(html, purify),
+};
+
+/**
+ * `deps` plus the Feed-first Article source. Separate so the tests above keep
+ * exercising the fetch-the-Original pipeline unchanged: the path is off unless
+ * a caller passes `articleFromFeed`, and both routes have to keep working.
+ */
+const feedFirstDeps = {
+  ...deps,
+  articleFromFeed: (
+    /** @type {string} */ html,
+    /** @type {string} */ url,
+    /** @type {string} */ title,
+  ) => articleFromFeed(html, { url, title, windowFor, purify }),
 };
 
 const ANSA = {
@@ -675,4 +693,164 @@ test("a run with an Enabled Publication does claim a Sync time", async () => {
   await runSync({ ...deps, store, fetcher, now: fakeClock() });
 
   assert.ok(Number(meta.get("lastSyncAt")) > 0, "a real run stamps lastSyncAt");
+});
+
+// --- The Feed-first Article path ------------------------------------------
+
+/** Words enough to clear MIN_ARTICLE_WORDS. */
+const FULL_BODY = `<p>${new Array(260).fill("parola").join(" ")}</p>`;
+
+/**
+ * A minimal RSS 2.0 Feed. `body` goes in `content:encoded` unless
+ * `inDescription` is set, which is the il Foglio shape: the whole Article in
+ * `description` and no `content:encoded` at all.
+ * @param {{ count?: number, body?: string, inDescription?: boolean, ageDays?: number[] }} [options]
+ */
+function feedWithBodies({
+  count = 1,
+  body = FULL_BODY,
+  inDescription = false,
+  ageDays = [],
+} = {}) {
+  const base = Date.UTC(2026, 8, 7, 12, 0, 0);
+  const items = Array.from({ length: count }, (_, n) => {
+    const published = new Date(
+      base - (ageDays[n] ?? n) * 24 * 60 * 60 * 1000,
+    ).toUTCString();
+    const escaped = `<![CDATA[${body}]]>`;
+    return `<item>
+      <title>Item ${n}</title>
+      <link>https://feed.test/${n}</link>
+      <guid>item-${n}</guid>
+      <pubDate>${published}</pubDate>
+      <description>${inDescription ? escaped : "A one-line teaser."}</description>
+      ${inDescription ? "" : `<content:encoded>${escaped}</content:encoded>`}
+    </item>`;
+  }).join("");
+  return `<?xml version="1.0"?>
+    <rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+      <channel><title>Feed Test</title><link>https://feed.test</link>${items}</channel>
+    </rss>`;
+}
+
+const FEED_PUB = {
+  ...ANSA,
+  id: "feed-test",
+  name: "Feed Test",
+  feedUrl: "https://feed.test/rss",
+  siteUrl: "https://feed.test",
+  truncated: true,
+};
+
+test("a Feed that carries the whole Article stores it without fetching the Original", async () => {
+  const { store, rows, articles } = memoryStore([FEED_PUB]);
+  const { fetcher, calls } = scriptedFetcher({
+    text: { "https://feed.test/rss": feedWithBodies({ count: 2 }) },
+  });
+  const summary = await runSync({
+    ...feedFirstDeps,
+    store,
+    fetcher,
+    now: fakeClock(),
+  });
+
+  assert.equal(articles.size, 2);
+  assert.equal(summary.articlesOk, 2);
+  assert.ok(articles.get("feed-test:item-0").wordCount >= 260);
+  assert.equal(rows.get("feed-test:item-0").hasArticle, true);
+  // The whole point: no request for either Original.
+  assert.deepEqual(
+    calls.filter((c) => c.kind === "text").map((c) => c.url),
+    ["https://feed.test/rss"],
+  );
+});
+
+test("the whole Article in `description` counts too, when there is no content:encoded", async () => {
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher, calls } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({ inDescription: true }),
+    },
+  });
+  await runSync({ ...feedFirstDeps, store, fetcher, now: fakeClock() });
+
+  assert.equal(articles.size, 1);
+  assert.equal(calls.filter((c) => c.kind === "text").length, 1);
+});
+
+test("a Feed body under the floor falls through and the Original is fetched", async () => {
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher, calls } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({
+        body: "<p>Three words only.</p>",
+      }),
+      "https://feed.test/0": LONG_ARTICLE,
+    },
+  });
+  await runSync({ ...feedFirstDeps, store, fetcher, now: fakeClock() });
+
+  // Still one Article, but it came from the Original, not the Feed.
+  assert.equal(articles.size, 1);
+  assert.ok(
+    calls.some((c) => c.kind === "text" && c.url === "https://feed.test/0"),
+    "the Original should be fetched when the Feed body is too thin",
+  );
+});
+
+test("the Feed-first path obeys prefetchPerPublication", async () => {
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher } = scriptedFetcher({
+    text: { "https://feed.test/rss": feedWithBodies({ count: 8 }) },
+    defaultText: LONG_ARTICLE,
+  });
+  await runSync({
+    ...feedFirstDeps,
+    store,
+    fetcher,
+    now: fakeClock(),
+    limits: { prefetchPerPublication: 3 },
+  });
+
+  // Three, not six: the Feed body and the Original are two sources answering
+  // to ONE budget. An earlier version spent the cap on Feed Articles and then
+  // spent it again fetching Originals, which is exactly the shape of bug that
+  // makes the reader's Retention setting decorative.
+  assert.equal(articles.size, 3);
+});
+
+test("the Feed-first path skips Items Eviction would delete on age", async () => {
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies({
+        count: 3,
+        ageDays: [1, 70, 80],
+      }),
+    },
+    defaultText: THIN_ARTICLE,
+  });
+  await runSync({
+    ...feedFirstDeps,
+    store,
+    fetcher,
+    now: () => Date.UTC(2026, 8, 7, 12, 0, 0),
+    limits: { maxAgeDays: 30 },
+  });
+
+  assert.deepEqual([...articles.keys()], ["feed-test:item-0"]);
+});
+
+test("without articleFromFeed the pipeline still fetches every Original", async () => {
+  const { store, articles } = memoryStore([FEED_PUB]);
+  const { fetcher, calls } = scriptedFetcher({
+    text: {
+      "https://feed.test/rss": feedWithBodies(),
+      "https://feed.test/0": LONG_ARTICLE,
+    },
+  });
+  await runSync({ ...deps, store, fetcher, now: fakeClock() });
+
+  assert.equal(articles.size, 1);
+  assert.ok(calls.some((c) => c.url === "https://feed.test/0"));
 });

@@ -43,6 +43,16 @@ const BOILERPLATE = Object.freeze([
   "accept cookies",
 ]);
 
+// There is deliberately NO "the card thumbnail is also the Article's first
+// image" check. It looks like a duplicate and it is not: `thumbnailUrl` is
+// rendered on Today cards only and never in the Reader, so nothing shows the
+// picture twice on one screen — tapping a card and finding the same photo at
+// the top of the piece is the behaviour anyone would want. Worse, `feed.js`
+// derives `thumbnailUrl` from the first image of the Feed body, so for every
+// Article built from a Feed the two are equal by construction: the check fired
+// on 27 of 27 healthy Articles before it was removed. The real duplicate is
+// `duplicate-image-in-article`, one image twice inside one body.
+
 /** Text that means a template rendered a value it did not have. */
 const PLACEHOLDERS = Object.freeze([
   "undefined",
@@ -254,16 +264,6 @@ export function checkContent({ publication, items, articles, windowFor }) {
         break;
       }
       seen.add(src);
-    }
-    if (item.thumbnailUrl && sources[0] === item.thumbnailUrl) {
-      add(
-        out,
-        "duplicate-hero",
-        "medium",
-        pid,
-        item.id,
-        `The card thumbnail is also the first image of the Article (${item.thumbnailUrl}), so the Reader shows it twice.`,
-      );
     }
 
     const text = textOf(article.html, windowFor).toLowerCase();

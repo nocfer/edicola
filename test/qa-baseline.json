@@ -12,11 +12,11 @@
     "recordedAt": "2026-09-09"
   },
   "la-stampa": {
-    "articleRate": 0.7,
+    "articleRate": 0.5,
     "recordedAt": "2026-09-09"
   },
   "il-fatto-quotidiano": {
-    "articleRate": 0.7,
+    "articleRate": 0.8,
     "recordedAt": "2026-09-09"
   },
   "il-foglio": {
@@ -32,7 +32,7 @@
     "recordedAt": "2026-09-09"
   },
   "hdblog": {
-    "articleRate": 0.2,
+    "articleRate": 0.7,
     "recordedAt": "2026-09-09"
   },
   "focus": {
@@ -52,11 +52,11 @@
     "recordedAt": "2026-09-09"
   },
   "il-giorno": {
-    "articleRate": 0.7,
+    "articleRate": 1,
     "recordedAt": "2026-09-09"
   },
   "bbc-news": {
-    "articleRate": 0.9,
+    "articleRate": 1,
     "recordedAt": "2026-09-09"
   },
   "the-guardian": {
@@ -96,7 +96,7 @@
     "recordedAt": "2026-09-09"
   },
   "bbc-sport": {
-    "articleRate": 0.6,
+    "articleRate": 0.7,
     "recordedAt": "2026-09-09"
   },
   "manchester-evening-news": {
