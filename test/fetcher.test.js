@@ -229,7 +229,13 @@ test("both attempts throwing while onLine() is false yields offline", async () =
   assert.equal(calls.length, 2);
 });
 
-test("both attempts throwing without any response yields offline even when onLine() is true", async () => {
+test("both attempts throwing while onLine() is true yields blocked, not offline", async () => {
+  // The direct attempt on a cross-origin Feed always throws (CORS), so the
+  // throw carries no connectivity information at all. When the Proxy throws
+  // too and the browser says we are online, the honest answer is blocked:
+  // something between us and the content refused, and telling the reader to
+  // reconnect would send them to fix the wrong thing. A rate-limited Proxy
+  // reaches here, which is how a dead default Proxy stayed invisible.
   const proxied = buildProxyUrl(PROXY, FEED);
   const { fetchImpl } = scriptedFetch({
     [FEED]: corsError(),
@@ -237,7 +243,7 @@ test("both attempts throwing without any response yields offline even when onLin
   });
   const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
   const error = await failure(() => fetcher.fetchText(FEED));
-  assert.equal(error.kind, "offline");
+  assert.equal(error.kind, "blocked");
 });
 
 test("a direct 403 then a Proxy that throws yields blocked while online", async () => {

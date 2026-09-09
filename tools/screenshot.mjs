@@ -33,21 +33,13 @@
 // on a failed navigation. Screenshots use a fixed viewport with
 // captureBeyondViewport:false so position:fixed chrome composes correctly.
 
-import { spawn } from "node:child_process";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+// The CDP session itself lives in tools/testing/cdp.js, shared with
+// tools/qa-run.mjs. Keep the plumbing there: two copies of a WebSocket
+// protocol client drift, and the second one is always the stale one.
 
-const DEFAULT_CHROME =
-  process.env.CHROME ||
-  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { DEFAULT_CHROME, launch, sleep } from "./testing/cdp.js";
 
 /** Parse `<url> <out> [--flag value]...` into an options object. */
 function parseArgs(argv) {
@@ -98,139 +90,21 @@ function parseArgs(argv) {
   return opts;
 }
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-
-/** Wait for Chrome to write DevToolsActivePort in the profile dir; return the port. */
-async function waitForPort(profile, timeoutMs = 15000) {
-  const file = join(profile, "DevToolsActivePort");
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    if (existsSync(file)) {
-      const port = Number(readFileSync(file, "utf8").split("\n")[0]);
-      if (port) return port;
-    }
-    await sleep(100);
-  }
-  throw new Error("Chrome did not expose a DevTools port in time");
-}
-
-/** Minimal CDP session over one WebSocket: `send(method, params)` + events. */
-function connect(wsUrl) {
-  const ws = new WebSocket(wsUrl);
-  let nextId = 1;
-  const pending = new Map();
-  const listeners = new Map();
-  ws.addEventListener("message", (ev) => {
-    const msg = JSON.parse(String(ev.data));
-    if (msg.id && pending.has(msg.id)) {
-      const { resolve: ok, reject } = pending.get(msg.id);
-      pending.delete(msg.id);
-      if (msg.error) reject(new Error(`${msg.error.message}`));
-      else ok(msg.result);
-    } else if (msg.method && listeners.has(msg.method)) {
-      for (const fn of listeners.get(msg.method)) fn(msg.params);
-    }
-  });
-  const open = new Promise((ok, reject) => {
-    ws.addEventListener("open", ok, { once: true });
-    ws.addEventListener("error", () => reject(new Error("WebSocket error")), {
-      once: true,
-    });
-  });
-  return {
-    ready: open,
-    send(method, params = {}) {
-      const id = nextId++;
-      return new Promise((ok, reject) => {
-        pending.set(id, { resolve: ok, reject });
-        ws.send(JSON.stringify({ id, method, params }));
-      });
-    },
-    on(method, fn) {
-      if (!listeners.has(method)) listeners.set(method, []);
-      listeners.get(method).push(fn);
-    },
-    once(method, timeoutMs) {
-      return new Promise((ok, reject) => {
-        const timer = setTimeout(
-          () => reject(new Error(`Timed out waiting for ${method}`)),
-          timeoutMs,
-        );
-        this.on(method, (params) => {
-          clearTimeout(timer);
-          ok(params);
-        });
-      });
-    },
-    close() {
-      ws.close();
-    },
-  };
-}
-
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
-  const throwaway = !opts.profile;
-  const profile = opts.profile
-    ? resolve(opts.profile)
-    : mkdtempSync(join(tmpdir(), "edicola-shot-"));
-  mkdirSync(profile, { recursive: true });
-  // Chrome rewrites this on start; a stale one from a previous run would fool us.
-  rmSync(join(profile, "DevToolsActivePort"), { force: true });
-
-  const chrome = spawn(
-    opts.chrome,
-    [
-      "--headless=new",
-      "--remote-debugging-port=0",
-      `--user-data-dir=${profile}`,
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--hide-scrollbars",
-      `--window-size=${opts.width},${opts.height}`,
-      "about:blank",
-    ],
-    { stdio: "ignore" },
-  );
-  const exited = new Promise((ok) => chrome.once("exit", ok));
-
   let failed = false;
+  /** @type {Awaited<ReturnType<typeof launch>> | null} */
+  let browser = null;
   try {
-    const port = await waitForPort(profile);
-    const target = await (
-      await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, {
-        method: "PUT",
-      })
-    ).json();
-    const cdp = connect(target.webSocketDebuggerUrl);
-    await cdp.ready;
-
-    const errors = [];
-    cdp.on("Runtime.exceptionThrown", (p) =>
-      errors.push(
-        `exception: ${p.exceptionDetails.exception?.description || p.exceptionDetails.text}`,
-      ),
-    );
-    cdp.on("Runtime.consoleAPICalled", (p) => {
-      if (p.type === "error" || p.type === "warning")
-        errors.push(
-          `console.${p.type}: ${p.args.map((a) => a.value ?? a.description).join(" ")}`,
-        );
-    });
-    cdp.on("Log.entryAdded", (p) => {
-      if (p.entry.level === "error")
-        errors.push(`${p.entry.source}: ${p.entry.text} ${p.entry.url || ""}`);
-    });
-
-    await cdp.send("Page.enable");
-    await cdp.send("Runtime.enable");
-    await cdp.send("Log.enable");
-    await cdp.send("Emulation.setDeviceMetricsOverride", {
+    browser = await launch({
+      profile: opts.profile,
       width: opts.width,
       height: opts.height,
-      deviceScaleFactor: opts.scale,
-      mobile: true,
+      scale: opts.scale,
+      chrome: opts.chrome,
     });
+    const { cdp, errors } = browser;
+
     // Theme BEFORE navigate, so the pre-paint script sees it.
     if (opts.theme) {
       await cdp.send("Emulation.setEmulatedMedia", {
@@ -310,14 +184,11 @@ async function main() {
     console.error(`wrote ${opts.out}`);
 
     for (const e of errors) console.error(`  ! ${e}`);
-    cdp.close();
   } catch (err) {
     failed = true;
     console.error(`screenshot failed: ${err.message}`);
   } finally {
-    chrome.kill();
-    await exited;
-    if (throwaway) rmSync(profile, { recursive: true, force: true });
+    if (browser) await browser.close();
   }
   process.exit(failed ? 1 : 0);
 }

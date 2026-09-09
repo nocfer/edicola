@@ -364,7 +364,15 @@ export function createFetcher({
           cause: proxy.error,
         });
       }
-      const kind = directThrew || !onLine() ? "offline" : "blocked";
+      // `directThrew` is NOT evidence of being offline: a cross-origin Feed
+      // ALWAYS throws on the direct attempt (CORS surfaces as a TypeError),
+      // which is the ordinary case this whole Proxy fallback exists for.
+      // Treating it as offline told an online reader whose Proxy was merely
+      // rate-limited "You are offline. Connect and try again.", sending them
+      // to fix their connection instead of their Proxy. `onLine()` is the
+      // offline tiebreaker and the only one, exactly as `bodyFailure` above
+      // already has it.
+      const kind = onLine() ? "blocked" : "offline";
       throw new FetchFailure(kind, url, {
         status: direct.response?.status,
         via: "proxy",

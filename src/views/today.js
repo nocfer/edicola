@@ -1351,8 +1351,16 @@ function emptyBody(model) {
   }
   if (!state.online) return emptyState(t("today.offlineEmpty"));
   const neverSynced = screen.publications.every((p) => !p.lastSyncedAt);
+  if (neverSynced) return emptyState(t("today.neverSynced"), refreshAction());
+  // `lastSyncedAt` is written whether the Feed answered or not, so a Sync in
+  // which every Publication failed looks exactly like a quiet news day from
+  // here. Saying "nothing came through, try again later" to a reader whose
+  // Proxy is dead sends them to wait for news that will never arrive, when
+  // the fix is one screen away. Only when every one of them failed: a single
+  // dead Feed among ten is not worth alarming anybody about.
+  const allFailed = screen.publications.every((p) => p.lastError);
   return emptyState(
-    neverSynced ? t("today.neverSynced") : t("today.empty"),
+    allFailed ? t("today.allFailed") : t("today.empty"),
     refreshAction(),
   );
 }

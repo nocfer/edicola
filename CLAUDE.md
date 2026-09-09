@@ -60,6 +60,36 @@ that repo is the reference implementation.
   `edicola.viewmode`; `--offline` cuts the network **and** clears the HTTP cache
   before navigating, which is what makes the Cover-dominant offline feed
   actually appear instead of a picture served from the last run.
+- **Product QA against the live web**: `npm start`, then `node tools/qa-run.mjs
+  [--only id,id] [--no-shots] [--proxy '<template>'] [--write-baseline]`. It
+  walks the Catalog one Publication at a time, Syncs only that one, runs the
+  mechanical checks in the page and photographs Today in both View Modes plus
+  the Reader. It adds nothing to the app to be testable: the page serves ES
+  modules, so an eval can `import('/src/sync-client.js')` and call the real
+  Sync. **It starts its own relay on localhost** and points the app at it,
+  because direct fetches are CORS-blocked by design (ADR-0001) and the shipped
+  default relay is a rate-limited public Worker — pointed at that, every
+  Publication fails identically and the run measures the relay, not the
+  product. `--shipped-proxy` checks the shipped default is still alive.
+  `test/qa-baseline.json` holds the
+  expected article rate per Publication, because the corpus is live news and an
+  absolute rate means nothing on its own (la Repubblica is paywalled and
+  measures about 30%, nearly all of the rest `too-short`, which ADR-0004 says
+  is correct). The run reports deltas against it. **The rate is successes over
+  the Articles Sync ATTEMPTED**, not over every Item: Retention caps the
+  prefetch at ten per Publication, so scoring against all thirty Items of a
+  Feed scores the Retention setting instead of the Publication.
+- **`node tools/qa-diagnose.mjs <url>` (or `--publication <id>`) explains one
+  failure.** Node has no CORS, so it fetches the same Original directly and runs
+  the same `extractArticle`. Extraction works there and the app got nothing:
+  transport, i.e. the Proxy. `too-short` on a real article: a paywall teaser,
+  ADR-0004 says we stop. `no-content`: Readability found no prose on a page that
+  loaded, which is ours to fix — `--save <name>` keeps the HTML as a fixture.
+- **QA has a mechanical half and a judgement half.** `tools/qa-checks.js` holds
+  the mechanical one (duplicated hero image, control with no accessible name,
+  i18n key on screen), tested in `test/qa-checks.test.js`. The screenshots hold
+  the other. Judgement over thirty Publications is expensive and drifts, so
+  **a judgement finding seen twice becomes a check in `qa-checks.js`.**
 - **After any Shell change run `npm run stamp`.** It rewrites `CACHE` in `sw.js`
   from a hash of the `SHELL` files; CI fails on a stale stamp. If you add or
   remove a Shell file, update `SHELL` in `sw.js`, then stamp. **Format first,

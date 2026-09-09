@@ -212,6 +212,76 @@ and opens a `needs-triage` issue when a Feed dies. Fixing one means finding the
 publisher's new advertised Feed, or removing the entry and adding it to the
 omissions table in `docs/catalog.md` with what you saw.
 
+## Product QA against the live web
+
+Every gate above runs against fixtures. None of them says whether a reader who
+switches on La Stampa this morning gets Articles. `tools/qa-run.mjs` answers
+that: it walks the Catalog one Publication at a time, enables it, Syncs only
+it, asks IndexedDB what arrived, and photographs Today in both View Modes and
+the Reader on one Article.
+
+```
+npm start                                   # it drives the real app, so serve it
+npm run qa                                  # every Publication
+node tools/qa-run.mjs --only open --no-shots
+node tools/qa-run.mjs --no-shots --write-baseline
+```
+
+It adds nothing to the app to be testable. The page serves ES modules over
+HTTP, so an evaluated expression can `import('/src/sync-client.js')` and call
+the real Sync through the real fetcher — there is no QA-only code path, and
+nothing is stashed on `window`.
+
+**The run brings its own Proxy.** Direct fetches are CORS-blocked by design
+(ADR-0001), and the shipped default relay is a shared public Worker that is
+regularly rate-limited — pointed at a rate-limited relay, every Publication
+fails for the same uninteresting reason and the run measures the relay instead
+of the product. So `qa-run.mjs` starts one on localhost for the life of the run
+(same contract as [docs/self-hosted-proxy.md](docs/self-hosted-proxy.md), no
+account, no setup) and points the app at it. It is QA tooling and never a
+shipped default. `--shipped-proxy` uses whatever the app is configured with
+instead, which is how you check the shipped default is still alive; `--proxy
+'<template>'` names your own.
+
+**A run has two halves, and they must not be confused.** The mechanical half is
+`tools/qa-checks.js` — a duplicated hero image, a control with no accessible
+name, an i18n key rendered instead of its translation — tested in
+`test/qa-checks.test.js` and free to re-run. The other half is judgement, from
+the screenshots: does the crop make sense, does this read like an article, is
+the Summary-only copy honest. Judgement over thirty Publications is expensive
+and its standards drift between runs, so **when a judgement finding shows up
+twice, write the check and stop paying for it.**
+
+**A Publication is scored on the Articles Sync attempted**, not on every Item
+it stored. Retention caps the prefetch at ten per Publication, so a Feed with
+thirty Items always has a tail nothing touched: ANSA reads 9/28 scored that way
+and 9/10 scored honestly, and only one of those numbers is about ANSA.
+
+**`test/qa-baseline.json` is what makes this a regression test.** The corpus is
+live news, so two runs differ because the news differs, and an absolute rate
+means nothing on its own: la Repubblica is paywalled and measures about 30%,
+almost all of the rest `too-short`, which is correct under ADR-0004 rather than
+a bug. The baseline records the expected rate per Publication and the run
+reports the delta against it. Without it every run re-argues the same thirty
+questions. Re-record it with `--write-baseline` when a rate moves for a reason
+you have checked, and say so in the pull request.
+
+`tools/qa-diagnose.mjs` explains one failure. Node has no CORS, so it fetches
+the same Original directly and runs the same `extractArticle` over it, and the
+two answers together name the layer at fault:
+
+```
+node tools/qa-diagnose.mjs --publication open        # its failing sample from the last run
+node tools/qa-diagnose.mjs <url> --save <name>       # keep the HTML as a fixture
+```
+
+| here | verdict |
+| --- | --- |
+| the fetch fails too | the site refuses everyone; Summary-only is honest |
+| extraction works | transport — the Proxy or CORS, not Extraction |
+| `too-short` on a real article | a paywall teaser; ADR-0004 says we stop |
+| `no-content` | Readability found no prose on a page that loaded: ours to fix |
+
 ## How work is planned
 
 Issues and specs are markdown files under `.scratch/<feature-slug>/`, not a

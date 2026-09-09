@@ -782,6 +782,13 @@ button {
   font-size: var(--fs-caption);
   font-variant-numeric: tabular-nums;
 }
+/* 44px, not `--icon`'s 40: it sits beside the View Mode pill, which the design
+   brief's 44px touch floor just grew, and a 40px circle next to a 44px pill
+   reads as a mistake. `--icon` keeps its 40px for every older screen. */
+.today__refresh {
+  width: 44px;
+  min-height: 44px;
+}
 .today__refresh .ico {
   font-size: var(--fs-lead);
   line-height: 1;
@@ -821,11 +828,16 @@ button {
 .today__modes--feed::before {
   transform: translateX(calc(100% + 2px));
 }
+/* 44px and not the board's 38: the design brief puts the floor for a touch
+   target at 44px, and each half of this pair is what a finger actually presses
+   even though the pill around them measured 44 on the board. The refresh
+   beside it takes the same size so the header row still reads as one row —
+   it is `--tap` rather than the 40px `--icon` for exactly this reason. */
 .today__mode {
   position: relative;
   justify-content: center;
   width: 44px;
-  min-height: 38px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: transparent;

@@ -51,6 +51,8 @@ export const en = {
   "today.offlineEmpty":
     "You are offline and nothing has been downloaded yet. Connect once and Edicola fills up.",
   "today.empty": "Nothing came through on the last refresh. Try again later.",
+  "today.allFailed":
+    "Every Publication failed on the last refresh, so this is not a quiet news day. Edicola reaches publishers through a Proxy: check it in Settings.",
   "today.emptyFilter.one": "Nothing from {name} inside the last day.",
   "today.emptyFilter.other":
     "Nothing from {name} inside the last {count} days.",
@@ -391,6 +393,8 @@ export const it = {
     "Sei offline e non è ancora stato scaricato nulla. Collegati una volta e l'edicola si riempie.",
   "today.empty":
     "Nell'ultimo aggiornamento non è arrivato nulla. Riprova più tardi.",
+  "today.allFailed":
+    "Nessuna testata ha risposto all'ultimo aggiornamento: non è una giornata povera di notizie. Edicola raggiunge gli editori tramite un Proxy: controllalo nelle Impostazioni.",
   "today.emptyFilter.one": "Niente da {name} nell'ultimo giorno.",
   "today.emptyFilter.other": "Niente da {name} negli ultimi {count} giorni.",
   "today.today": "Oggi",
