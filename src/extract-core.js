@@ -44,6 +44,15 @@ const MAX_INLINE_DATA_IMAGE_CHARS = 32 * 1024;
 const MAX_LINK_DENSITY = 0.5;
 
 /**
+ * Shortest headline, in distinctive words, the off-topic test will judge. A
+ * headline with fewer than this has too little to disagree with.
+ */
+const MIN_HEADLINE_WORDS = 4;
+
+/** The separators publishers hang a section and a site name off a title with. */
+const TITLE_SEPARATOR = /\s+[|\u00b7\u2013\u2014]\s+|\s+-\s+/;
+
+/**
  * @typedef {object} Article
  * @property {boolean} ok True when the Extraction is good enough to store as an Article.
  * @property {string} title Article title, plain text ("" when unknown).
@@ -246,7 +255,8 @@ const SUMMARY_PURIFY_CONFIG = Object.freeze({
  *
  * `ok` is true when the sanitized text has at least `MIN_ARTICLE_WORDS` words.
  * `reason` is `"no-content"` when Readability found nothing, the text is empty,
- * or the text is mostly link labels (a listing, not prose); `"too-short"` when
+ * it is mostly link labels (a listing, not prose), or it is about something
+ * else entirely (the page's own furniture, not the piece); `"too-short"` when
  * there is prose but under the threshold. `html` is returned in every case it
  * exists so the caller may still show it.
  *
@@ -287,12 +297,14 @@ export function extractArticle(html, { url, windowFor, Readability, purify }) {
 
   /** @type {Article["reason"]} */
   let reason = null;
+  const title = collapseWhitespace(parsed.title || "") || documentTitle;
   if (wordCount === 0 || linkDensity > MAX_LINK_DENSITY) reason = "no-content";
   else if (wordCount < MIN_ORIGINAL_WORDS) reason = "too-short";
+  else if (sharesNothingWithHeadline(title, text)) reason = "no-content";
 
   return {
     ok: reason === null,
-    title: collapseWhitespace(parsed.title || "") || documentTitle,
+    title,
     byline: collapseWhitespace(parsed.byline || "") || null,
     excerpt: collapseWhitespace(parsed.excerpt || ""),
     html: body.innerHTML,
@@ -773,6 +785,60 @@ function countWords(text) {
   return text
     ? text.split(" ").filter((w) => /\p{L}|\p{N}/u.test(w)).length
     : 0;
+}
+
+/**
+ * Words a headline and a body can honestly be compared on: four letters or
+ * more, lower-cased with the accents folded off, de-duplicated. Shorter words
+ * are dropped because half of an Italian or English headline is articles and
+ * prepositions, which every block on a page contains.
+ * @param {string} value
+ * @returns {Set<string>}
+ */
+function distinctiveWords(value) {
+  return new Set(
+    value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter((word) => word.length >= 4),
+  );
+}
+
+/**
+ * True when the extracted prose has not one distinctive word in common with
+ * the page's headline: Readability settled on a block that is not the Article.
+ *
+ * ANSA's photogallery pages carry no prose at all, so the winning candidate is
+ * the cookie-consent wall and the subscription pitch under it - 211 words,
+ * three times the floor, every one of them about cookies and none about the
+ * piece. The Reader showed it as the Article. A word count cannot see that and
+ * link density cannot either, because the wall is mostly plain text.
+ *
+ * The headline is the LONGEST segment of the title, not the whole of it: the
+ * site name a publisher hangs off the end ("... - Primopiano - Ansa.it")
+ * appears in that publisher's own boilerplate, and would match it.
+ *
+ * Measured over the whole Catalog, three Originals per Publication: every
+ * Article that clears the word floor shares at least one headline word with
+ * its body, and the only one this rejects is the ANSA wall.
+ * @param {string} title
+ * @param {string} text Collapsed plain text of the extracted body.
+ * @returns {boolean}
+ */
+function sharesNothingWithHeadline(title, text) {
+  const headline = title
+    .split(TITLE_SEPARATOR)
+    .reduce(
+      (longest, part) => (part.length > longest.length ? part : longest),
+      "",
+    );
+  const headlineWords = distinctiveWords(headline);
+  if (headlineWords.size < MIN_HEADLINE_WORDS) return false;
+  const bodyWords = distinctiveWords(text);
+  for (const word of headlineWords) if (bodyWords.has(word)) return false;
+  return true;
 }
 
 /**

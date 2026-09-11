@@ -88,6 +88,35 @@ test("a category index page with no article body is no-content", () => {
   assert.doesNotMatch(a.html, DANGEROUS);
 });
 
+test("an Original whose winning block is the consent wall is no-content", () => {
+  // ANSA photogallery pages carry captions, not prose, so Readability settles
+  // on the cookie wall and the subscription pitch: 211 words, three times the
+  // floor, and not one of them about the piece. The reader was shown it as the
+  // Article.
+  const a = extract(
+    fixture("ansa-photogallery-consent-wall.html"),
+    "https://www.ansa.it/sito/photogallery/primopiano/2026/09/11/addio-a-emma-bonino-una-vita-di-battaglie-politiche-e-impegno_2cf75eb3-592d-41db-9122-1174ffb9a6a7.html",
+  );
+  assert.equal(a.ok, false);
+  assert.equal(a.reason, "no-content");
+  assert.ok(a.wordCount > MIN_ORIGINAL_WORDS, `words ${a.wordCount}`);
+  assert.match(a.title, /Emma Bonino/);
+});
+
+test("a headline the body does share a word with is kept", () => {
+  // The same rule must not reject an Article for using different words in its
+  // first paragraph: one distinctive word in common is enough.
+  const html = proseOriginal(
+    "<p>The inquiry into the harbour reopened on Tuesday.</p>",
+  ).replace(
+    "<title>Synthetic</title>",
+    "<title>Inquiry into the harbour reopens - Section - Site</title>",
+  );
+  const a = extract(html, "https://example.test/harbour");
+  assert.equal(a.ok, true);
+  assert.equal(a.reason, null);
+});
+
 test("an empty document is no-content with no HTML", () => {
   const a = extract(
     "<!doctype html><html><head><title>Empty</title></head><body></body></html>",
