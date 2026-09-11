@@ -224,7 +224,17 @@ export async function launch({
       cdp.close();
       chrome.kill();
       await exited;
-      if (throwaway) rmSync(profile, { recursive: true, force: true });
+      // Chrome is still flushing its profile for a moment after the process
+      // exits, so on Linux the first rmdir loses the race with ENOTEMPTY and
+      // failed the whole run over a temp directory. Node retries for us.
+      if (throwaway) {
+        rmSync(profile, {
+          recursive: true,
+          force: true,
+          maxRetries: 10,
+          retryDelay: 100,
+        });
+      }
     },
   };
 }
