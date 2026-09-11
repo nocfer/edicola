@@ -280,12 +280,16 @@ async function main() {
         browser.cdp,
         `const { t } = await import('/src/i18n.js');
          const { checkRendered } = await import('/tools/qa-checks.js');
-         const text = document.body.innerText || '';
+         // innerText is RENDERED text, so a heading the stylesheet sets in
+         // uppercase arrives uppercased and no dictionary string matches it.
+         // Both sides are lower-cased before comparing; a screen never proves
+         // anything by the case of its copy.
+         const text = (document.body.innerText || '').toLowerCase();
          const resolve = (key) => {
            const value = t(key);
            // A key that resolves to itself is not translated, and asserting on
            // it would pass against any screen at all.
-           return value === key ? null : value;
+           return value === key ? null : value.toLowerCase();
          };
          const wanted = ${JSON.stringify(scenario.expect ?? null)};
          const unwanted = ${JSON.stringify(scenario.absent ?? [])};
