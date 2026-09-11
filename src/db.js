@@ -78,6 +78,13 @@ export const META_KEYS = Object.freeze({
  * @property {number} readingPosition Fraction of the Article last scrolled to.
  * @property {boolean} summaryOnly No Article: Extraction failed or yielded too little.
  * @property {string | null} summaryOnlyReason Why, e.g. `too-short`, `blocked`.
+ * @property {number} [attempts] Article fetches a Sync has spent on this Item.
+ *   A Summary-only Item is retried until this reaches `MAX_ARTICLE_ATTEMPTS`,
+ *   because most reasons describe one attempt and not the page: a publisher
+ *   was measured serving the Article on some requests and a stub on others.
+ *   Like `seen` this is a plain number and NOT indexed, so it needed no
+ *   `db.version(n)` block; a row written before it existed reads `undefined`,
+ *   which compares as zero. The Reader's on-demand fetch does not spend one.
  * @property {boolean} hasArticle An Article is stored for this Item.
  * @property {number} fetchedAt Epoch ms the Sync first stored this Item.
  */

@@ -32,7 +32,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { MIN_ARTICLE_WORDS, extractArticle } from "../src/extract-core.js";
+import { MIN_ORIGINAL_WORDS, extractArticle } from "../src/extract-core.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
 const REPORT_PATH = join(ROOT, "qa/report.json");
@@ -183,7 +183,7 @@ async function main() {
 
   if (article.reason === "too-short") {
     console.log(
-      `verdict    The page really does carry only ${article.wordCount} words of prose, under the ${MIN_ARTICLE_WORDS}-word floor.`,
+      `verdict    The page really does carry only ${article.wordCount} words of prose, under the ${MIN_ORIGINAL_WORDS}-word floor.`,
     );
     console.log(
       "           Usually a paywall teaser. ADR-0004 says we stop here, so Summary-only is correct",

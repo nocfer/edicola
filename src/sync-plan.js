@@ -6,6 +6,7 @@
 
 import {
   DEFAULT_RETENTION,
+  MAX_ARTICLE_ATTEMPTS,
   compareItemsNewestFirst,
   groupByPublication,
   timeOf,
@@ -15,6 +16,29 @@ import {
 
 /** Milliseconds in a day, for the Eviction age cutoff. */
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Summary-only reasons a retry cannot change. `no-link` has no URL to try and
+ * `not-found` is a 404, which `fetcher.js` already treats as final and never
+ * retries through the Proxy. Every other reason describes one attempt and not
+ * the page: `too-short` looks terminal and is not, because a publisher was
+ * measured serving the Article on some requests and a 39-word stub on others.
+ */
+const TERMINAL_REASONS = new Set(["no-link", "not-found"]);
+
+/**
+ * Whether this Item is still worth an Article fetch. An Item that was never
+ * marked Summary-only always is; one that was gets `MAX_ARTICLE_ATTEMPTS`
+ * unless its reason is terminal.
+ *
+ * @param {ItemRecord} item
+ * @returns {boolean}
+ */
+function worthAnotherAttempt(item) {
+  if (!item.summaryOnly) return true;
+  if (TERMINAL_REASONS.has(String(item.summaryOnlyReason))) return false;
+  return (item.attempts ?? 0) < MAX_ARTICLE_ATTEMPTS;
+}
 
 /**
  * The minimal Publication shape the planners consume. Ticket 07 aligns the
@@ -71,7 +95,8 @@ function comparePublications(a, b) {
 /**
  * One interleaved queue of Items whose Articles a Sync should Pre-fetch.
  *
- * Per Publication only Items with no Article, not marked Summary-only, and
+ * Per Publication only Items with no Article, still worth another attempt
+ * (see `worthAnotherAttempt`), and
  * young enough to survive Eviction are considered, newest first, capped at
  * `prefetchPerPublication`. The capped lists are then merged round-robin: the
  * newest Item of each Publication in Publication order, then the second newest
@@ -107,7 +132,7 @@ export function planArticleFetches(itemsByPublication, limits = {}) {
       .filter(
         (item) =>
           !item.hasArticle &&
-          !item.summaryOnly &&
+          worthAnotherAttempt(item) &&
           timeOf(item.publishedAt) >= cutoff,
       )
       .sort(compareItemsNewestFirst)

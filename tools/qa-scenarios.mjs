@@ -123,6 +123,21 @@ const SCENARIOS = [
     expect: "reader.summaryOnlyBody",
   },
   {
+    name: "article-not-fetched-reader",
+    why:
+      "Retention caps Pre-fetching per Publication, so most of a Feed has no " +
+      "Article and no failure either. That state had no scenario, which is how " +
+      "a headline calling it Summary-only shipped: nothing was withheld.",
+    route: null,
+    // No `link` fixture and no Summary-only flag: the Item is simply one
+    // Pre-fetching never reached, which is what two thirds of a synced Feed
+    // looks like.
+    seed: `await db.publications.put(publication({ lastSyncedAt: now - 60000 }));
+           await db.items.put(item({ link: null }));
+           return 'test:1';`,
+    expect: "reader.notFetched",
+  },
+  {
     name: "saved-empty",
     why: "The Saved screen with nothing saved is a state no live Sync ever produces.",
     route: "#/saved",

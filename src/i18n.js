@@ -331,7 +331,7 @@ export const en = {
   "reader.saveAria": "Save this Item",
   "reader.unsaveAria": "Remove from Saved",
   "reader.summaryTitle": "Summary",
-  "reader.summaryOnly": "Summary only",
+  "reader.noArticleHead": "No full article",
   "reader.summaryOnlyBody":
     "This publisher does not send the full article to non-subscribers.",
   "reader.noSummary": "This Item came without a Summary as well.",
@@ -666,7 +666,7 @@ export const it = {
   "reader.saveAria": "Salva questo titolo",
   "reader.unsaveAria": "Togli dai salvati",
   "reader.summaryTitle": "Sommario",
-  "reader.summaryOnly": "Solo sommario",
+  "reader.noArticleHead": "Nessun articolo completo",
   "reader.summaryOnlyBody":
     "Questa testata non invia l'articolo completo a chi non è abbonato.",
   "reader.noSummary": "Questo titolo è arrivato anche senza sommario.",

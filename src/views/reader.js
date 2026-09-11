@@ -52,6 +52,7 @@ import {
   scrollTargetFor,
 } from "../reading-position.js";
 import { html, nothing, unsafeHTML } from "../render.js";
+import { MAX_ARTICLE_ATTEMPTS } from "../retention.js";
 import { goBack, hrefFor, parseRoute } from "../router.js";
 import { pageFetcher } from "../settings.js";
 import { state, update } from "../state.js";
@@ -654,27 +655,36 @@ function summaryBlock() {
 /**
  * Why there is no Article, and the Original (ADR-0004).
  *
- * Which sentence is honest depends on what happened. Extraction that ran and
- * found little or nothing means the publisher did not send the full Article —
- * that is the paywall case the ADR is about. A request that never got an
- * answer (offline, a timeout, a refusal, a dead page) means only that the
- * Article could not be fetched; blaming a paywall there would be a lie in the
- * other direction, as would blaming anyone for an Item Extraction has simply
- * not reached yet.
+ * Which sentence is honest depends on what happened, and the headline is part
+ * of the claim. An Item Pre-fetching never reached is not Summary-only at all:
+ * Retention caps how many Articles a Sync fetches per Publication, so most of
+ * a Feed is routinely in that state, and heading it "Summary only" told the
+ * reader a publisher had withheld something nobody ever asked for.
+ *
+ * Below that, Extraction which ran and found little means the publisher did
+ * not send the full Article — the paywall case the ADR is about. But that
+ * sentence is only honest once Sync has stopped trying. `too-short` was
+ * measured flipping between a whole Article and a 39-word stub on identical
+ * requests, so while attempts remain the app has not reached the conclusion
+ * the sentence states. A fetch the reader triggered from this screen settles
+ * it immediately: they asked, it ran, and nothing is pending behind it.
+ *
+ * Every other reason is a request that failed, which blames nobody.
  */
 function fallbackCard() {
   const item = /** @type {ItemRow} */ (screen.item);
   const reason = screen.fetchReason || item.summaryOnlyReason;
   const offline = !state.online;
-  const body = !reason
-    ? "reader.notFetched"
-    : WITHHELD_REASONS.has(reason)
-      ? "reader.summaryOnlyBody"
-      : "reader.fetchFailed";
+  const settled =
+    Boolean(screen.fetchReason) || (item.attempts ?? 0) >= MAX_ARTICLE_ATTEMPTS;
+  const withheld = Boolean(reason) && WITHHELD_REASONS.has(reason) && settled;
+  const body = withheld ? "reader.summaryOnlyBody" : "reader.fetchFailed";
   return html`
     <div class="card reader__fallback">
-      <p class="reader__fallbackhead">${t("reader.summaryOnly")}</p>
-      <p class="reader__fallbackbody">${t(body)}</p>
+      <p class="reader__fallbackhead">
+        ${t(reason ? "reader.noArticleHead" : "reader.notFetched")}
+      </p>
+      ${reason ? html`<p class="reader__fallbackbody">${t(body)}</p>` : nothing}
       ${
         reason && KNOWN_REASONS.has(reason)
           ? html`<p class="reader__reason">${t(`reader.reason.${reason}`)}</p>`

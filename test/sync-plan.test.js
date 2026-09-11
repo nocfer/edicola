@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { planFeedFetches, planArticleFetches } from "../src/sync-plan.js";
-import { DEFAULT_RETENTION } from "../src/retention.js";
+import { DEFAULT_RETENTION, MAX_ARTICLE_ATTEMPTS } from "../src/retention.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const T0 = Date.UTC(2026, 0, 31, 12, 0, 0);
@@ -113,13 +113,72 @@ test("planArticleFetches enforces a custom cap per Publication", () => {
   );
 });
 
-test("planArticleFetches skips Items that have an Article or are Summary-only", () => {
+test("planArticleFetches skips Items that already have an Article", () => {
   const items = [
     ...itemsFor("a", 2),
     { id: "a-has", publicationId: "a", publishedAt: T0 + 1, hasArticle: true },
-    { id: "a-sum", publicationId: "a", publishedAt: T0 + 2, summaryOnly: true },
   ];
   assert.deepEqual(ids(planArticles([items])), ["a-00", "a-01"]);
+});
+
+/**
+ * A Summary-only mark used to be final, which cost the reader every Article
+ * whose Original happened to answer badly once: one publisher was measured
+ * serving the whole Article on some requests and a 39-word stub on others, and
+ * the losing draw was permanent. So the mark is now worth
+ * `MAX_ARTICLE_ATTEMPTS` tries — except for the two reasons no retry can
+ * change, which must not be tried again at any count.
+ */
+test("planArticleFetches retries a Summary-only Item until its attempts run out", () => {
+  const summaryOnly = (id, extra) => ({
+    id,
+    publicationId: "a",
+    publishedAt: T0,
+    summaryOnly: true,
+    summaryOnlyReason: "too-short",
+    ...extra,
+  });
+  const items = [
+    summaryOnly("a-fresh"),
+    summaryOnly("a-one", { attempts: 1 }),
+    summaryOnly("a-last", { attempts: MAX_ARTICLE_ATTEMPTS - 1 }),
+    summaryOnly("a-spent", { attempts: MAX_ARTICLE_ATTEMPTS }),
+    summaryOnly("a-over", { attempts: MAX_ARTICLE_ATTEMPTS + 1 }),
+  ];
+  // Equal dates, so the queue order is the id tie-break; this test is about
+  // which Items survive the filter.
+  assert.deepEqual(ids(planArticles([items])).sort(), [
+    "a-fresh",
+    "a-last",
+    "a-one",
+  ]);
+});
+
+test("planArticleFetches never retries a terminal reason, whatever the count", () => {
+  const items = [
+    {
+      id: "a-nolink",
+      publicationId: "a",
+      publishedAt: T0,
+      summaryOnly: true,
+      summaryOnlyReason: "no-link",
+    },
+    {
+      id: "a-gone",
+      publicationId: "a",
+      publishedAt: T0,
+      summaryOnly: true,
+      summaryOnlyReason: "not-found",
+    },
+    {
+      id: "a-blocked",
+      publicationId: "a",
+      publishedAt: T0,
+      summaryOnly: true,
+      summaryOnlyReason: "blocked",
+    },
+  ];
+  assert.deepEqual(ids(planArticles([items])), ["a-blocked"]);
 });
 
 test("planArticleFetches takes newest first within a Publication regardless of input order", () => {

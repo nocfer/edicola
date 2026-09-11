@@ -367,7 +367,7 @@ export async function runSync({
       }
     }
     if (!item.link) {
-      await store.markSummaryOnly(item.id, "no-link");
+      await store.markSummaryOnly(item.id, "no-link", { countAttempt: true });
       summary.articlesSummaryOnly += 1;
       return;
     }
@@ -376,13 +376,17 @@ export async function runSync({
     try {
       page = await fetchTextTwice(item.link);
     } catch (error) {
-      await store.markSummaryOnly(item.id, reasonOf(error));
+      await store.markSummaryOnly(item.id, reasonOf(error), {
+        countAttempt: true,
+      });
       summary.articlesSummaryOnly += 1;
       return;
     }
     const article = extractArticle(page.text, page.finalUrl || item.link);
     if (!article.ok) {
-      await store.markSummaryOnly(item.id, article.reason || "no-content");
+      await store.markSummaryOnly(item.id, article.reason || "no-content", {
+        countAttempt: true,
+      });
       summary.articlesSummaryOnly += 1;
       return;
     }

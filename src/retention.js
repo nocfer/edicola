@@ -18,8 +18,13 @@
  *   strings and Dates are tolerated; a missing or invalid date sorts oldest.
  * @property {boolean} [saved] Saved Items are never trimmed or Evicted.
  * @property {boolean} [hasArticle] An Article has been stored for this Item.
- * @property {boolean} [summaryOnly] Extraction failed or yielded too little;
- *   the Item is not Pre-fetched again.
+ * @property {boolean} [summaryOnly] Extraction failed or yielded too little.
+ *   No longer final on its own: see `attempts`.
+ * @property {string | null} [summaryOnlyReason] Why there is no Article. Two
+ *   reasons are final whatever the count (`no-link`, `not-found`); every other
+ *   reason describes one attempt, not the page.
+ * @property {number} [attempts] Article fetches a Sync has spent on this Item.
+ *   Absent on rows written before the field existed, which reads as zero.
  */
 
 /**
@@ -44,6 +49,19 @@ export const DEFAULT_RETENTION = Object.freeze({
   keepPerPublication: 50,
   prefetchPerPublication: 10,
 });
+
+/**
+ * Article fetches a Sync spends on one Item before its failure is taken as
+ * final. NOT a Retention limit the reader can change: it is a property of how
+ * unreliable publishers are, not of how much the reader wants stored.
+ *
+ * Three, because a Publication was measured serving the Article on roughly
+ * three of five identical requests and a 39-word stub on the rest, so three
+ * attempts leave about 6% of its Items unrecovered where one attempt lost 40%.
+ * The stably-gated Publications pay two extra requests per Item, once, and
+ * then fall out of the candidate set for good.
+ */
+export const MAX_ARTICLE_ATTEMPTS = 3;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

@@ -54,7 +54,7 @@ import { DEFAULT_RETENTION, planItemTrim } from "./retention.js";
  *   Summary-only mark.
  * @property {(itemId: string, images: ImageInput[]) => Promise<number>} putImages
  *   Store an Article's images; resolves with the bytes written.
- * @property {(itemId: string, reason: string) => Promise<void>} markSummaryOnly
+ * @property {(itemId: string, reason: string, options?: { countAttempt?: boolean }) => Promise<void>} markSummaryOnly
  *   Record that this Item has no Article, and why.
  * @property {(publicationId: string, status: PublicationSyncStatus) => Promise<void>} setPublicationSynced
  * @property {(at: number) => Promise<void>} setLastSyncAt
@@ -141,9 +141,13 @@ export function createSyncStore(db = getDatabase()) {
           .where("publicationId")
           .equals(id)
           .toArray();
+        // Only the cheap, unambiguous condition is applied here. Whether a
+        // Summary-only Item is still worth another attempt is
+        // `planArticleFetches`'s decision, and duplicating it here is how a
+        // retry policy ends up half-applied.
         byPublication.set(
           id,
-          items.filter((item) => !item.hasArticle && !item.summaryOnly),
+          items.filter((item) => !item.hasArticle),
         );
       }
       return byPublication;
@@ -177,12 +181,21 @@ export function createSyncStore(db = getDatabase()) {
       return rows.reduce((total, row) => total + row.bytes, 0);
     },
 
-    async markSummaryOnly(itemId, reason) {
-      await db.items.update(itemId, {
-        summaryOnly: true,
-        summaryOnlyReason: reason,
-        hasArticle: false,
-      });
+    async markSummaryOnly(itemId, reason, { countAttempt = false } = {}) {
+      // `countAttempt` is opt-in rather than automatic because the two callers
+      // mean different things. A Sync is spending a budget, so it counts. The
+      // Reader tapping "Fetch the full article" is the reader asking directly;
+      // counting that would let three taps condemn the Item permanently, which
+      // is the reverse of what the retry policy is for.
+      await db.items
+        .where(":id")
+        .equals(itemId)
+        .modify((row) => {
+          row.summaryOnly = true;
+          row.summaryOnlyReason = reason;
+          row.hasArticle = false;
+          if (countAttempt) row.attempts = (row.attempts ?? 0) + 1;
+        });
     },
 
     async setPublicationSynced(publicationId, status) {

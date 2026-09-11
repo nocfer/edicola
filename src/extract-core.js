@@ -8,8 +8,30 @@
 // DOMPurify with an explicit allowlist -> harden links, filter images, count
 // words -> decide `ok`.
 
-/** Minimum words for an Extraction to count as an Article. */
+/**
+ * Minimum words for a body the Feed itself carried to count as an Article
+ * (ADR-0013). High on purpose: a Feed body is accepted INSTEAD of fetching the
+ * Original, so a low floor here trades a whole Article for a blurb. Also the
+ * floor `tools/check-catalog.mjs` audits the Catalog's `truncated` flag
+ * against.
+ */
 export const MIN_ARTICLE_WORDS = 200;
+
+/**
+ * Minimum words for an Extraction of an Original to count as an Article.
+ * Below this the body is taken as a teaser rather than a short Article.
+ *
+ * Lower than `MIN_ARTICLE_WORDS` because it answers a different question. Here
+ * the Original has already been fetched, so there is nothing better to hold
+ * out for, and the cost of the floor is discarding a complete Article. A wire
+ * service's finished dispatches were measured at 70, 105 and 150 words while
+ * one publisher's paywall teasers sat between 50 and 66, so 200 threw away
+ * whole Articles and told the reader a subscription was the reason.
+ *
+ * The margin is four words, from 16 failures in one run. A calibration, not a
+ * law: `test/qa-baseline.json` is what notices if it drifts.
+ */
+export const MIN_ORIGINAL_WORDS = 70;
 
 /** Largest inline `data:` image kept in Article HTML, in characters (~bytes). */
 const MAX_INLINE_DATA_IMAGE_CHARS = 32 * 1024;
@@ -266,7 +288,7 @@ export function extractArticle(html, { url, windowFor, Readability, purify }) {
   /** @type {Article["reason"]} */
   let reason = null;
   if (wordCount === 0 || linkDensity > MAX_LINK_DENSITY) reason = "no-content";
-  else if (wordCount < MIN_ARTICLE_WORDS) reason = "too-short";
+  else if (wordCount < MIN_ORIGINAL_WORDS) reason = "too-short";
 
   return {
     ok: reason === null,

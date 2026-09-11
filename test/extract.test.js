@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { windowFor, Readability, purifierFor } from "../tools/testing/dom.js";
 import {
   MIN_ARTICLE_WORDS,
+  MIN_ORIGINAL_WORDS,
   extractArticle,
   rewriteImageSources,
   sanitizeSummary,
@@ -70,7 +71,7 @@ test("a hard-paywalled Original whose anonymous response is a teaser is too-shor
   );
   assert.equal(a.ok, false);
   assert.equal(a.reason, "too-short");
-  assert.ok(a.wordCount > 0 && a.wordCount < MIN_ARTICLE_WORDS);
+  assert.ok(a.wordCount > 0 && a.wordCount < MIN_ORIGINAL_WORDS);
   assert.match(a.title, /Jaguar Land Rover/);
   assert.ok(a.html.length > 0, "the teaser HTML is still returned");
   assert.doesNotMatch(a.html, DANGEROUS);
@@ -250,11 +251,28 @@ test("an image the publisher never described gets an empty alt", () => {
 });
 
 test("too few words is too-short and still returns the HTML", () => {
-  const a = extract(proseOriginal("", 6), "https://example.test/short");
+  const a = extract(proseOriginal("", 4), "https://example.test/short");
   assert.equal(a.ok, false);
   assert.equal(a.reason, "too-short");
-  assert.ok(a.wordCount > 0 && a.wordCount < MIN_ARTICLE_WORDS);
+  assert.ok(a.wordCount > 0 && a.wordCount < MIN_ORIGINAL_WORDS);
   assert.ok(a.html.includes("Paragraph 0"));
+});
+
+/**
+ * The floor an Original is judged by is lower than the one a Feed body is
+ * judged by, because the two answer different questions. A wire service's
+ * finished dispatches were measured at 70, 105 and 150 words, and the old
+ * shared floor of 200 discarded them and told the reader a subscription was
+ * the reason.
+ */
+test("a complete article shorter than the Feed-body floor is still an Article", () => {
+  const a = extract(proseOriginal("", 6), "https://example.test/brief");
+  assert.ok(
+    a.wordCount >= MIN_ORIGINAL_WORDS && a.wordCount < MIN_ARTICLE_WORDS,
+    `words ${a.wordCount}`,
+  );
+  assert.equal(a.ok, true);
+  assert.equal(a.reason, null);
 });
 
 // --- rewriteImageSources ----------------------------------------------------------
