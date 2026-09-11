@@ -164,6 +164,8 @@ mid-expression (Biome's formatter relocates the JSDoc cast).
   screens: one route, one `today-model.js` computing both shapes from the same
   card objects, two templates that decide nothing. The choice is persisted in
   `localStorage` as `edicola.viewmode` and seeded in `main.js`'s boot block.
+  **Feed is the default**: only a stored `list` selects List, so the fallback
+  on both sides of that read (and `state.viewMode`) is Feed.
 - **The Story player is dark in both themes**, deliberately. Its `--scrim-ink`
   and `--scrim-flat` are defined once on bare `:root` and NOT redefined in the
   light block, because `--accent-ink` over a light scrim scores 1.6:1. This is

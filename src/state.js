@@ -88,7 +88,7 @@ export const state = {
   route: { name: "today", params: {}, path: "/" },
   theme: "system",
   lang: "en",
-  viewMode: "list",
+  viewMode: "feed",
   todayFilter: null,
   online: true,
   toast: null,

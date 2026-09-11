@@ -1696,7 +1696,8 @@ a.chip {
   background: var(--accent);
 }
 
-/* The picture, 4:5. With a photo it is the photo; without one it is a
+/* The picture, 1:1. The design allows 4:5 or square; square fits more of the
+   Feed on one screen. With a photo it is the photo; without one it is a
    generated Cover: the Publication's flat fill, its monogram as a watermark,
    and the headline set large ON the Cover - which is why the text block below
    omits the headline in that variant and prints it in the photo variant. The
@@ -1706,7 +1707,7 @@ a.chip {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 1 / 1;
   padding: var(--s-5);
   color: inherit;
   overflow: hidden;

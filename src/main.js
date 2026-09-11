@@ -43,12 +43,17 @@ function readThemePreference() {
   }
 }
 
-/** @returns {import('./state.js').ViewMode} */
+/**
+ * Today's View Mode, Feed unless the reader has chosen List. Feed is the
+ * default because it is the presentation the Catalog's pictures and Story
+ * rings are for; List is a preference, so only a stored "list" turns it on.
+ * @returns {import('./state.js').ViewMode}
+ */
 function readViewModePreference() {
   try {
-    return localStorage.getItem(VIEWMODE_KEY) === "feed" ? "feed" : "list";
+    return localStorage.getItem(VIEWMODE_KEY) === "list" ? "list" : "feed";
   } catch {
-    return "list";
+    return "feed";
   }
 }
 
