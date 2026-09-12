@@ -97,8 +97,8 @@ export function withViewTransition(mutate) {
  * the small thing that opened it, and settles into its own box. Used for the
  * Story player growing out of the ring that was tapped.
  *
- * Returns the `Animation` so the caller can `reverse()` it to close, which is
- * what makes the reader land back on the same ring rather than on a guess.
+ * Returns the `Animation` so the caller can `cancel()` it if a close
+ * interrupts the open.
  *
  * Under reduced motion this is a cross-fade of the same length as
  * `--dur-fast`: the panel still opens, it just does not travel.

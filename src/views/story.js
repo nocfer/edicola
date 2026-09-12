@@ -513,43 +513,25 @@ function installListeners() {
 /**
  * Leave the player: back to the feed, at the scroll position it kept.
  *
- * The panel plays its own opening backwards rather than a second animation
- * with inverted keyframes, so an open interrupted halfway closes from where it
- * actually got to and still lands on the ring it came from. The content
- * cross-fades out first, over `--dur-fast`, and the route change waits for
- * `finished` — leaving on the tap would take the panel out of the document
- * before it had shrunk anywhere.
+ * Close is a fast, independent fade — it cancels whatever open animation is
+ * still running rather than reversing it, so closing always takes the same
+ * short time regardless of how far the open had gotten.
  */
 function close() {
   if (closing) return;
   closing = true;
-  const anim = openAnim;
+  openAnim?.cancel();
   openAnim = null;
-  if (!anim) {
+  const panel = panelElement();
+  if (!panel?.animate || prefersReducedMotion()) {
     goBack();
     return;
   }
-  const panel = panelElement();
-  // The clip and the Cover colour go back on for the shrink. `playOpen` hands
-  // them to the stylesheet once the grow has finished, so a close after a
-  // completed open would otherwise shrink an unclipped `--scrim-ink` panel:
-  // the Frame photo pokes out of the animating rounded corners, and the panel
-  // lands on the ring in the wrong colour.
-  if (panel) {
-    panel.style.backgroundColor = `var(--cover-${currentReel().coverIndex})`;
-    panel.style.overflow = "hidden";
-  }
-  for (const child of Array.from(panel?.children ?? [])) {
-    child.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: ms("--dur-fast"),
-      easing: motionToken("--ease"),
-      fill: "both",
-    });
-  }
-  anim.reverse();
-  // Read after `reverse()`: an animation that had finished hands out a fresh
-  // `finished` promise when it starts playing again, and the settled one would
-  // resolve on the spot.
+  const anim = panel.animate([{ opacity: 1 }, { opacity: 0 }], {
+    duration: ms("--dur-fast"),
+    easing: motionToken("--ease-exit"),
+    fill: "both",
+  });
   anim.finished.then(goBack, goBack);
 }
 

@@ -134,7 +134,7 @@
       <div style="display:flex;flex-direction:column;gap:12px;width:342px">
         <div style="display:flex;flex-direction:column;gap:3px">
           <span style="font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#e0563a">D1 · Ring → Story · 540ms --ease-spring</span>
-          <span style="font-size:13px;line-height:1.45;color:#7d766f">The player grows out of the ring that opened it, keeping the Publication's Cover colour the whole way. Close reverses into the same ring, so the reader never loses their place in the row.</span>
+          <span style="font-size:13px;line-height:1.45;color:#7d766f">The player grows out of the ring that opened it, keeping the Publication's Cover colour the whole way. Close is a fast fade, independent of the open — quicker and simpler than mirroring the grow.</span>
         </div>
         <div id="m1-stage" style="position:relative;width:342px;height:440px;background:#121110;border:1px solid rgba(255,255,255,.14);border-radius:16px;overflow:hidden">
           <div style="display:flex;gap:14px;padding:20px 16px">
@@ -545,9 +545,8 @@ class Component extends DCLogic {
   closeStory() {
     const panel = this.q('#m1-panel');
     if (!panel || !this.storyAnim) return;
-    const inner = this.q('#m1-panel-inner');
-    inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.scale(120), easing: EASE, fill: 'both' });
-    this.storyAnim.reverse();
+    this.storyAnim.cancel();
+    this.storyAnim = panel.animate([{ opacity: 1 }, { opacity: 0 }], { duration: this.scale(120), easing: EASE, fill: 'both' });
     this.storyAnim.finished.then(() => { panel.style.display = 'none'; }).catch(() => {});
   }
 
