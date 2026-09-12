@@ -59,8 +59,8 @@ ranking cleverer than "newest first".
 ## Installing it
 
 The app runs at <https://nocfer.github.io/edicola/>, served by GitHub Pages
-from `main` — the same folder of files that is in this repository, with no
-build step in between.
+from `main` (the same folder of files that is in this repository, with no
+build step in between).
 
 Edicola is a static site with no build step, so any web server will serve it,
 GitHub Pages included. Open it in a browser and use the browser's own install
@@ -124,9 +124,8 @@ your own copy of Edicola so that nobody else can use it as an open proxy.
 deploy steps and the exact string to paste into Settings → Proxy. Save it there
 and the next Sync uses it; nothing else changes.
 
-If you would rather not, the reader-facing consequence of using the default is
-narrow but real: one third party learns which articles you open, and it can
-stop working without warning.
+If you would rather not, you accept two things: one third party learns which
+articles you open, and the relay can stop working without warning.
 
 ## Running it locally
 

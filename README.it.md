@@ -132,9 +132,8 @@ passaggi per pubblicarlo e la stringa esatta da incollare in Impostazioni →
 Proxy. Appena la salvi, la sincronizzazione successiva la usa, e non cambia
 nient'altro.
 
-Se preferisci lasciare il predefinito, la conseguenza è circoscritta ma reale:
-un servizio di terzi viene a sapere quali articoli apri, e può spegnersi senza
-preavviso.
+Se preferisci lasciare il predefinito, accetti due cose: un servizio di terzi
+viene a sapere quali articoli apri, e il relay può spegnersi senza preavviso.
 
 ## Avviare l'app in locale
 
