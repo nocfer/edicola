@@ -4,31 +4,12 @@
 // and these object URLs must be revoked afterwards.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { windowFor } from "../tools/testing/dom.js";
+import { fakeDb, windowFor } from "../tools/testing/dom.js";
 import { prepareArticle, revokeObjectUrls } from "../src/article-render.js";
 
 /** The same rule `imageKeyFor` follows — a key derived from the URL alone. */
 async function fakeKeyFor(url) {
   return `key:${url}`;
-}
-
-/**
- * A stand-in for the `images` table: `bulkGet` over a Map, exactly the one
- * call `prepareArticle` makes.
- * @param {Record<string, Blob>} byUrl
- */
-function fakeDb(byUrl) {
-  const rows = new Map(
-    Object.entries(byUrl).map(([url, blob]) => [
-      `key:${url}`,
-      { key: `key:${url}`, url, blob, bytes: blob.size, itemId: "i" },
-    ]),
-  );
-  return {
-    images: {
-      bulkGet: async (keys) => keys.map((key) => rows.get(key)),
-    },
-  };
 }
 
 /** Object URLs that count how often they were handed out and revoked. */

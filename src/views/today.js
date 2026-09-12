@@ -51,6 +51,7 @@ import {
   externalIcon,
   feedIcon,
   listIcon,
+  once,
   screenHeader,
   shareIcon,
 } from "./layout.js";
@@ -190,16 +191,11 @@ async function refreshCoverSources(items) {
   });
 }
 
-let started = false;
-
-/** Load once, the first time the screen renders. */
-function ensureLoaded() {
-  if (started) return;
-  started = true;
+const ensureLoaded = once(() => {
   screen.status = "loading";
   installListeners();
   void load();
-}
+});
 
 /** @type {ReturnType<typeof setTimeout> | null} */
 let reloadTimer = null;

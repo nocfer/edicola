@@ -30,7 +30,7 @@ import { html, nothing, repeat } from "../render.js";
 import { hrefFor, parseRoute } from "../router.js";
 import { showToast, update } from "../state.js";
 import { oneLine } from "../today-model.js";
-import { emptyState, screenHeader } from "./layout.js";
+import { emptyState, once, screenHeader } from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
@@ -78,16 +78,11 @@ async function load() {
   update();
 }
 
-let started = false;
-
-/** Load once, the first time the screen renders. */
-function ensureLoaded() {
-  if (started) return;
-  started = true;
+const ensureLoaded = once(() => {
   screen.status = "loading";
   installListeners();
   void load();
-}
+});
 
 let installed = false;
 /** Whether the last hash change took us off Saved. */

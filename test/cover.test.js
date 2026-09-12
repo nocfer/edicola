@@ -14,6 +14,7 @@ import {
   monogramFor,
   resolveCoverSources,
 } from "../src/cover.js";
+import { fakeDb } from "../tools/testing/dom.js";
 
 // --- The monogram rule -----------------------------------------------------
 
@@ -115,25 +116,6 @@ test("the ramp has the eight fills the design settled on", () => {
 /** The same rule `imageKeyFor` follows — a key derived from the URL alone. */
 async function fakeKeyFor(url) {
   return `key:${url}`;
-}
-
-/**
- * A stand-in for the `images` table: `bulkGet` over a Map, the one call the
- * resolver makes.
- * @param {Record<string, Blob>} byUrl
- */
-function fakeDb(byUrl) {
-  const rows = new Map(
-    Object.entries(byUrl).map(([url, blob]) => [
-      `key:${url}`,
-      { key: `key:${url}`, url, blob, bytes: blob.size, itemId: "i" },
-    ]),
-  );
-  return {
-    images: {
-      bulkGet: async (keys) => keys.map((key) => rows.get(key)),
-    },
-  };
 }
 
 /** An `images` table that cannot be read. */

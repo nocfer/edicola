@@ -33,3 +33,22 @@ export function purifierFor(window) {
   }
   return purify;
 }
+
+/**
+ * A stand-in for the `images` table: `bulkGet` over a Map, the one call
+ * `prepareArticle` and the cover resolver make.
+ * @param {Record<string, Blob>} byUrl
+ */
+export function fakeDb(byUrl) {
+  const rows = new Map(
+    Object.entries(byUrl).map(([url, blob]) => [
+      `key:${url}`,
+      { key: `key:${url}`, url, blob, bytes: blob.size, itemId: "i" },
+    ]),
+  );
+  return {
+    images: {
+      bulkGet: async (keys) => keys.map((key) => rows.get(key)),
+    },
+  };
+}

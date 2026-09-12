@@ -6,6 +6,21 @@ import { html, nothing } from "../render.js";
 import { t } from "../i18n.js";
 
 /**
+ * Wrap a screen's first-render loader so it only ever runs once, no matter how
+ * many times the screen re-renders.
+ * @param {() => void} fn
+ * @returns {() => void}
+ */
+export function once(fn) {
+  let started = false;
+  return () => {
+    if (started) return;
+    started = true;
+    fn();
+  };
+}
+
+/**
  * Screen header: an optional leading control (e.g. the Reader's back button),
  * the title, an Offline chip while the network is down, and optional trailing
  * controls (Today's View Mode toggle and its refresh button).
