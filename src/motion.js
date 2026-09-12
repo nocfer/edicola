@@ -87,6 +87,7 @@ export function motionToken(name) {
 export function withViewTransition(mutate) {
   if (prefersReducedMotion() || !document.startViewTransition) {
     mutate();
+    lastArrival = Promise.resolve();
     return;
   }
   // A UA that refuses to start the transition — a hidden or not-yet-rendering
@@ -95,7 +96,26 @@ export function withViewTransition(mutate) {
   // correct, so that rejection is noise; left unhandled it surfaces as an
   // uncaught exception and fails qa-scenarios at random. `updateCallbackDone`
   // is deliberately NOT caught: a throw inside the redraw is a real bug.
-  document.startViewTransition(mutate).ready.catch(() => {});
+  const transition = document.startViewTransition(mutate);
+  transition.ready.catch(() => {});
+  lastArrival = transition.finished.catch(() => {});
+}
+
+/** @type {Promise<void>} */
+let lastArrival = Promise.resolve();
+
+/**
+ * Resolves once the most recent route-level View Transition started by
+ * `withViewTransition` has finished animating — or immediately, when there was
+ * none to wait for (no View Transition support, or reduced motion). For a
+ * screen whose own opening motion must not run on top of the transition it
+ * arrived on — the Reader's Reading Position restore is the first of these,
+ * and awaits this before it starts.
+ *
+ * @returns {Promise<void>}
+ */
+export function whenRouteArrives() {
+  return lastArrival;
 }
 
 /**

@@ -42,6 +42,7 @@ import { fetchArticleNow } from "../fetch-one.js";
 import { formatDate, formatRelative, t, tCount } from "../i18n.js";
 import { toggleItemSaved, shareItem } from "../item-actions.js";
 import { setReadingPosition } from "../item-state.js";
+import { prefersReducedMotion, whenRouteArrives } from "../motion.js";
 import {
   clampPosition,
   debounce,
@@ -360,12 +361,15 @@ function cancelRestore() {
 /**
  * Put the reader back where they were.
  *
- * Two frames first, for the reason ticket 09 gave for Today: `main.js` scrolls
- * to the top on every path change and lit fills the Article in the same tick,
- * so a restore in the same frame is undone. Then the same offset is re-applied
- * a couple of times, because the Article's images are `loading="lazy"` and the
- * container grows as they lay out — the first target can be short by hundreds
- * of pixels. A reader who scrolls themselves in the meantime is left alone.
+ * Waits for the Reader's own opening transition to finish first, so the
+ * restore reads as a second, deliberate motion rather than a jump fighting the
+ * first. Two frames after that, for the reason ticket 09 gave for Today:
+ * `main.js` scrolls to the top on every path change and lit fills the Article
+ * in the same tick, so a restore in the same frame is undone. Then the same
+ * offset is re-applied a couple of times, because the Article's images are
+ * `loading="lazy"` and the container grows as they lay out — the first target
+ * can be short by hundreds of pixels. A reader who scrolls themselves in the
+ * meantime is left alone.
  *
  * @param {string} id The Item this position belongs to.
  * @param {number} position
@@ -375,8 +379,11 @@ function scheduleRestore(id, position) {
   if (!isWorthRestoring(position)) return;
   if (typeof requestAnimationFrame !== "function") return;
   screen.restoring = true;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => applyRestore(id, position, 0));
+  whenRouteArrives().then(() => {
+    if (screen.itemId !== id) return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => applyRestore(id, position, 0));
+    });
   });
 }
 
@@ -396,7 +403,12 @@ function applyRestore(id, position, attempt) {
     cancelRestore();
     return;
   }
+  // Attempt 0 starts a smooth scroll the browser is still animating at the
+  // 120ms mark (RESTORE_ATTEMPTS_MS[1]); checking for drift there would read
+  // our own motion as the reader's. By the next attempt, ~520ms after attempt
+  // 0 started, any smooth scroll it began has settled.
   const drifted =
+    attempt !== 1 &&
     restoredTo !== null &&
     Math.abs(window.scrollY - restoredTo) > RESTORE_ABANDON_PX;
   if (drifted) {
@@ -406,7 +418,11 @@ function applyRestore(id, position, attempt) {
   }
   const target = scrollTargetFor(position, metrics);
   if (target > 0) {
-    window.scrollTo(0, target);
+    window.scrollTo({
+      top: target,
+      left: 0,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
     restoredTo = target;
   }
   const next = attempt + 1;
