@@ -63,8 +63,20 @@ const CDN_HOSTS = ["esm.sh"];
 // confirms the update prompt, which posts `{ type: 'skip-waiting' }` below.
 // A first install has no existing controller, so it activates immediately
 // anyway and the very first visit is not held up.
+//
+// Each fetch forces `cache: "reload"`, bypassing the browser's HTTP cache: a
+// fresh install landing within a still-valid max-age of the previous deploy
+// would otherwise precache the *old* bytes under the *new* CACHE key, and the
+// reader who accepts the update prompt reloads into a worker that only looks
+// new — the classic "I clicked reload and it's still the old version" bug.
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        cache.addAll(SHELL.map((url) => new Request(url, { cache: "reload" }))),
+      ),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -164,9 +176,13 @@ self.addEventListener("fetch", (event) => {
   // Shell: stale-while-revalidate. Serve the cached copy immediately and, in the
   // background, refresh the cache from the network so the *next* load is fresh
   // even if the CACHE version was not bumped. On a cache miss, await the network.
+  //
+  // `cache: "reload"` for the same reason `install` above uses it: without it
+  // this "background refresh" can just re-confirm the browser's own stale HTTP
+  // cache and never actually revalidate anything.
   event.respondWith(
     caches.match(request).then((cached) => {
-      const network = fetch(request)
+      const network = fetch(request.url, { cache: "reload" })
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put(request, copy));
