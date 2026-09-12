@@ -200,12 +200,12 @@ subscribe(renderApp);
 startRouter((route) => {
   // Every route change zooms+fades like the Feed/List toggle does (ADR-0012,
   // §"the group is here too") — a tab-bar swap, opening or closing the
-  // Reader, all the same transition. The Story player is the one exception:
-  // it already has its own bespoke entrance/exit motion (`growFrom`, the
-  // Story's own close fade), and a View Transition snapshot on top of that
-  // would fight it rather than complement it.
-  const isStoryEdge = state.route.name === "story" || route.name === "story";
-  if (route.name !== state.route.name && !isStoryEdge) {
+  // Reader, closing the Story player, all the same transition. Opening the
+  // Story is the one exception: it grows out of the ring that was tapped
+  // (`growFrom` in views/story.js), and a root-level zoom on top of that
+  // would fight the very rect it is growing from rather than complement it.
+  const isStoryOpen = route.name === "story";
+  if (route.name !== state.route.name && !isStoryOpen) {
     withViewTransition(() => update({ route }));
   } else {
     update({ route });

@@ -513,26 +513,19 @@ function installListeners() {
 /**
  * Leave the player: back to the feed, at the scroll position it kept.
  *
- * Close is a fast, independent fade — it cancels whatever open animation is
- * still running rather than reversing it, so closing always takes the same
- * short time regardless of how far the open had gotten.
+ * The route change is what closes it: main.js wraps every route change away
+ * from the Story player in the same zoom+fade every other screen change gets
+ * (ADR-0012), so there is nothing left to animate here beyond cancelling
+ * whatever open animation is still running — reversing `growFrom` would play
+ * the open backwards, not close, and closing always takes the same short
+ * time regardless of how far the open had gotten.
  */
 function close() {
   if (closing) return;
   closing = true;
   openAnim?.cancel();
   openAnim = null;
-  const panel = panelElement();
-  if (!panel?.animate || prefersReducedMotion()) {
-    goBack();
-    return;
-  }
-  const anim = panel.animate([{ opacity: 1 }, { opacity: 0 }], {
-    duration: ms("--dur-fast"),
-    easing: motionToken("--ease-exit"),
-    fill: "both",
-  });
-  anim.finished.then(goBack, goBack);
+  goBack();
 }
 
 /** The visible Read button and the swipe up both land here. */
