@@ -91,13 +91,21 @@ export function withViewTransition(mutate) {
     return;
   }
   // A UA that refuses to start the transition — a hidden or not-yet-rendering
-  // document, which is most of a headless screenshot run — rejects `ready`
-  // with an InvalidStateError while still calling `mutate`. The redraw is
-  // correct, so that rejection is noise; left unhandled it surfaces as an
-  // uncaught exception and fails qa-scenarios at random. `updateCallbackDone`
-  // is deliberately NOT caught: a throw inside the redraw is a real bug.
+  // document, which is most of a headless screenshot run, and every boot
+  // straight onto a route other than Today (state.route defaults to "today",
+  // so the very first render already differs from it and takes this branch
+  // before the document has painted anything) — rejects `ready` with an
+  // InvalidStateError while still calling `mutate`. The redraw is correct, so
+  // that rejection is noise. In this browser the same abort also rejects
+  // `updateCallbackDone`, even though `mutate` ran and committed correctly;
+  // left unhandled that was an uncaught exception failing qa-scenarios at
+  // random. A genuine throw inside `mutate` is still a real bug and still
+  // surfaces: it rejects with its own error, not this one.
   const transition = document.startViewTransition(mutate);
   transition.ready.catch(() => {});
+  transition.updateCallbackDone.catch((error) => {
+    if (error?.name !== "InvalidStateError") throw error;
+  });
   lastArrival = transition.finished.catch(() => {});
 }
 
