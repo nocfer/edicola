@@ -58,6 +58,10 @@ ranking cleverer than "newest first".
 
 ## Installing it
 
+The app runs at <https://nocfer.github.io/edicola/>, served by GitHub Pages
+from `main` — the same folder of files that is in this repository, with no
+build step in between.
+
 Edicola is a static site with no build step, so any web server will serve it,
 GitHub Pages included. Open it in a browser and use the browser's own install
 command: "Install" in Chrome's address bar, "Add to Home Screen" in Safari's

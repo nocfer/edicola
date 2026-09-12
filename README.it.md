@@ -58,6 +58,10 @@ notifiche push, i filtri per parola chiave e qualsiasi ordinamento più furbo di
 
 ## Come si installa
 
+L'app gira su <https://nocfer.github.io/edicola/>, servita dalle GitHub Pages a
+partire da `main`: la stessa cartella di file che trovi in questo repository,
+senza nessun passaggio di build in mezzo.
+
 Edicola è un sito statico senza build, quindi la serve qualunque server web,
 comprese le GitHub Pages. Apri la pagina nel browser e usa il comando di
 installazione del browser stesso: "Installa" nella barra degli indirizzi di
