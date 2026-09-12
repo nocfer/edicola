@@ -49,6 +49,97 @@ export function thumbErrorHandler(brokenThumbs, { redraw = false } = {}) {
 }
 
 /**
+ * How wide a logo has to arrive to be worth showing. The tiles are 32px and the
+ * ring is 56px, and the ramp behind them is not a blank: a 16px favicon
+ * stretched over it is mush where the monogram is sharp, so below this the
+ * candidate is struck off like one that failed to load. 32 rather than the
+ * ring's own 56 because it is the size most `/favicon.ico` files actually are,
+ * and one of those upscaled still reads as the publisher's mark.
+ */
+const MIN_LOGO_PX = 32;
+
+/**
+ * A Publication's identity tile: the publisher's logo, or the monogram over its
+ * `--cover-n` fill. Shared by the Feed ring, the Feed card header and the Story
+ * player's header rather than written three times, because three tiles of the
+ * same Publication disagreeing about which of the two they show is the way this
+ * gets broken.
+ *
+ * `identity.logoUrls` is `logoCandidates` from `cover.js`, best first. This
+ * renders the first one not yet struck off, and `logos` strikes off the rest:
+ * one that 404s or will not decode through `onError`, one that arrives smaller
+ * than `MIN_LOGO_PX` through `onLoad`. Either way the redraw lands here again
+ * with a shorter list, so a Publication walks its candidates one render at a
+ * time and stops at the monogram — which is why the tracker must redraw, and
+ * why the monogram is not a hole but the last rung of the same ladder.
+ *
+ * @param {string} className The screen's own tile class (`feed__avatar`, …),
+ *   which owns the size and the shape; this adds only what fills it.
+ * @param {{ monogram: string, logoUrls: string[], coverIndex: number }} identity
+ * @param {LogoTracker} logos The screen's own, from `logoTracker`.
+ */
+export function publicationTile(className, identity, logos) {
+  const logo = (identity.logoUrls ?? []).find((url) => !logos.broken.has(url));
+  if (!logo) {
+    return html`<span class="${className} ramp ramp--${identity.coverIndex}"
+      >${identity.monogram}</span
+    >`;
+  }
+  return html`<span class=${className}
+    ><img
+      class="logo"
+      src=${logo}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      referrerpolicy="no-referrer"
+      @error=${logos.onError}
+      @load=${logos.onLoad}
+  /></span>`;
+}
+
+/**
+ * What `publicationTile` needs to walk a Publication's logo candidates.
+ * @typedef {object} LogoTracker
+ * @property {Set<string>} broken URLs already struck off.
+ * @property {(event: Event) => void} onError
+ * @property {(event: Event) => void} onLoad
+ */
+
+/**
+ * One screen's logo tracker, built once at module scope and reused by every
+ * tile it draws — a new one per render would re-bind every listener on every
+ * redraw.
+ *
+ * It owns its set rather than borrowing the screen's broken-thumbnail one,
+ * which is not tidiness: the Story player replaces `brokenPhotos` whenever the
+ * reel changes, and a tracker holding the old set would both lose what it knew
+ * and answer from a set nothing else reads. A logo that 404s stays 404 for the
+ * session, which is exactly the lifetime of this set.
+ *
+ * @returns {LogoTracker}
+ */
+export function logoTracker() {
+  /** @type {Set<string>} */
+  const brokenLogos = new Set();
+  return {
+    broken: brokenLogos,
+    onError: thumbErrorHandler(brokenLogos, { redraw: true }),
+    onLoad: (event) => {
+      const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+      // An SVG with no intrinsic size reports 0 and scales to whatever the tile
+      // is, so it is the one thing this must not throw away.
+      if (img.naturalWidth === 0 || img.naturalWidth >= MIN_LOGO_PX) return;
+      const url = img.getAttribute("src");
+      if (!url) return;
+      brokenLogos.add(url);
+      img.hidden = true;
+      update();
+    },
+  };
+}
+
+/**
  * Screen header: an optional leading control (e.g. the Reader's back button),
  * the title, an Offline chip while the network is down, and optional trailing
  * controls (Today's View Mode toggle and its refresh button).

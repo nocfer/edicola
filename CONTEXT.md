@@ -25,6 +25,13 @@ The curated list of Publications shipped with the app, maintained by the
 community.
 _Avoid_: directory, registry, preset list
 
+**Logo**:
+The publisher's own icon. A Publication has a short list of places to find one,
+best first: the URL a human put in its Catalog entry, then two conventional
+paths at its site. A Publication shows its **monogram** when none of them
+arrives, or when what arrives is too small to read.
+_Avoid_: favicon, icon, brand, avatar
+
 **Nation**:
 The country a Publication belongs to. Readers choose which Nations appear in
 their Catalog view.
@@ -118,6 +125,12 @@ The generated stand-in for an Item with no usable photo: one flat fill from a
 fixed eight-colour ramp, the Publication's monogram, and the headline set
 large. A Cover is deliberate, not a placeholder for a failure.
 _Avoid_: placeholder, fallback image, thumbnail, gradient
+
+**Monogram**:
+One or two initials derived from a Publication's name, over its flat fill. It
+fills the small circles — the ring, the card header, the Story header — for a
+Publication whose **logo** the Catalog does not carry, and a Cover always.
+_Avoid_: initials, avatar, badge
 
 **Reader**:
 The screen that shows one Article.

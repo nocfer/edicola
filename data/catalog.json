@@ -19,6 +19,7 @@
       "category": "news",
       "feedUrl": "https://www.ansa.it/sito/ansait_rss.xml",
       "siteUrl": "https://www.ansa.it",
+      "logoUrl": "https://www.ansa.it/sito/imgnew/favicon.svg",
       "truncated": true,
       "note": "Headline and a one-line Summary per Item. Listed on ansa.it/sito/static/ansa_rss.html."
     },
@@ -30,6 +31,7 @@
       "category": "news",
       "feedUrl": "https://www.repubblica.it/rss/homepage/rss2.0.xml",
       "siteUrl": "https://www.repubblica.it",
+      "logoUrl": "https://www.repstatic.it/cless/main/nazionale/2016-v1/img/common/favicon/apple-touch-icon.png",
       "truncated": true,
       "note": "Summary only. Listed on repubblica.it/static/servizi/rss/."
     },
@@ -41,6 +43,7 @@
       "category": "news",
       "feedUrl": "https://www.open.online/feed/",
       "siteUrl": "https://www.open.online",
+      "logoUrl": "https://www.open.online/favicon.ico",
       "truncated": false,
       "note": "Full text in content:encoded. Feed linked from the site footer."
     },
@@ -52,6 +55,7 @@
       "category": "news",
       "feedUrl": "https://www.lastampa.it/rss/copertina.xml",
       "siteUrl": "https://www.lastampa.it",
+      "logoUrl": "https://www.lastampastatic.it/cless/lastampa/2021-v1/img/apple-touch-icon.png",
       "truncated": true,
       "note": "Front-page Feed advertised in the site head. Summary only."
     },
@@ -63,6 +67,7 @@
       "category": "news",
       "feedUrl": "https://www.ilfattoquotidiano.it/feed/",
       "siteUrl": "https://www.ilfattoquotidiano.it",
+      "logoUrl": "https://st.ilfattoquotidiano.it/wp-content/themes/ifq-2025/assets/icons/touch_196.png",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -74,6 +79,7 @@
       "category": "politics",
       "feedUrl": "https://naxos.ilfoglio.it/api/v5/rss/stories/latest",
       "siteUrl": "https://www.ilfoglio.it",
+      "logoUrl": "https://www.ilfoglio.it/img/favicon.ico",
       "truncated": false,
       "note": "Full text carried in description. Listed on ilfoglio.it/rss."
     },
@@ -85,6 +91,7 @@
       "category": "politics",
       "feedUrl": "https://www.linkiesta.it/feed/",
       "siteUrl": "https://www.linkiesta.it",
+      "logoUrl": "https://www.linkiesta.it/wp-content/uploads/2023/05/cropped-lk-favicon-192x192.png?x86925",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -96,6 +103,7 @@
       "category": "business",
       "feedUrl": "https://www.ilsole24ore.com/rss/economia.xml",
       "siteUrl": "https://www.ilsole24ore.com",
+      "logoUrl": "https://www.ilsole24ore.com/android-chrome-512x512.png",
       "truncated": true,
       "note": "Economy section Feed; no front-page Feed is published. Summary only and many Originals are subscriber-only. Listed on ilsole24ore.com/rss."
     },
@@ -107,6 +115,7 @@
       "category": "technology",
       "feedUrl": "https://www.wired.it/feed/rss",
       "siteUrl": "https://www.wired.it",
+      "logoUrl": "https://www.wired.it/apple-touch-icon.png",
       "truncated": true,
       "note": "Summary only."
     },
@@ -118,6 +127,7 @@
       "category": "technology",
       "feedUrl": "https://www.hdblog.it/feed/",
       "siteUrl": "https://www.hdblog.it",
+      "logoUrl": "https://www.hdblog.it/favicon.svg",
       "truncated": false,
       "note": "Full text in content:encoded, despite a one-line description. Feed linked from the site. Originals are behind a JavaScript bot check that answers 429, so the Feed body is the only way to read them and Extraction of the Original always fails."
     },
@@ -129,6 +139,7 @@
       "category": "science",
       "feedUrl": "https://www.focus.it/rss",
       "siteUrl": "https://www.focus.it",
+      "logoUrl": "https://www.focus.it/style/images/favicon/android-icon-192x192.png",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -140,6 +151,7 @@
       "category": "science",
       "feedUrl": "https://www.galileonet.it/feed/",
       "siteUrl": "https://www.galileonet.it",
+      "logoUrl": "https://www.galileonet.it/wp-content/uploads/2019/05/cropped-galileo_faviicon_512_white-240x240.png",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -151,6 +163,7 @@
       "category": "culture",
       "feedUrl": "https://www.rivistastudio.com/feed/",
       "siteUrl": "https://www.rivistastudio.com",
+      "logoUrl": "https://www.rivistastudio.com/wp-content/themes/rivistastudio/images/_favicon.png",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -162,6 +175,7 @@
       "category": "sport",
       "feedUrl": "https://www.corrieredellosport.it/rss/",
       "siteUrl": "https://www.corrieredellosport.it",
+      "logoUrl": "https://www.corrieredellosport.it/icon0-12o0cb.svg?f5845dec1ba7286e",
       "truncated": true,
       "note": "Summary only. Listed on the site's RSS page."
     },
@@ -173,6 +187,7 @@
       "category": "local",
       "feedUrl": "https://www.ilgiorno.it/rss",
       "siteUrl": "https://www.ilgiorno.it",
+      "logoUrl": "https://www.ilgiorno.it/favicon.ico",
       "truncated": false,
       "note": "Milan and Lombardy daily. Full text in content:encoded."
     },
@@ -184,6 +199,7 @@
       "category": "news",
       "feedUrl": "https://feeds.bbci.co.uk/news/rss.xml",
       "siteUrl": "https://www.bbc.co.uk/news",
+      "logoUrl": "https://static.files.bbci.co.uk/core/website/assets/static/icons/touch/news/touch-icon-512.685da29e9e.png",
       "truncated": true,
       "note": "Summary only."
     },
@@ -195,6 +211,7 @@
       "category": "news",
       "feedUrl": "https://www.theguardian.com/uk/rss",
       "siteUrl": "https://www.theguardian.com/uk",
+      "logoUrl": "https://assets.guim.co.uk/static/frontend/icons/homescreen/apple-touch-icon.svg",
       "truncated": true,
       "note": "Standfirst and opening paragraphs, then a continue-reading link."
     },
@@ -206,6 +223,7 @@
       "category": "news",
       "feedUrl": "https://www.independent.co.uk/rss",
       "siteUrl": "https://www.independent.co.uk",
+      "logoUrl": "https://www.independent.co.uk/img/shortcut-icons/icon-512x512.png",
       "truncated": true,
       "note": "Summary only."
     },
@@ -217,6 +235,7 @@
       "category": "news",
       "feedUrl": "https://feeds.skynews.com/feeds/rss/home.xml",
       "siteUrl": "https://news.sky.com",
+      "logoUrl": "https://news.sky.com/apple-touch-icon.png",
       "truncated": true,
       "note": "Summary only. Listed on news.sky.com/info/rss."
     },
@@ -228,6 +247,7 @@
       "category": "politics",
       "feedUrl": "https://www.politics.co.uk/feed/",
       "siteUrl": "https://www.politics.co.uk",
+      "logoUrl": "https://www.politics.co.uk/wp-content/themes/politicsuk/library/images/apple-touch-icon.png",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -239,6 +259,7 @@
       "category": "politics",
       "feedUrl": "https://www.opendemocracy.net/rss/",
       "siteUrl": "https://www.opendemocracy.net",
+      "logoUrl": "https://storage.ghost.io/c/3f/80/3f804bea-4b2d-4ddf-9ff0-6ec7d0afa5fa/content/images/size/w256h256/format/png/2026/03/multi_solo.svg",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -250,6 +271,7 @@
       "category": "business",
       "feedUrl": "https://www.cityam.com/feed/",
       "siteUrl": "https://www.cityam.com",
+      "logoUrl": "https://www.cityam.com/wp-content/uploads/2024/09/app_launcher_icon_final_rounded.png?w=192",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -261,6 +283,7 @@
       "category": "technology",
       "feedUrl": "https://www.techradar.com/feeds.xml",
       "siteUrl": "https://www.techradar.com",
+      "logoUrl": "https://vanilla.futurecdn.net/techradar/1748896/apple-touch-icon.png",
       "truncated": false,
       "note": "Full text in content:encoded. Listed on techradar.com/rss."
     },
@@ -272,6 +295,7 @@
       "category": "technology",
       "feedUrl": "https://www.computerweekly.com/rss/All-Computer-Weekly-content.xml",
       "siteUrl": "https://www.computerweekly.com",
+      "logoUrl": "https://www.computerweekly.com/apple-touch-icon.png",
       "truncated": true,
       "note": "Summary only. Listed on computerweekly.com/rss."
     },
@@ -283,6 +307,7 @@
       "category": "science",
       "feedUrl": "https://www.nature.com/nature.rss",
       "siteUrl": "https://www.nature.com/nature",
+      "logoUrl": "https://www.nature.com/static/images/favicons/nature/android-chrome-192x192.png",
       "truncated": true,
       "note": "RSS 1.0 (RDF). Short teaser in content:encoded; most Originals are subscriber-only."
     },
@@ -294,6 +319,7 @@
       "category": "science",
       "feedUrl": "https://physicsworld.com/feed/",
       "siteUrl": "https://physicsworld.com",
+      "logoUrl": "https://physicsworld.com/favicon.ico",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -305,6 +331,7 @@
       "category": "culture",
       "feedUrl": "https://www.lrb.co.uk/feeds/rss",
       "siteUrl": "https://www.lrb.co.uk",
+      "logoUrl": "https://www.lrb.co.uk/assets/icons/android-chrome-512x512.png",
       "truncated": true,
       "note": "Summary only; many Originals are subscriber-only."
     },
@@ -316,6 +343,7 @@
       "category": "culture",
       "feedUrl": "https://www.nme.com/feed",
       "siteUrl": "https://www.nme.com",
+      "logoUrl": "https://www.nme.com/favicon.svg",
       "truncated": false,
       "note": "Full text in content:encoded."
     },
@@ -327,6 +355,7 @@
       "category": "sport",
       "feedUrl": "https://feeds.bbci.co.uk/sport/rss.xml",
       "siteUrl": "https://www.bbc.co.uk/sport",
+      "logoUrl": "https://static.files.bbci.co.uk/core/website/assets/static/icons/touch/sport/touch-icon-512.239d26b83e.png",
       "truncated": true,
       "note": "Summary only."
     },
@@ -338,6 +367,7 @@
       "category": "local",
       "feedUrl": "https://www.manchestereveningnews.co.uk/rss.xml",
       "siteUrl": "https://www.manchestereveningnews.co.uk",
+      "logoUrl": "https://s2-prod.manchestereveningnews.co.uk/@trinitymirrordigital/chameleon-branding/publications/men/img/men_512.png",
       "truncated": true,
       "note": "Greater Manchester daily. Summary only."
     }

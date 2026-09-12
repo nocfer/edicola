@@ -95,11 +95,30 @@ that repo is the reference implementation.
   `.github/workflows/ui-scenarios.yml`, both themes and both Languages, and
   **not** in `ci.yml`, which stays hermetic (the app loads lit and Dexie from
   esm.sh, so this job is not).
+- **A Publication's identity is a chain of logo candidates, with the monogram at
+  the end.** `logoCandidates` in `cover.js` lists them best first — the
+  `logoUrl` a human put in the Catalog entry, then `/apple-touch-icon.png` and
+  `/favicon.ico` at the site's origin — and `publicationTile` in
+  `views/layout.js` walks that list in all three small circles (the ring, the
+  Feed card header, the Story header), so they cannot disagree about which they
+  show. A Custom Publication has no stated logo and rides on the guesses alone.
+  Both guesses are conventions, not standards: `<link rel="icon">` and the
+  manifest's `icons[]` both need the page first and cannot be guessed, and the
+  Feed's own `<image>` is a masthead banner a 56px circle crops to nothing.
+  **A candidate is struck off three ways, not one**: it 404s, it fails to
+  decode, or it arrives under `MIN_LOGO_PX`. The third is what makes chaining
+  `/favicon.ico` an improvement rather than a swap of a sharp monogram for a
+  16px smudge, and it is the only one that catches City A.M.'s 1x1
+  `/apple-touch-icon.png`, which loads perfectly. Each strike redraws, so a
+  Publication walks its chain one render at a time and stops at the monogram.
+  The logos are hotlinked, so they are the one part of a Feed that is not there
+  offline until the HTTP cache has them; storing the bytes with the Article
+  images would fix that and has not been needed yet.
 - **`node tools/check-catalog.mjs --fetch` also audits how much Article each
   Feed carries** and fails when `truncated` contradicts it, with a dead band so
   only unambiguous drift fails. ADR-0013 made that flag matter, and the
   Publications screen turns it into "full text fetched from the site" for the
-  reader.
+  reader. It warns, without failing, when a `logoUrl` stops serving an image.
 - **Every check must stay quiet on healthy content.** The corpus at the end of
   `test/qa-checks.test.js` enforces it, against real captured app markup
   (`node tools/qa-run.mjs --only open --capture-dom test/fixtures/screens`;

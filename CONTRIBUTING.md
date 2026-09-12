@@ -192,7 +192,13 @@ the reason. The short version:
    Article in `content:encoded` or Atom `content` means `truncated: false`;
    only a `description` or `summary` means `truncated: true`. Write what you saw
    in `note`, in English.
-5. **A new Nation needs no code change**, but say in the pull request that you
+5. **Find the Publication's logo once, by hand**, and put it in `logoUrl` — the
+   largest real icon the front page declares, skipping `mask-icon` and
+   `safari-pinned-tab.svg`, which are a silhouette and not the logo. Nothing
+   usable is `logoUrl: null`: the Publication keeps its monogram, which reads
+   better than a 16×16 favicon blown up to 56px. `docs/catalog.md` has the
+   details.
+6. **A new Nation needs no code change**, but say in the pull request that you
    are introducing one so the Publications screen can be checked with it.
 
 Then run both checks:
@@ -216,6 +222,13 @@ genuinely borderline, and a weekly job that opens an issue over twenty words
 teaches everyone to close it unread. It needs the test DOM: run
 `npm test` (or `node tools/ensure-test-deps.mjs`) at least once first, otherwise
 it says so and falls back to checking the root element only.
+
+`--fetch` also requests every `logoUrl` and **warns** — it does not fail — when
+one stops serving an image. A dead logo is drift to fix rather than a broken
+app: the Publication falls back to its monogram, which is what a Custom
+Publication shows anyway. It warns at all because `logoUrl` is hand-maintained,
+and `truncated` is the standing proof that a hand-maintained Catalog field rots
+silently unless something looks.
 
 The same command runs every Monday in `.github/workflows/catalog-health.yml`
 and opens a `needs-triage` issue when a Feed dies. Fixing one means finding the

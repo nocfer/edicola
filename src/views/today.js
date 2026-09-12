@@ -52,7 +52,9 @@ import {
   externalIcon,
   feedIcon,
   listIcon,
+  logoTracker,
   once,
+  publicationTile,
   screenHeader,
   shareIcon,
   thumbErrorHandler,
@@ -982,6 +984,12 @@ function itemCard(card) {
  */
 const onThumbError = thumbErrorHandler(screen.brokenThumbs, { redraw: true });
 
+/**
+ * The logo candidates this screen has given up on, and the two handlers that
+ * give up. Built once, like `onThumbError` and for the same reason.
+ */
+const logos = logoTracker();
+
 /** @param {DaySection} section */
 function daySection(section) {
   return html`
@@ -1038,9 +1046,7 @@ function publicationRing(ring) {
           toggleMenu(ring.publicationId);
         }}
       >
-        <span class="feed__ringtile ramp ramp--${ring.coverIndex}"
-          >${ring.monogram}</span
-        >
+        ${publicationTile("feed__ringtile", ring, logos)}
       </button>
       <button
         type="button"
@@ -1147,9 +1153,7 @@ function feedCard(card) {
   return html`
     <article class="card card--flush feed__card" data-item-id=${card.id}>
       <div class="feed__head">
-        <span class="feed__avatar ramp ramp--${card.coverIndex}"
-          >${card.monogram}</span
-        >
+        ${publicationTile("feed__avatar", card, logos)}
         <span class="feed__pub">${card.publicationName}</span>
         <span class="feed__when">${when}</span>
         <span class="feed__gap"></span>

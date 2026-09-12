@@ -28,7 +28,7 @@
 // scroll into the past; older Items are reachable from the Publication's own
 // list").
 
-import { coverIndexFor, monogramFor } from "./cover.js";
+import { coverIndexFor, logoCandidates, monogramFor } from "./cover.js";
 import { DICTIONARIES, en, LOCALES } from "./i18n.js";
 import {
   compareItemsNewestFirst,
@@ -80,6 +80,9 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {boolean} saved
  * @property {boolean} summaryOnly No Article: the Reader shows the Summary.
  * @property {string} monogram The Publication's initials (`src/cover.js`).
+ * @property {string[]} logoUrls Where to look for the publisher's logo, best
+ *   first (`logoCandidates` in `cover.js`); the monogram is what shows when
+ *   none of them arrives (`publicationTile` in `views/layout.js`).
  * @property {number} coverIndex Which `--cover-n` fill this Publication takes.
  * @property {CoverSource} cover What fills the picture slot, already decided.
  */
@@ -99,6 +102,7 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {string} publicationId
  * @property {string} name
  * @property {string} monogram
+ * @property {string[]} logoUrls
  * @property {number} coverIndex
  * @property {'unseen'|'seen'|'none'} state
  * @property {number} unread Unread Items inside the window.
@@ -114,6 +118,7 @@ export const SUMMARY_MAX_CHARS = 160;
  * @property {string} publicationId
  * @property {string} name
  * @property {string} monogram
+ * @property {string[]} logoUrls
  * @property {number} coverIndex
  * @property {TodayCard[]} frames One per Unread Item; empty means no reel.
  * @property {number} startIndex Which Frame the player opens on: the first not
@@ -287,6 +292,7 @@ export function buildTodayModel(items, publicationsById, options = {}) {
       publicationId: id,
       name: publicationName(publication, id),
       monogram: monogramFor(publicationName(publication, id)),
+      logoUrls: logoCandidates(publication),
       coverIndex: coverIndexFor(id),
       state: unread === 0 ? "none" : reelSeen === unread ? "seen" : "unseen",
       unread,
@@ -385,6 +391,7 @@ export function buildStoryReel(items, publicationsById, options = {}) {
     publicationId,
     name: model.filterName ?? publicationId,
     monogram: monogramFor(model.filterName ?? publicationId),
+    logoUrls: logoCandidates(publicationsById?.get(publicationId)),
     coverIndex: coverIndexFor(publicationId),
     frames,
     startIndex: Math.max(
@@ -529,6 +536,7 @@ function toCard(item, publication, cover) {
     saved: Boolean(item.saved),
     summaryOnly: Boolean(item.summaryOnly),
     monogram: monogramFor(name),
+    logoUrls: logoCandidates(publication),
     coverIndex: coverIndexFor(publicationId),
     cover: cover ?? { kind: "cover", url: null },
   };

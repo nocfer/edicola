@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import {
   COVER_RAMP_SIZE,
   coverIndexFor,
+  logoCandidates,
   monogramFor,
   resolveCoverSources,
 } from "../src/cover.js";
@@ -73,6 +74,64 @@ test("a blank or missing name gives the ? glyph, never an exception", () => {
   assert.equal(monogramFor(null), "?");
   assert.equal(monogramFor(undefined), "?");
   assert.equal(monogramFor("—"), "?");
+});
+
+// --- The logo chain --------------------------------------------------------
+
+test("the chain is the stated logo, then the two guessable paths", () => {
+  assert.deepEqual(
+    logoCandidates({
+      logoUrl: "https://cdn.bbc.test/touch-icon-512.png",
+      siteUrl: "https://www.bbc.co.uk/news",
+    }),
+    [
+      "https://cdn.bbc.test/touch-icon-512.png",
+      "https://www.bbc.co.uk/apple-touch-icon.png",
+      "https://www.bbc.co.uk/favicon.ico",
+    ],
+    "the guesses are at the ORIGIN, not beside the section the Feed is under",
+  );
+});
+
+test("a Publication with no stated logo still has the two guesses", () => {
+  // This is every Custom Publication: nobody picked a logo for a Feed the
+  // reader pasted, so the chain is the guesses alone.
+  assert.deepEqual(logoCandidates({ siteUrl: "https://blog.example.test" }), [
+    "https://blog.example.test/apple-touch-icon.png",
+    "https://blog.example.test/favicon.ico",
+  ]);
+});
+
+test("http is not a candidate, because the browser blocks it before it is sent", () => {
+  assert.deepEqual(logoCandidates({ siteUrl: "http://old.example.test" }), []);
+  assert.deepEqual(
+    logoCandidates({
+      logoUrl: "http://old.example.test/icon.png",
+      siteUrl: "http://old.example.test",
+    }),
+    [],
+  );
+});
+
+test("nothing to point at and nothing to guess from is an empty chain", () => {
+  // An empty chain is not a failure: `publicationTile` draws the monogram,
+  // which is the whole identity for a Publication with no site to ask.
+  for (const publication of [null, undefined, {}, { siteUrl: "not a url" }]) {
+    assert.deepEqual(logoCandidates(publication), []);
+  }
+});
+
+test("a stated logo that is also a guess is not tried twice", () => {
+  assert.deepEqual(
+    logoCandidates({
+      logoUrl: "https://blog.example.test/apple-touch-icon.png",
+      siteUrl: "https://blog.example.test",
+    }),
+    [
+      "https://blog.example.test/apple-touch-icon.png",
+      "https://blog.example.test/favicon.ico",
+    ],
+  );
 });
 
 // --- The ramp index --------------------------------------------------------

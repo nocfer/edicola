@@ -56,6 +56,7 @@ const CUSTOM_CATEGORY = "news";
  * @property {string} category One of the file's own `categories`.
  * @property {string} feedUrl
  * @property {string} siteUrl
+ * @property {string | null} [logoUrl]
  * @property {boolean} truncated
  * @property {string} [note]
  */
@@ -175,6 +176,7 @@ export function mergeCatalog(catalog, rows = []) {
       category: publication.category,
       feedUrl: publication.feedUrl,
       siteUrl: publication.siteUrl,
+      logoUrl: publication.logoUrl ?? null,
       truncated: Boolean(publication.truncated),
       custom: false,
       enabled: Boolean(row?.enabled),
@@ -402,6 +404,7 @@ function rowFor(entry) {
     category: entry.category,
     feedUrl: entry.feedUrl,
     siteUrl: entry.siteUrl,
+    logoUrl: entry.logoUrl ?? null,
     truncated: Boolean(entry.truncated),
     custom: Boolean(entry.custom),
     enabled: Boolean(entry.enabled),
@@ -454,6 +457,7 @@ export async function addCustomPublication(db, input) {
   if (!feedUrl) throw new RangeError("A Custom Publication needs a Feed URL");
   const id = customPublicationId(feedUrl);
   const existing = await db.publications.get(id);
+  const siteUrl = input.siteUrl || originOf(feedUrl) || feedUrl;
   /** @type {PublicationRow} */
   const row = {
     id,
@@ -462,7 +466,7 @@ export async function addCustomPublication(db, input) {
     language: String(input.language || "").toLowerCase(),
     category: CUSTOM_CATEGORY,
     feedUrl,
-    siteUrl: input.siteUrl || originOf(feedUrl) || feedUrl,
+    siteUrl,
     truncated: input.truncated !== false,
     custom: true,
     enabled: input.enabled !== false,

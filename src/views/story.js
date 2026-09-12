@@ -45,7 +45,12 @@ import { html, nothing, repeat } from "../render.js";
 import { state, update } from "../state.js";
 import { goBack, hrefFor, navigate } from "../router.js";
 import { buildStoryReel } from "../today-model.js";
-import { emptyState, screenHeader } from "./layout.js";
+import {
+  emptyState,
+  logoTracker,
+  publicationTile,
+  screenHeader,
+} from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
@@ -661,6 +666,13 @@ function framePhoto(frame) {
 }
 
 /**
+ * The Publication logos this player has given up on. Module scope, not
+ * `screen`: unlike `brokenPhotos` it must survive a change of reel, because a
+ * logo that 404s for one Publication 404s for the rest of the session.
+ */
+const logos = logoTracker();
+
+/**
  * A Frame picture that will not load: hide it now, remember the URL so no
  * later render offers it again, and redraw so the Cover takes the slot.
  * @param {Event} event
@@ -800,9 +812,7 @@ function playerHeader(reel, index, total) {
     <div class="story__head">
       ${pips(index, total)}
       <div class="story__ident">
-        <span class="story__avatar ramp ramp--${reel.coverIndex}"
-          >${reel.monogram}</span
-        >
+        ${publicationTile("story__avatar", reel, logos)}
         <span class="story__pub">${reel.name}</span>
         ${
           frame

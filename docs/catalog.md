@@ -40,6 +40,7 @@ Each entry in `publications`:
 | `category`  | string  | One of the top-level `categories`.                                                                    |
 | `feedUrl`   | string  | `https` URL of the Feed. Unique across the file.                                                      |
 | `siteUrl`   | string  | `https` URL of the Publication's front page.                                                          |
+| `logoUrl`   | string  | `https` URL of the publisher's own icon, or `null` when it publishes none. Required: write one or the other. |
 | `truncated` | boolean | `true` when Items carry only a Summary and the Article must be fetched from the Original.             |
 | `note`      | string  | Optional. English. What you saw when you checked the Feed: content shape, paywall, where it is listed. |
 
@@ -69,8 +70,23 @@ what it publishes. `local` is for city or regional titles.
    Article, set `truncated: false`; if there is only `description` or
    `summary`, or the content ends with a "continue reading" link, set
    `truncated: true`. Write what you saw in `note`.
-5. **English only** in `note`, as everywhere else in the repository.
-6. **Nations are Nations.** Adding a Publication from a Nation not yet in the
+5. **Find the logo once, by hand.** The app shows it in the ring, the card
+   header and the Story header instead of the Publication's initials. Read the
+   front page's `<link rel="apple-touch-icon">` or `<link rel="icon">` and take
+   the largest one that is a real icon — **not** `rel="mask-icon"` or
+   `safari-pinned-tab.svg`, which are a monochrome silhouette rather than the
+   logo. No declared icon: try `/apple-touch-icon.png` and `/favicon.ico` at the
+   origin, and confirm what comes back is an image and not a 200 HTML page.
+   Nothing usable at all is `logoUrl: null` and the Publication keeps its
+   monogram, which is a fine answer — a 16×16 favicon blown up to 56px is not.
+   `--fetch` warns when a `logoUrl` stops serving an image. (The app already
+   tries `/apple-touch-icon.png` and `/favicon.ico` at the origin by itself,
+   which is all a Publication the reader adds by URL ever gets. This field is
+   for the logo those two guesses miss or get wrong, which is most of the good
+   ones — so `null` means "I looked and the guesses are as good as it gets", not
+   "I did not look".)
+6. **English only** in `note`, as everywhere else in the repository.
+7. **Nations are Nations.** Adding a Publication from a Nation not yet in the
    Catalog is welcome and needs no code change, but say in the pull request
    that a new Nation is being introduced so the Publications screen can be
    checked with it.

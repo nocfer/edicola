@@ -48,6 +48,7 @@ const ENTRY_KEYS = new Set([
   "category",
   "feedUrl",
   "siteUrl",
+  "logoUrl",
   "truncated",
   "note",
 ]);
@@ -78,6 +79,7 @@ const USER_AGENT =
  * @property {string} category
  * @property {string} feedUrl
  * @property {string} siteUrl
+ * @property {string | null} logoUrl
  * @property {boolean} truncated
  * @property {string} [note]
  */
@@ -213,6 +215,9 @@ export function validateCatalog(catalog) {
     else feedUrls.set(e.feedUrl, where);
 
     if (!isHttpsUrl(e.siteUrl)) add(where, "siteUrl must be an https URL");
+
+    if (e.logoUrl !== null && !isHttpsUrl(e.logoUrl))
+      add(where, "logoUrl must be an https URL, or null for no logo");
 
     if (typeof e.truncated !== "boolean")
       add(where, "truncated must be a boolean");
@@ -561,6 +566,63 @@ async function main() {
     process.exit(1);
   }
   console.log(`0 feeds failing out of ${results.length}.`);
+  await checkLogos(catalog);
+}
+
+/**
+ * Report Catalog `logoUrl`s that no longer serve an image. This warns rather
+ * than fails: a dead logo falls back to the Publication's monogram, so it is
+ * drift to fix rather than a broken app. It is here at all because the field is
+ * hand-maintained, and CLAUDE.md's lesson about `truncated` is that a
+ * hand-maintained Catalog field rots silently unless something looks.
+ *
+ * @param {Catalog} catalog
+ */
+async function checkLogos(catalog) {
+  const withLogo = catalog.publications.filter((p) => p.logoUrl);
+  const dead = [];
+  const blocked = [];
+  await Promise.all(
+    withLogo.map(async (p) => {
+      try {
+        const res = await fetch(p.logoUrl, {
+          redirect: "follow",
+          headers: { "user-agent": USER_AGENT },
+          signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        });
+        const type = res.headers.get("content-type") || "";
+        // 401/403 is this tool being turned away, not a missing logo: the UA
+        // above says plainly that it is a bot, and Sky News refuses it while
+        // serving the very same file to a browser. Reporting that as dead
+        // would teach everyone to ignore the line.
+        if (res.status === 401 || res.status === 403) {
+          blocked.push(`${p.id} — ${res.status}`);
+        } else if (!res.ok || !type.toLowerCase().startsWith("image/")) {
+          dead.push(`${p.id} — ${res.status} ${type || "no content-type"}`);
+        }
+      } catch (error) {
+        dead.push(`${p.id} — ${error}`);
+      }
+    }),
+  );
+  console.log("");
+  if (blocked.length) {
+    console.log(
+      `· ${blocked.length} logo(s) refused this bot, which says nothing about`,
+      "whether a browser gets them:",
+    );
+    for (const line of blocked) console.log(`  ${line}`);
+  }
+  if (dead.length === 0) {
+    console.log(
+      `✔ ${withLogo.length - blocked.length} logos still serve an image`,
+      `(${catalog.publications.length - withLogo.length} Publications have none).`,
+    );
+    return;
+  }
+  console.log(`⚠ ${dead.length} logoUrl(s) no longer serve an image:`);
+  for (const line of dead) console.log(`  ${line}`);
+  console.log("  These Publications fall back to their monogram until fixed.");
 }
 
 // CLI entry.

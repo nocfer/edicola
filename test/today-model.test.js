@@ -4,7 +4,7 @@
 // the reader's day, not UTC's.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { coverIndexFor } from "../src/cover.js";
+import { coverIndexFor, logoCandidates } from "../src/cover.js";
 import {
   buildStoryReel,
   buildTodayModel,
@@ -26,7 +26,17 @@ function midnight(year, month, day) {
 }
 
 const PUBS = new Map([
-  ["bbc-news", { id: "bbc-news", name: "BBC News" }],
+  [
+    "bbc-news",
+    {
+      id: "bbc-news",
+      name: "BBC News",
+      siteUrl: "https://bbc.test",
+      logoUrl: "https://bbc.test/icon.png",
+    },
+  ],
+  // No logoUrl and no siteUrl: nothing to point at and nothing to guess from,
+  // so the monogram is the whole identity there.
   ["nature", { id: "nature", name: "Nature" }],
 ]);
 
@@ -483,6 +493,27 @@ test("every card carries its Publication's monogram and ramp index", () => {
   assert.equal(card.monogram, "BN", "BBC News");
   assert.equal(card.coverIndex, coverIndexFor("bbc-news"));
   assert.ok(card.coverIndex >= 1 && card.coverIndex <= 8);
+});
+
+test("the Publication's logo candidates reach every shape that draws its tile", () => {
+  // Cards, rings and a reel all feed the same `publicationTile`, so a chain
+  // that rides onto one and not the others is the same Publication showing a
+  // logo in the ring and initials on the card below it.
+  const items = [
+    item("a", NOW),
+    item("n", NOW - 1000, { publicationId: "nature" }),
+  ];
+  const chain = logoCandidates(PUBS.get("bbc-news"));
+  const model = buildTodayModel(items, PUBS, { now: NOW });
+  assert.deepEqual(model.cards[0].logoUrls, chain);
+  assert.deepEqual(model.cards[1].logoUrls, [], "Nature has nothing to try");
+  assert.deepEqual(model.rings[0].logoUrls, chain);
+  assert.deepEqual(model.rings[1].logoUrls, []);
+  const reel = buildStoryReel(items, PUBS, {
+    now: NOW,
+    publicationId: "bbc-news",
+  });
+  assert.deepEqual(reel.logoUrls, chain);
 });
 
 test("a card with no resolved source falls back to a generated Cover", () => {

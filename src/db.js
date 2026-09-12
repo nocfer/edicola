@@ -47,6 +47,12 @@ export const META_KEYS = Object.freeze({
  * @property {string} category One of the Catalog's Categories.
  * @property {string} feedUrl
  * @property {string} siteUrl
+ * @property {string | null} [logoUrl] The publisher's own icon, resolved by
+ *   hand into the shipped Catalog (`tools/check-catalog.mjs --fetch` audits
+ *   it); null for a Custom Publication and wherever the guesses in
+ *   `logoCandidates` are as good as it gets. It is the first candidate, not
+ *   the only one, and a claim rather than a promise — the tile falls through
+ *   to the next and then to the monogram.
  * @property {boolean} truncated The Feed carries Summaries only.
  * @property {boolean} custom Added by the reader, not in the Catalog.
  * @property {boolean} enabled Only Enabled Publications take part in a Sync.

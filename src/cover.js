@@ -1,12 +1,16 @@
 // Publication identity for Feed mode, and the answer to "what fills this
 // Item's picture" (ticket 01).
 //
-// Publications have no logos, no favicons and no flags (ADR-0009 has nothing
-// to say about them because Edicola never fetches them), so a Publication's
-// visible identity is two things: a **monogram** derived from its name, and one
-// of eight `--cover-n` fills picked by hashing its id. Thirty Publications
+// A Publication's visible identity is a **monogram** derived from its name over
+// one of eight `--cover-n` fills picked by hashing its id. Thirty Publications
 // share eight colours on purpose — the colour is never the identity, the
 // monogram is.
+//
+// `logoCandidates` below lists where to look for the publisher's own logo, and
+// `publicationTile` in `views/layout.js` shows that in the small circles
+// instead. The monogram is not decoration underneath it: it is the last rung of
+// that ladder, what a Publication with nothing to try gets, and what a chain
+// that has run out falls back to.
 //
 // The first two functions are pure and dependency-free: no `document`, no
 // `window`, no `Date.now()`, so the monogram rule and the ramp index are unit
@@ -124,6 +128,50 @@ function splitWords(text) {
     .flatMap((token) => token.replace(/\p{N}+/gu, " ").split(" "))
     .flatMap((token) => token.split(/(?<=\p{Ll})(?=\p{Lu})/u))
     .filter((token) => token !== "");
+}
+
+/**
+ * Where to look for a Publication's logo, best first: the URL a human put in
+ * the Catalog entry, then the two paths worth guessing at its site's origin.
+ * `publicationTile` walks this list, and a candidate that 404s, fails to
+ * decode or arrives too small is struck off and the next one tried, with the
+ * monogram at the end.
+ *
+ * **Both guesses are conventions, not standards.** The two standard routes to
+ * an icon — `<link rel="icon">` and the Web App Manifest's `icons[]` — need the
+ * page first, and the manifest has no fixed path of its own, so neither can be
+ * guessed without a fetch through the Proxy for a decoration. That leaves
+ * these, and they are in this order because of what they hold rather than how
+ * often they answer. Across the thirty Catalog origins `/favicon.ico` answers
+ * 26 times and only 4 of those are 64px or more, while `/apple-touch-icon.png`
+ * answers 12 times and 8 of those are (180px, usually). So the icon is the
+ * better picture and the favicon is the wider net, which is why the favicon is
+ * behind it and behind the size floor in `views/layout.js`: without that floor
+ * chaining it would swap a sharp monogram for a 16px smudge on most sites.
+ *
+ * Only https. Over an https app an http image is blocked before it is sent, so
+ * a candidate that cannot succeed is not one.
+ *
+ * @param {{ logoUrl?: string | null, siteUrl?: string | null } | null | undefined} publication
+ * @returns {string[]}
+ */
+export function logoCandidates(publication) {
+  const candidates = [];
+  const stated = publication?.logoUrl;
+  if (typeof stated === "string" && stated.startsWith("https://")) {
+    candidates.push(stated);
+  }
+  for (const path of ["/apple-touch-icon.png", "/favicon.ico"]) {
+    try {
+      const url = new URL(path, String(publication?.siteUrl ?? ""));
+      if (url.protocol === "https:" && !candidates.includes(url.href)) {
+        candidates.push(url.href);
+      }
+    } catch {
+      // No site URL, or not one that parses: there is nothing to guess from.
+    }
+  }
+  return candidates;
 }
 
 /**

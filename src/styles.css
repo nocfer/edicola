@@ -44,6 +44,14 @@
   --cover-7: #563066;
   --cover-8: #6f2a4a;
 
+  /* What a publisher's logo sits on, when the Catalog has one and it replaces
+     the monogram (.logo below). White in both themes and DELIBERATELY NOT
+     redefined in the light block, for the reason --scrim-ink is not: half of
+     these icons are a dark mark on a transparent background, drawn for a white
+     page, and over a dark backing they disappear. The rule that consumes it is
+     identical in both themes - the token simply does not vary. */
+  --logo-bg: #fff;
+
   /* --- The Story player scrim -------------------------------------------
      Defined once, on bare :root, and DELIBERATELY NOT redefined in the light
      block below. The Story player is dark in both themes by decision: its
@@ -480,6 +488,22 @@ a.chip {
 }
 .ramp--8 {
   background: var(--cover-8);
+}
+
+/* Logo: what fills an identity tile instead of `.ramp` + a monogram, for the
+   Publications whose logo the Catalog carries (`publicationTile` in
+   views/layout.js). It fills the tile the same way whichever one it is — the
+   ring, the card avatar, the Story header — so the size and the shape stay
+   with the tile and only the fill lives here. The backing is on the image
+   rather than on its tile because a transparent icon has to sit on --logo-bg
+   in every state, including the no-reel ring, whose own rule is the more
+   specific one. */
+.logo {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--logo-bg);
+  object-fit: cover;
 }
 
 /* Button: default is a quiet control; `--primary` is the accent fill;
