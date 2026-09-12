@@ -40,12 +40,7 @@ import { resolveCoverSources } from "../cover.js";
 import { getDatabase, imageKeyFor } from "../db.js";
 import { formatRelative, t, tCount } from "../i18n.js";
 import { markItemSeen } from "../item-state.js";
-import {
-  growFrom,
-  motionToken,
-  prefersReducedMotion,
-  sequencer,
-} from "../motion.js";
+import { growFrom, motionToken, prefersReducedMotion } from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
 import { state, update } from "../state.js";
 import { goBack, hrefFor, navigate } from "../router.js";
@@ -60,10 +55,6 @@ import { emptyState, screenHeader } from "./layout.js";
 /** Vertical travel (CSS px) that counts as a swipe rather than a stray touch. */
 const SWIPE_PX = 60;
 
-/** How far a leaving Frame travels against the direction of the tap (D2). */
-const LEAVE_PX = 18;
-/** How far the arriving Frame comes from, on the same axis and the same sign. */
-const ENTER_PX = 22;
 /** How far content rises into a panel that is still growing (D1). */
 const RISE_PX = 10;
 
@@ -188,9 +179,6 @@ let ringRect = null;
  */
 let openAnim = null;
 
-/** The guard over the Frame swap an out-animation still owes (D2). */
-let swaps = sequencer();
-
 /**
  * True between the tap that closes the player and the route actually changing,
  * so a second Escape or a second tap on the cross does not race the reverse.
@@ -304,72 +292,41 @@ function arrive(panel) {
 }
 
 /**
- * Move the Frame out against the direction of travel, swap, and bring the next
- * one in with it (D2).
+ * Swap to the new Frame immediately and settle it in with the same
+ * zoom+fade the rest of the app uses for a screen change (ADR-0012): from
+ * `--zoom`/transparent to full size and opaque.
  *
- * The swap goes through `update()` rather than through `textContent`: the demo
- * mutates the DOM because it has no store, and here the out-animation finishing
- * is what changes the state. lit-html then patches `.story__frame` in place —
- * the template in that slot never changes, and the pips' `repeat` is keyed by
- * position — so the in-animation runs on the same node the out-animation left,
- * and nothing is thrown away mid-flight.
+ * This used to hold the swap until an out-animation on the old Frame had
+ * finished, so the photo the reader was leaving stayed on screen — shrinking,
+ * but still the old photo — for a whole `--dur` before the new one even
+ * started arriving. Two people tapping through a reel felt that as the new
+ * photo being slow. There is only one `.story__frame` node (lit patches it in
+ * place rather than swapping elements), so the old content cannot fade out
+ * while the new one fades in beside it; showing the new one the instant it is
+ * available and animating only its arrival is what actually reads as fast.
  *
- * @param {number} dir -1 or 1, the direction the reader is travelling.
  * @param {() => void} swap Applies the new position to the store.
  */
-function advance(dir, swap) {
-  const body = panelElement()?.querySelector(".story__frame");
-  // A tap landing mid-transition commits the swap the running animation still
-  // owes before opening its own, and `token` stops that animation's own
-  // `finished` from swapping a Frame it no longer speaks for.
-  const token = swaps.start(swap);
-  if (!body?.animate) {
-    swaps.commit(token);
-    return;
-  }
-  const reduced = prefersReducedMotion();
-  for (const running of body.getAnimations()) running.cancel();
-  const out = reduced
-    ? body.animate([{ opacity: 1 }, { opacity: 0 }], {
-        duration: ms("--dur-fast"),
-        fill: "both",
-      })
-    : body.animate(
-        [
-          { opacity: 1, transform: "none" },
-          { opacity: 0, transform: `translateX(${-LEAVE_PX * dir}px)` },
-        ],
-        {
-          duration: ms("--dur"),
-          easing: motionToken("--ease-exit"),
-          fill: "both",
-        },
-      );
-  out.finished
-    .then(() => {
-      if (!swaps.commit(token)) return;
-      const next = panelElement()?.querySelector(".story__frame");
-      if (!next) return;
-      if (reduced) {
-        next.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: ms("--dur-fast"),
-          fill: "both",
-        });
-        return;
-      }
-      next.animate(
-        [
-          { opacity: 0, transform: `translateX(${ENTER_PX * dir}px)` },
-          { opacity: 1, transform: "none" },
-        ],
-        {
-          duration: ms("--dur-frame"),
-          easing: motionToken("--ease-spring"),
-          fill: "both",
-        },
-      );
-    })
-    .catch(() => {});
+function advance(swap) {
+  const leaving = panelElement()?.querySelector(".story__frame");
+  for (const running of leaving?.getAnimations() ?? []) running.cancel();
+  swap();
+  if (prefersReducedMotion()) return;
+  const arriving = panelElement()?.querySelector(".story__frame");
+  if (!arriving?.animate) return;
+  // Read rather than written as `var(--zoom)`: WAAPI does not resolve custom
+  // properties inside keyframe values (see the same note on `growFrom`).
+  arriving.animate(
+    [
+      { opacity: 0, transform: `scale(${motionToken("--zoom")})` },
+      { opacity: 1, transform: "none" },
+    ],
+    {
+      duration: ms("--dur-frame"),
+      easing: motionToken("--ease-spring"),
+      fill: "both",
+    },
+  );
 }
 
 // --- Advancing, and marking Seen ------------------------------------------
@@ -384,22 +341,17 @@ function onStory() {
  * Advance is always something the reader did: there is no timer anywhere in
  * this file.
  *
- * A step rather than a destination, because the destination is only knowable
- * after the settle on the first line. Two taps 90ms apart both read
- * `screen.index`, and until the first tap's out-animation has finished that
- * index is still the Frame the reader is leaving — so both taps aimed at the
- * same Frame and the reader advanced once for two taps. The demo commits on
- * the line above the same arithmetic for the same reason.
- *
- * The store change is then handed to `advance` rather than made here, because
- * the new Frame must not appear until the old one has left (D2). Running off
- * the end is not a Frame change, so it redraws immediately: the Frame under the
- * end panel is the one that was already showing.
+ * The store change is handed to `advance` rather than made here so it can
+ * cancel whatever arrival animation the previous step is still running
+ * first — `advance` itself commits the swap synchronously, so two taps in
+ * quick succession each land on the index current at the time they were
+ * made. Running off the end is not a Frame change, so it redraws
+ * immediately: the Frame under the end panel is the one that was already
+ * showing.
  * @param {number} dir -1 or 1.
  * @param {number} total
  */
 function step(dir, total) {
-  swaps.settle();
   const index = screen.index + dir;
   if (index < 0) return;
   if (index >= total) {
@@ -408,7 +360,7 @@ function step(dir, total) {
     update();
     return;
   }
-  advance(dir, () => {
+  advance(() => {
     screen.index = index;
     screen.done = false;
     update();
@@ -459,13 +411,10 @@ function installListeners() {
     // would let the next close reverse an animation of the wrong Story.
     openAnim = null;
     closing = false;
-    // Everything else measured or owed belongs to the visit that is ending. A
-    // rect kept past a failed load would grow the next Story out of a ring
-    // that is no longer on screen, at a scroll position that no longer holds;
-    // a swap kept past an unmount would apply an index from the last reel to
-    // the first tap of the next one.
+    // Everything else measured belongs to the visit that is ending. A rect
+    // kept past a failed load would grow the next Story out of a ring that is
+    // no longer on screen, at a scroll position that no longer holds.
     ringRect = null;
-    swaps = sequencer();
   });
   window.addEventListener("pagehide", () => {
     revoke(screen.objectUrls);

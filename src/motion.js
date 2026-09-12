@@ -89,7 +89,13 @@ export function withViewTransition(mutate) {
     mutate();
     return;
   }
-  document.startViewTransition(mutate);
+  // A UA that refuses to start the transition — a hidden or not-yet-rendering
+  // document, which is most of a headless screenshot run — rejects `ready`
+  // with an InvalidStateError while still calling `mutate`. The redraw is
+  // correct, so that rejection is noise; left unhandled it surfaces as an
+  // uncaught exception and fails qa-scenarios at random. `updateCallbackDone`
+  // is deliberately NOT caught: a throw inside the redraw is a real bug.
+  document.startViewTransition(mutate).ready.catch(() => {});
 }
 
 /**

@@ -1531,13 +1531,20 @@ a.chip {
 .story__zone--next {
   right: 0;
 }
+/* Same glass recipe as the tab bar (blur+saturate, an inset rim), but on
+   --scrim-flat rather than --glass-bg: the player is dark in both themes by
+   decision (see the note on --scrim-ink), and --glass-bg is not — it is the
+   surrounding page's theme, which the Story never takes. */
 .story__nav {
   position: absolute;
   top: 50%;
   z-index: 3;
   margin-top: -22px;
   border: 1px solid color-mix(in srgb, var(--accent-ink) 14%, transparent);
-  background: var(--scrim-ink);
+  background: var(--scrim-flat);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
   color: var(--accent-ink);
 }
 .story__nav--back {
