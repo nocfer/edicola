@@ -339,6 +339,14 @@ button {
   border-radius: var(--r-control);
   transition: color var(--dur-fast) var(--ease);
 }
+/* Apple's HIG sizes tab-bar glyphs well above the caption beside them (~25pt
+   icon over a 10pt label). Every icon here ships as a 24x24 viewBox scaled
+   down to fit the caption's line — this un-scales it to native size instead
+   of introducing a second font-size token for one glyph. */
+.tabbar__tab .ico {
+  width: 24px;
+  height: 24px;
+}
 .tabbar__tab:hover {
   text-decoration: none;
   color: var(--muted);
