@@ -224,16 +224,23 @@ export async function launch({
       cdp.close();
       chrome.kill();
       await exited;
-      // Chrome is still flushing its profile for a moment after the process
-      // exits, so on Linux the first rmdir loses the race with ENOTEMPTY and
-      // failed the whole run over a temp directory. Node retries for us.
+      // Killing Chrome does not stop its children, which keep writing into
+      // the profile while the walk is deleting it: on Linux that is ENOTEMPTY
+      // however long we retry, and it failed runs whose scenarios had all
+      // passed. Retry, then give up quietly. A throwaway profile lives in the
+      // OS temp directory, so leaving one behind costs a run nothing, while
+      // throwing here costs it its verdict.
       if (throwaway) {
-        rmSync(profile, {
-          recursive: true,
-          force: true,
-          maxRetries: 10,
-          retryDelay: 100,
-        });
+        try {
+          rmSync(profile, {
+            recursive: true,
+            force: true,
+            maxRetries: 10,
+            retryDelay: 100,
+          });
+        } catch {
+          // Nothing to do about it, and nothing that depends on it.
+        }
       }
     },
   };
