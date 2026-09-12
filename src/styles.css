@@ -349,6 +349,18 @@ button {
 .tabbar__tab[aria-current='page'] {
   color: var(--accent);
 }
+/* The Reader's control bar is this same capsule with actions in it instead of
+   routes, so its controls are tabs too — but a <button> arrives with chrome a
+   UA gave it, and an <a> does not. Saved is the pressed action, in accent for
+   the same reason the current route is. */
+button.tabbar__tab {
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.tabbar__tab[aria-pressed='true'] {
+  color: var(--accent);
+}
 
 /* Card: the surface for content blocks and list rows. */
 .card {
@@ -1514,8 +1526,9 @@ a.chip {
   text-wrap: pretty;
 }
 
-/* Advance. The two zones are the tap thirds; the two chevrons are their
-   visible twin at the vertical centre, and a keyboard gets the arrow keys. */
+/* Advance. The two zones are the tap thirds, the only affordance — no visible
+   chevrons over the Frame, same as Instagram/Snapchat stories — and a
+   keyboard gets the arrow keys. */
 .story__zone {
   position: absolute;
   top: 150px;
@@ -1530,28 +1543,6 @@ a.chip {
 }
 .story__zone--next {
   right: 0;
-}
-/* Same glass recipe as the tab bar (blur+saturate, an inset rim), but on
-   --scrim-flat rather than --glass-bg: the player is dark in both themes by
-   decision (see the note on --scrim-ink), and --glass-bg is not — it is the
-   surrounding page's theme, which the Story never takes. */
-.story__nav {
-  position: absolute;
-  top: 50%;
-  z-index: 3;
-  margin-top: -22px;
-  border: 1px solid color-mix(in srgb, var(--accent-ink) 14%, transparent);
-  background: var(--scrim-flat);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: inset 0 1px 0 var(--glass-highlight);
-  color: var(--accent-ink);
-}
-.story__nav--back {
-  left: var(--s-2);
-}
-.story__nav--next {
-  right: var(--s-2);
 }
 
 /* The Read button, always visible. The chevron above it is the familiar hint
@@ -2107,45 +2098,13 @@ a.chip {
    Tokens only, as everywhere; the one exception is the heading scale inside
    the Article, which is expressed in `em` because no token means "a little
    larger than the surrounding prose". */
+/* The Reader's own controls are the `.tabbar` capsule (see the note there),
+   which is fixed rather than in flow — so this screen has to reserve the room
+   the tab bar's own screens reserve through `.app--with-tabbar`, which
+   `main.js` takes off the Reader along with the tab bar itself. */
 .screen--reader {
   gap: var(--s-3);
-}
-/* Sticky over the Article as it scrolls, so it gets the tab bar's glass too
-   (minus the box-shadow: it sits flush against the screen edge, not
-   floating clear of it, so there's no rim to catch light on). */
-.reader__header {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  gap: var(--s-2);
-  margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) 0;
-  padding: var(--s-2) var(--s-4);
-  background: var(--glass-bg);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
-  border-bottom: 1px solid var(--hairline);
-}
-.reader__ident {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-.reader__pub {
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.reader__origin {
-  font-size: var(--fs-caption);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.reader__action--on {
-  color: var(--accent);
-  border-color: var(--accent);
+  padding-bottom: var(--tabbar-clearance);
 }
 
 .reader__body {

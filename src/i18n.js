@@ -324,6 +324,9 @@ export const en = {
   "reader.missing": "This Item is no longer in your newsstand.",
   "reader.toToday": "Go to Today",
   "reader.original": "Open original",
+  // The control bar's caption for the same link: one word, because it sits
+  // under an icon beside three others in a capsule the width of the screen.
+  "reader.originalShort": "Original",
   "reader.originalAria": "Open the original on {publication}",
   "reader.source": "From {publication}",
   "reader.words.one": "{count} word",
@@ -659,6 +662,7 @@ export const it = {
   "reader.missing": "Questo titolo non è più nella tua edicola.",
   "reader.toToday": "Vai a Oggi",
   "reader.original": "Apri l'originale",
+  "reader.originalShort": "Originale",
   "reader.originalAria": "Apri l'originale su {publication}",
   "reader.source": "Da {publication}",
   "reader.words.one": "{count} parola",

@@ -1,11 +1,14 @@
 // Reader: one Item, full screen (spec stories 15-18, 20, 22).
 //
-// A full-screen push — `main.js` hides the tab bar on this route and this
-// screen carries its own back control. The header is sticky and holds the two
-// things ADR-0004 requires to be visible at all times: the Publication's name
-// and a link to the Original. Edicola never presents itself as the publisher,
-// and it never tries to obtain what a publisher withheld: an Item with no
-// Article shows its Summary and says plainly why the text is short.
+// A full-screen push — `main.js` hides the tab bar on this route, and this
+// screen puts its own controls in the vacated slot: the same floating glass
+// capsule, with back, save, share and the link to the Original in place of the
+// four routes. ADR-0004's two requirements are met across the screen rather
+// than in one bar: the link to the Original is always on screen, in the
+// capsule, and the Publication's name heads the Article and closes it. Edicola
+// never presents itself as the publisher, and it never tries to obtain what a
+// publisher withheld: an Item with no Article shows its Summary and says
+// plainly why the text is short.
 //
 // What happens on open:
 //   1. The Item, its Publication and its Article are read from Dexie, and the
@@ -57,7 +60,7 @@ import { goBack, hrefFor, parseRoute } from "../router.js";
 import { pageFetcher } from "../settings.js";
 import { state, update } from "../state.js";
 import { getSyncStore } from "../store.js";
-import { bookmarkIcon, emptyState, shareIcon } from "./layout.js";
+import { bookmarkIcon, emptyState, externalIcon, shareIcon } from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').ArticleRow} ArticleRow */
@@ -519,7 +522,8 @@ function publicationName() {
 /**
  * A link to the Original. Always rendered when the Item has one (ADR-0004).
  * @param {string} className
- * @param {string} label
+ * @param {unknown} label  text, or a lit template (the control bar passes an
+ *   icon and a caption, so it looks like the buttons beside it)
  */
 function originalLink(className, label) {
   const link = screen.item?.link;
@@ -535,66 +539,65 @@ function originalLink(className, label) {
 }
 
 /**
- * The sticky header: back, the Publication's name with the link to its
- * Original, and the two Item actions. It is sticky because ADR-0004 asks for
- * the Publication and the Original to be visible, not merely present at the
- * top of a long Article.
+ * The Reader's controls: the tab bar's floating glass capsule, in the tab
+ * bar's place, carrying actions instead of routes. The Reader is a full-screen
+ * push that hides the tab bar (`hidesTabBar`), so that slot is free — and
+ * reusing `.tabbar` rather than restyling a header of its own keeps the two
+ * bars one definition, the way every other floating panel shares the glass
+ * recipe.
+ *
+ * ADR-0004 asks the Reader to show the Publication and a link to the Original.
+ * The link is here and always on screen; the Publication's name is in the
+ * Article's head and again in its footer, because a capsule of icons with
+ * one-word captions has no room for a masthead.
  */
-function header() {
+function controlBar() {
   const item = screen.item;
   const isSaved = Boolean(item?.saved);
   return html`
-    <header class="screen__header reader__header">
+    <div class="tabbar">
       <button
         type="button"
-        class="btn btn--icon"
-        aria-label=${t("reader.back")}
+        class="tabbar__tab"
         title=${t("reader.back")}
         @click=${goBack}
       >
-        ${backIcon}
+        ${backIcon}<span>${t("reader.back")}</span>
       </button>
-      <div class="reader__ident">
-        <span class="reader__pub">${publicationName()}</span>
-        ${originalLink("reader__origin", t("reader.original"))}
-      </div>
-      ${
-        state.online
-          ? nothing
-          : html`<span class="chip chip--muted">${t("app.offline")}</span>`
-      }
       ${
         item
           ? html`
             <button
               type="button"
-              class="btn btn--icon reader__action ${
-                isSaved ? "reader__action--on" : ""
-              }"
+              class="tabbar__tab"
               aria-pressed=${isSaved ? "true" : "false"}
-              aria-label=${t(isSaved ? "reader.unsaveAria" : "reader.saveAria")}
-              title=${t(isSaved ? "app.saved" : "app.save")}
+              title=${t(isSaved ? "reader.unsaveAria" : "reader.saveAria")}
               @click=${toggleSaved}
             >
-              ${bookmarkIcon(isSaved)}
+              ${bookmarkIcon(isSaved)}<span
+                >${t(isSaved ? "app.saved" : "app.save")}</span
+              >
             </button>
             ${
               item.link
                 ? html`<button
                     type="button"
-                    class="btn btn--icon reader__action"
-                    aria-label=${t("app.share")}
+                    class="tabbar__tab"
                     title=${t("app.share")}
                     @click=${share}
                   >
-                    ${shareIcon}
+                    ${shareIcon}<span>${t("app.share")}</span>
                   </button>`
                 : nothing
             }
+            ${originalLink(
+              "tabbar__tab",
+              html`${externalIcon}<span>${t("reader.originalShort")}</span>`,
+            )}
           `
           : nothing
       }
-    </header>
+    </div>
   `;
 }
 
@@ -616,6 +619,14 @@ function articleHead() {
         article
           ? html`<span>${tCount("reader.words", article.wordCount)}</span>`
           : nothing
+      }
+      ${
+        // The control bar has no room for the Offline chip every other screen
+        // carries in its header, so it rides with the rest of this Item's
+        // provenance instead.
+        state.online
+          ? nothing
+          : html`<span class="chip chip--muted">${t("app.offline")}</span>`
       }
     </p>
   `;
@@ -741,7 +752,6 @@ export function readerView(appState) {
 
   return html`
     <section class="screen screen--reader">
-      ${header()}
       <div class="screen__body reader__body">
         ${
           screen.status === "loading"
@@ -773,6 +783,7 @@ export function readerView(appState) {
             : nothing
         }
       </div>
+      ${controlBar()}
     </section>
   `;
 }
