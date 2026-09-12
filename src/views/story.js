@@ -558,14 +558,9 @@ const closeIcon = html`<svg
   <path d="m6 6 12 12" />
 </svg>`;
 
-/** @param {'left'|'right'|'up'} direction */
-function chevron(direction) {
-  const path =
-    direction === "left"
-      ? "m15 18-6-6 6-6"
-      : direction === "right"
-        ? "m9 18 6-6-6-6"
-        : "m18 15-6-6-6 6";
+/** The swipe-up hint above the Read button. */
+function upChevron() {
+  const path = "m18 15-6-6-6 6";
   return html`<svg
     class="ico"
     viewBox="0 0 24 24"
@@ -700,9 +695,8 @@ function frameBody(frame) {
 }
 
 /**
- * The tap thirds, and the chevrons that are their visible twin. The zones are
- * out of the accessibility tree on purpose: they duplicate the buttons beside
- * them, and a screen reader offering both would be reading one control twice.
+ * The tap thirds. No visible chevrons over the Frame — the zones themselves
+ * are the only affordance, the same convention Instagram/Snapchat stories use.
  * @param {number} total
  */
 function advanceControls(total) {
@@ -710,36 +704,18 @@ function advanceControls(total) {
     <button
       type="button"
       class="story__zone story__zone--back"
-      aria-hidden="true"
-      tabindex="-1"
+      aria-label=${t("story.previous")}
+      title=${t("story.previous")}
+      ?disabled=${screen.index === 0}
       @click=${() => step(-1, total)}
     ></button>
     <button
       type="button"
       class="story__zone story__zone--next"
-      aria-hidden="true"
-      tabindex="-1"
-      @click=${() => step(1, total)}
-    ></button>
-    <button
-      type="button"
-      class="btn btn--tap story__nav story__nav--back"
-      aria-label=${t("story.previous")}
-      title=${t("story.previous")}
-      ?disabled=${screen.index === 0}
-      @click=${() => step(-1, total)}
-    >
-      ${chevron("left")}
-    </button>
-    <button
-      type="button"
-      class="btn btn--tap story__nav story__nav--next"
       aria-label=${t("story.next")}
       title=${t("story.next")}
       @click=${() => step(1, total)}
-    >
-      ${chevron("right")}
-    </button>
+    ></button>
   `;
 }
 
@@ -753,7 +729,7 @@ function advanceControls(total) {
 function readBar(frame) {
   return html`
     <div class="story__foot">
-      <span class="story__hint" aria-hidden="true">${chevron("up")}</span>
+      <span class="story__hint" aria-hidden="true">${upChevron()}</span>
       <a
         class="btn btn--primary story__read"
         href=${hrefFor("reader", { id: frame.id })}
