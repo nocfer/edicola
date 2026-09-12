@@ -503,10 +503,23 @@ function installListeners() {
  * whatever open animation is still running — reversing `growFrom` would play
  * the open backwards, not close, and closing always takes the same short
  * time regardless of how far the open had gotten.
+ *
+ * `goBack`'s `history.back()` assumes there is somewhere to go back to, based
+ * on an in-memory step count that a native back/forward gesture (not just
+ * this app's own navigation) can inflate past what the tab's history
+ * actually holds. When it's wrong, `history.back()` is a silent no-op — no
+ * navigation, no `hashchange` — and `closing` would otherwise stay `true`
+ * forever, freezing the ×, Escape and the swipe-down close for the rest of
+ * the visit. The timeout is the backstop: it can't outlive the window a
+ * normal route change needs, so a click a second later is a fresh close, not
+ * one still waiting on a navigation that already failed to happen.
  */
 function close() {
   if (closing) return;
   closing = true;
+  setTimeout(() => {
+    closing = false;
+  }, 1000);
   openAnim?.cancel();
   openAnim = null;
   goBack();
