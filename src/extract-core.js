@@ -695,6 +695,26 @@ function hardenLinks(root, baseUrl) {
 }
 
 /**
+ * A Drupal image-style derivative URL varies only in the `styles/<name>/`
+ * segment; the path under `public/` is the original file and identifies the
+ * photo regardless of which size was rendered. insella.it (and other Drupal
+ * Publications) repeat every inline image at a small size in a "Foto e
+ * immagini" thumbnail rail that Readability keeps as article content, so
+ * `filterImages`'s exact-URL dedup let the same photo through twice — once
+ * full-size inline, once again as a thumbnail. Stripping the style segment
+ * before comparing catches that; a URL that never had one is unaffected.
+ *
+ * ponytail: Drupal's own convention only, not a general "same file, resized"
+ * detector. Widen it if another CMS's derivative path shows the same bug.
+ *
+ * @param {string} src
+ * @returns {string}
+ */
+function imageIdentityOf(src) {
+  return src.replace(/\/styles\/[^/]+\/public\//, "/");
+}
+
+/**
  * Keep http(s) images and small inline `data:` images; drop the rest. Returns
  * the ordered, de-duplicated http(s) URLs.
  * @param {HTMLElement} root
@@ -713,7 +733,8 @@ function filterImages(root) {
     if (!img.hasAttribute("alt")) img.setAttribute("alt", "");
     const src = (img.getAttribute("src") || "").trim();
     if (/^https?:\/\//i.test(src)) {
-      if (seen.has(src)) {
+      const identity = imageIdentityOf(src);
+      if (seen.has(identity)) {
         // The same picture twice in one body is decoration, not content. It is
         // usually a no-JS placeholder: BBC articles carry three copies of a
         // grey "image unavailable" PNG with no lazy attribute to promote, so
@@ -723,7 +744,7 @@ function filterImages(root) {
         img.remove();
         continue;
       }
-      seen.add(src);
+      seen.add(identity);
       urls.push(src);
     } else if (
       src.startsWith("data:image/") &&

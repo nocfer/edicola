@@ -434,6 +434,79 @@ test("fetchBlob without a streaming body checks content-length then blob size", 
   assert.equal(result.blob.size, 50);
 });
 
+test("fetchBlob sniffs the real type when the Proxy mislabels it text/plain", async () => {
+  // cors-get-proxy (the default Proxy) rewrites every content-type to
+  // text/plain, so a Blob built from the header cannot be decoded as an image
+  // once the Reader points an <img> at its object URL: every Publication
+  // without CORS on its image CDN goes through the Proxy and breaks this way.
+  const image = "https://example.test/photo.jpg";
+  const jpegBytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4]);
+  const { fetchImpl } = scriptedFetch({
+    [image]: new Response(jpegBytes, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    }),
+  });
+  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
+  const result = await fetcher.fetchBlob(image, { maxBytes: 1024 });
+  assert.equal(result.blob.type, "image/jpeg");
+  assert.deepEqual(new Uint8Array(await result.blob.arrayBuffer()), jpegBytes);
+});
+
+test("fetchBlob sniffs WEBP (a RIFF container) mislabeled text/plain", async () => {
+  const image = "https://example.test/photo.jpg.webp";
+  // RIFF <size> WEBP ...
+  const webpBytes = new Uint8Array([
+    0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50, 1, 2,
+  ]);
+  const { fetchImpl } = scriptedFetch({
+    [image]: new Response(webpBytes, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    }),
+  });
+  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
+  const result = await fetcher.fetchBlob(image, { maxBytes: 1024 });
+  assert.equal(result.blob.type, "image/webp");
+});
+
+test("fetchBlob rejects a Proxy body with no recognizable image signature instead of storing garbage", async () => {
+  // cors-get-proxy sometimes runs binary bodies through a text decode/reencode,
+  // replacing every non-ASCII byte with U+FFFD — unrecoverable, not just
+  // mistyped. Declared text/plain (the Proxy's own rewrite) plus no signature
+  // is the signal; fetchImages already treats a failed fetch as "skip and let
+  // the Reader fall back to the network URL", which beats caching corruption.
+  const image = "https://example.test/mangled.jpg";
+  const proxied = buildProxyUrl(PROXY, image);
+  const mangled = new Uint8Array([0xef, 0xbf, 0xbd, 0xef, 0xbf, 0xbd, 1, 2]);
+  const { fetchImpl } = scriptedFetch({
+    [image]: opaque(),
+    [proxied]: new Response(mangled, {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    }),
+  });
+  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
+  const error = await failure(() =>
+    fetcher.fetchBlob(image, { maxBytes: 1024 }),
+  );
+  assert.equal(error.kind, "blocked");
+  assert.equal(error.via, "proxy");
+});
+
+test("fetchBlob keeps the declared type when the bytes match no known signature", async () => {
+  const image = "https://example.test/mystery";
+  const { fetchImpl } = scriptedFetch({
+    [image]: new Response(new Uint8Array([1, 2, 3, 4]), {
+      status: 200,
+      headers: { "content-type": "image/avif" },
+    }),
+  });
+  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
+  const result = await fetcher.fetchBlob(image, { maxBytes: 1024 });
+  assert.equal(result.blob.type, "image/avif");
+});
+
 test("fetchBlob falls through to the Proxy like fetchText", async () => {
   const image = "https://example.test/pic.png";
   const proxied = buildProxyUrl(PROXY, image);

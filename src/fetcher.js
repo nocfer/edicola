@@ -227,9 +227,81 @@ async function readText(att, url, onLine) {
 }
 
 /**
+ * Magic numbers for the image formats Publications actually serve, checked in
+ * order against the leading bytes of the body.
+ */
+const IMAGE_SIGNATURES = [
+  { type: "image/jpeg", bytes: [0xff, 0xd8, 0xff] },
+  {
+    type: "image/png",
+    bytes: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+  },
+  { type: "image/gif", bytes: [0x47, 0x49, 0x46, 0x38] },
+  { type: "image/bmp", bytes: [0x42, 0x4d] },
+];
+
+/**
+ * The real MIME type of an image, read from its own bytes rather than trusted
+ * from a header. `fetchBlob` is images only, and `DEFAULT_PROXY_TEMPLATE`'s own
+ * doc comment already admits it "rewrites `content-type` to `text/plain`" —
+ * every image behind a Publication whose CDN skips CORS (nearly all of them)
+ * goes through the Proxy, so a Blob built from that header decodes as nothing
+ * once the Reader points an `<img>` at its object URL: `naturalWidth` stays 0
+ * and the reader gets the broken-image icon for every image on the page.
+ *
+ * A signature match wins over the header; an unrecognized one (a format not
+ * listed here, or a genuinely correct direct-fetch header) falls back to it
+ * unchanged, so this can only fix a wrong type, never invent one.
+ *
+ * ponytail: sniffs the four formats actually seen in the Catalog. Add a
+ * signature if a Publication turns up serving something else broken this way.
+ *
+ * @param {Uint8Array} head First bytes of the body.
+ * @param {string} declaredType
+ * @returns {string}
+ */
+function sniffImageType(head, declaredType) {
+  for (const { type, bytes } of IMAGE_SIGNATURES) {
+    if (head.length >= bytes.length && bytes.every((b, i) => head[i] === b))
+      return type;
+  }
+  // WEBP: a RIFF container, "WEBP" at byte 8.
+  if (
+    head.length >= 12 &&
+    head[0] === 0x52 &&
+    head[1] === 0x49 &&
+    head[2] === 0x46 &&
+    head[3] === 0x46 &&
+    head[8] === 0x57 &&
+    head[9] === 0x45 &&
+    head[10] === 0x42 &&
+    head[11] === 0x50
+  ) {
+    return "image/webp";
+  }
+  return declaredType;
+}
+
+/** @param {string} type */
+function isImageType(type) {
+  return /^image\//i.test(type);
+}
+
+/**
  * Read a body as a Blob, aborting as soon as `maxBytes` is exceeded. Streams
  * when the response exposes a readable body; otherwise trusts `content-length`
- * first and the resulting Blob's size second.
+ * first and the resulting Blob's size second. The Blob's `type` is sniffed
+ * from its own bytes (see `sniffImageType`), not trusted from the response.
+ *
+ * `cors-get-proxy` does more than mislabel the header: measured against real
+ * Catalog images, it sometimes runs the body through a text decode-and-reencode
+ * that turns every byte outside plain ASCII into `�`, which is not
+ * recoverable — the original bytes are gone, not just mistyped. Sniffing finds
+ * no signature in bytes that far corrupted, and the declared type is the
+ * Proxy's own `text/plain` rewrite, so that combination is treated as a failed
+ * fetch rather than a storable Blob: `fetchImages` (fetch-one.js, sync.js)
+ * already skips a failed image and leaves the Reader on the live network URL,
+ * which is the honest outcome here, not a corrupt Blob cached forever.
  * @param {Attempt} att
  * @param {string} url
  * @param {number} maxBytes
@@ -251,6 +323,20 @@ async function readBlob(att, url, maxBytes, onLine) {
       via: att.via,
     });
   };
+  const notAnImage = () =>
+    new FetchFailure("blocked", url, {
+      status: response.status,
+      via: att.via,
+    });
+  /**
+   * @param {Uint8Array} head
+   * @returns {string}
+   */
+  const typeOf = (head) => {
+    const type = sniffImageType(head, contentType);
+    if (!isImageType(type) && att.via === "proxy") throw notAnImage();
+    return type;
+  };
   try {
     if (Number.isFinite(declared) && declared > maxBytes) throw tooLarge();
     const body = response.body;
@@ -269,11 +355,15 @@ async function readBlob(att, url, maxBytes, onLine) {
         }
         chunks.push(value);
       }
-      return new Blob(chunks, { type: contentType });
+      const firstChunk = /** @type {Uint8Array | undefined} */ (chunks[0]);
+      const type = typeOf(firstChunk || new Uint8Array(0));
+      return new Blob(chunks, { type });
     }
     const blob = await response.blob();
     if (blob.size > maxBytes) throw tooLarge();
-    return blob;
+    const head = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+    const type = typeOf(head);
+    return type === blob.type ? blob : blob.slice(0, blob.size, type);
   } catch (error) {
     if (error instanceof FetchFailure) throw error;
     throw bodyFailure(att, url, onLine, error);

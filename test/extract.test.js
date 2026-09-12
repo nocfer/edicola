@@ -382,3 +382,24 @@ test("extraction keeps one copy of a repeated image", () => {
     "https://cdn.test/real.jpg",
   ]);
 });
+
+test("extraction keeps one copy of a Drupal image at a different derivative size", () => {
+  // insella.it (and other Drupal Publications) follow every inline image with
+  // a "Foto e immagini" thumbnail rail repeating the same photos through
+  // `/styles/<name>/public/...` derivative URLs. Readability keeps the rail as
+  // article content, and the derivative width makes the URL differ from the
+  // inline one, so the exact-URL dedup above let the same photo through twice.
+  const html = `<!doctype html><html><body><article>
+    <img src="https://cdn.test/sites/default/files/styles/1240w_fallback/public/2026/09/photo.jpg">
+    <p>${new Array(220).fill("word").join(" ")}</p>
+    <h3>Foto e immagini</h3>
+    <img src="https://cdn.test/sites/default/files/styles/310w_fallback/public/2026/09/photo.jpg">
+    <img src="https://cdn.test/sites/default/files/styles/310w_fallback/public/2026/09/other.jpg">
+  </article></body></html>`;
+  const article = extract(html, "https://cdn.test/a");
+  assert.ok(article.ok);
+  assert.deepEqual(article.imageUrls, [
+    "https://cdn.test/sites/default/files/styles/1240w_fallback/public/2026/09/photo.jpg",
+    "https://cdn.test/sites/default/files/styles/310w_fallback/public/2026/09/other.jpg",
+  ]);
+});
