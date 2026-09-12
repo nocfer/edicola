@@ -198,17 +198,18 @@ state.online = navigator.onLine;
 
 subscribe(renderApp);
 startRouter((route) => {
-  // A tap on the tab bar swaps one tab-bar screen for another; cross-dissolve
-  // it like the Feed/List toggle does (ADR-0012, §"the group is here too").
-  // The Reader and the Story player already have their own entrance/exit
-  // motion (`growFrom`, the Story's own close fade), so a push into or out of
-  // either is left alone here.
-  const isTabSwitch =
-    route.name !== state.route.name &&
-    !hidesTabBar(state.route) &&
-    !hidesTabBar(route);
-  if (isTabSwitch) withViewTransition(() => update({ route }));
-  else update({ route });
+  // Every route change zooms+fades like the Feed/List toggle does (ADR-0012,
+  // §"the group is here too") — a tab-bar swap, opening or closing the
+  // Reader, all the same transition. The Story player is the one exception:
+  // it already has its own bespoke entrance/exit motion (`growFrom`, the
+  // Story's own close fade), and a View Transition snapshot on top of that
+  // would fight it rather than complement it.
+  const isStoryEdge = state.route.name === "story" || route.name === "story";
+  if (route.name !== state.route.name && !isStoryEdge) {
+    withViewTransition(() => update({ route }));
+  } else {
+    update({ route });
+  }
 });
 
 window.addEventListener("online", () => update({ online: true }));
