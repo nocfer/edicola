@@ -25,7 +25,8 @@
   --focus: #ffb59e;
   --toast-bg: var(--text);
   --toast-fg: var(--bg);
-  --tabbar-bg: rgba(26, 24, 22, 0.92);
+  --glass-bg: rgba(40, 38, 36, 0.55);
+  --glass-shadow: none; /* floating elevation (light theme only), like --card-shadow */
 
   /* --- Cover ramp: the eight flat fills a generated Cover can take -------
      A Publication picks its index by hashing its id (src/cover.js), so thirty
@@ -61,6 +62,13 @@
      surface. */
   --backdrop: rgba(0, 0, 0, 0.5);
 
+  /* Glass chrome's edge: light catching the rim of a translucent surface,
+     not text on it, so it stays one value in both themes for the same
+     reason --scrim-ink does. Shared by every floating/sticky panel that
+     wants the tab bar's liquid-glass look (the dialog, the dropdown menu,
+     the update prompt, the reader header). */
+  --glass-highlight: rgba(255, 255, 255, 0.5);
+
   /* --- Typography (system stacks, no bundled fonts) ---------------------- */
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
@@ -91,6 +99,14 @@
   --tabbar-h: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top: env(safe-area-inset-top, 0px);
+  /* Space to reserve above the floating tab bar: its own height, the safe-area
+     inset it floats above, and the gap above it. Whatever sits above the bar
+     (page content, a toast, the update prompt) reads this one value rather
+     than re-deriving it, so a change to the bar's float offset cannot leave
+     one of them drifting out of sync. */
+  --tabbar-clearance: calc(
+    var(--tabbar-h) + var(--safe-bottom) + var(--s-4) * 2
+  );
 
   /* --- Motion ------------------------------------------------------------
      On bare :root and never in the light block: motion does not change between
@@ -109,6 +125,11 @@
      One token because the design bundle gives them one duration; split it if
      they ever need to diverge, rather than writing 0.28s twice. */
   --dur-arrive: 0.28s;
+  /* How far the root view-transition pseudo-tree scales: the old screen
+     shrinks to this and the new one grows from it, both fading at the same
+     time. Subtle on purpose — a zoom big enough to notice, not big enough to
+     read as a page flying away. */
+  --zoom: 0.96;
   --stagger: 0.04s; /* between one arriving card and the next */
   --delay-arrive: 0.14s; /* held back so it lands inside, not travels with */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
@@ -152,7 +173,8 @@
   --focus: #c8422a;
   --toast-bg: var(--text);
   --toast-fg: var(--bg);
-  --tabbar-bg: rgba(255, 253, 249, 0.92);
+  --glass-bg: rgba(255, 253, 249, 0.6);
+  --glass-shadow: 0 8px 24px -8px rgba(60, 40, 20, 0.28);
   --cover-1: #9c3b2a;
   --cover-2: #8d5f18;
   --cover-3: #52692a;
@@ -231,7 +253,7 @@ button {
 }
 /* Room for the fixed tab bar; toggled by main.js so the Reader reclaims it. */
 .app--with-tabbar {
-  padding-bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+  padding-bottom: var(--tabbar-clearance);
 }
 
 .screen {
@@ -268,26 +290,42 @@ button {
    §4 — PRIMITIVES
    ========================================================================== */
 
-/* Tab bar: fixed to the bottom, one link per tab, the active one in accent. */
+/* Tab bar: a floating glass capsule, one link per tab, the active one in
+   accent. Sized to its own content and centered rather than stretched
+   edge to edge — four short labels do not need the full viewport width,
+   and a bar that only claims what it needs reads as more compact than one
+   padded out with justify-content: space-around. The blur+saturate and the
+   translucent fill do the "glass" work; the inset highlight is the rim
+   catching light and --glass-shadow (like --card-shadow, none in dark) is
+   what lifts it off the page. Every other floating or sticky panel (the
+   dropdown menu, the update prompt, the add-Publication dialog, the reader
+   header) shares this same recipe through the --glass-* tokens, so the
+   look stays one definition. */
 .tabbar {
   position: fixed;
-  inset: auto 0 0 0;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + var(--s-4));
+  transform: translateX(-50%);
   z-index: 10;
   display: flex;
-  justify-content: space-around;
-  height: calc(var(--tabbar-h) + var(--safe-bottom));
-  padding: 0 var(--s-2) var(--safe-bottom);
-  background: var(--tabbar-bg);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid var(--hairline);
+  justify-content: center;
+  height: var(--tabbar-h);
+  padding: 0 var(--s-3);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-pill);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
 }
 .tabbar[hidden] {
   display: none;
 }
 .tabbar__tab {
-  flex: 1;
-  max-width: 120px;
+  flex: 0 0 auto;
+  padding: 0 var(--s-3);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -296,6 +334,11 @@ button {
   color: var(--faint);
   font-size: var(--fs-caption);
   font-weight: 500;
+  /* --lh-body's 1.5 is meant for paragraphs: on a one-line caption it pads the
+     label with invisible leading on both sides of the glyphs, which the icon
+     above it carries none of. That's what made the pair read as off-centre —
+     the label's box, not the icon, so the fix belongs here. */
+  line-height: 1.2;
   border-radius: var(--r-control);
   transition: color var(--dur-fast) var(--ease);
 }
@@ -499,7 +542,7 @@ a.chip {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+  bottom: var(--tabbar-clearance);
   z-index: 20;
   transform: translateX(-50%);
   max-width: calc(100vw - var(--s-8));
@@ -790,13 +833,20 @@ a.chip {
   gap: var(--s-2);
 }
 /* The add-by-URL form as a native modal: `<dialog>` gives Escape-to-close and
-   the focus trap for free, `.card` gives it the same surface as everything
-   else. Only what `<dialog>`'s UA stylesheet does not already do — sizing and
-   the backdrop dim — needs a rule here. */
+   the focus trap for free, `.card` gives it a border and radius. The surface
+   itself is overridden here to the same floating glass recipe as the tab
+   bar (see the note there), because a modal floats over the page exactly
+   like the bar floats over content. */
 .pubs__dialog {
   width: min(420px, calc(100vw - var(--s-4) * 2));
   max-height: calc(100vh - var(--s-4) * 2);
   overflow: auto;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
 }
 .pubs__dialog::backdrop {
   background: var(--backdrop);
@@ -1016,6 +1066,7 @@ a.chip {
   border-left-color: var(--chip-on-fg);
   color: var(--chip-on-fg);
 }
+/* Floating dropdown: same glass recipe as the tab bar, see the note there. */
 .today__menu {
   position: absolute;
   z-index: 5;
@@ -1024,8 +1075,12 @@ a.chip {
   padding: var(--s-1);
   border: 1px solid var(--hairline);
   border-radius: var(--r-control);
-  background: var(--card);
-  box-shadow: 0 8px 24px -12px rgb(0 0 0 / 45%);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
 }
 /* Feed mode's rings row is a horizontal scroller, and an `overflow-x: auto`
    box clips its children on both axes, so the ring menu renders below the row
@@ -1162,25 +1217,49 @@ a.chip {
   text-align: center;
 }
 
-/* The cross-dissolve `withViewTransition` puts a redraw inside (ADR-0012,
-   primitive 3): List becoming Feed today, Today becoming the Reader later. The
-   UA's own default is 250ms of its own choosing, which would leave the dissolve
-   and the pill that slides under it on two different durations — so the pseudo
-   tree takes the same tokens as every other transition in the file. The two
-   fades sit on the old and new pseudo-elements, along with the plus-lighter
-   blend the browser adds; the group is here too because it is the animation
-   that decides when the whole pseudo tree goes away, and left at 250ms it held
-   a finished dissolve on screen for another 50ms.
+/* The zoom+fade `withViewTransition` puts a redraw inside (ADR-0012,
+   primitive 3): List becoming Feed today, one tab-bar screen becoming
+   another, Today becoming the Reader later. The UA's own default is a
+   250ms cross-dissolve of its own choosing, which would leave it and the
+   pill that slides under it on two different durations — so the pseudo
+   tree takes the same tokens as every other transition in the file, and the
+   old screen shrinks to --zoom while fading out as the new one grows from
+   it while fading in, rather than just dissolving in place. The group is
+   here too because it is the animation that decides when the whole pseudo
+   tree goes away, and left at 250ms it held a finished transition on screen
+   for another 50ms.
 
    There is no reduced-motion rule for this and there must not be one: the
-   pseudo tree is a UA animation, the reset below reaches only transitions, and
-   `withViewTransition` answers the query in JS by skipping the transition
-   altogether. */
-::view-transition-group(root),
-::view-transition-old(root),
-::view-transition-new(root) {
+   pseudo tree is a UA animation, the reset below reaches only transitions,
+   and `withViewTransition` answers the query in JS by skipping the
+   transition altogether. */
+@keyframes view-zoom-out {
+  to {
+    transform: scale(var(--zoom));
+    opacity: 0;
+  }
+}
+@keyframes view-zoom-in {
+  from {
+    transform: scale(var(--zoom));
+    opacity: 0;
+  }
+}
+::view-transition-group(root) {
   animation-duration: var(--dur);
   animation-timing-function: var(--ease);
+}
+::view-transition-old(root) {
+  animation-name: view-zoom-out;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
+}
+::view-transition-new(root) {
+  animation-name: view-zoom-in;
+  animation-duration: var(--dur);
+  animation-timing-function: var(--ease);
+  animation-fill-mode: both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1984,11 +2063,12 @@ a.chip {
 }
 
 /* Update prompt (ADR-0008): sits above the tab bar like the toast, but stays
-   until the reader answers, so it is a card rather than a transient line. */
+   until the reader answers, so it is a floating glass panel rather than a
+   transient line — same recipe as the tab bar, see the note there. */
 .update {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tabbar-h) + var(--safe-bottom) + var(--s-4));
+  bottom: var(--tabbar-clearance);
   z-index: 20;
   transform: translateX(-50%);
   display: flex;
@@ -2000,8 +2080,12 @@ a.chip {
   padding: var(--s-3) var(--s-4);
   border: 1px solid var(--hairline);
   border-radius: var(--r-card);
-  background: var(--card);
-  box-shadow: var(--card-shadow);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    var(--glass-shadow);
 }
 .update__text {
   flex: 1 1 12ch;
@@ -2019,6 +2103,9 @@ a.chip {
 .screen--reader {
   gap: var(--s-3);
 }
+/* Sticky over the Article as it scrolls, so it gets the tab bar's glass too
+   (minus the box-shadow: it sits flush against the screen edge, not
+   floating clear of it, so there's no rim to catch light on). */
 .reader__header {
   position: sticky;
   top: 0;
@@ -2026,7 +2113,9 @@ a.chip {
   gap: var(--s-2);
   margin: calc(var(--s-4) * -1) calc(var(--s-4) * -1) 0;
   padding: var(--s-2) var(--s-4);
-  background: var(--surface);
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
   border-bottom: 1px solid var(--hairline);
 }
 .reader__ident {

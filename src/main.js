@@ -10,6 +10,7 @@ import { html, nothing, render } from "./render.js";
 import { state, subscribe, update } from "./state.js";
 import { applyStaticI18n, getLang, initLang, setLang, t } from "./i18n.js";
 import { hidesTabBar, startRouter } from "./router.js";
+import { withViewTransition } from "./motion.js";
 import { initSyncClient, syncIfStale } from "./sync-client.js";
 import { applyUpdate, dismissUpdate, initUpdates } from "./update.js";
 import { todayView } from "./views/today.js";
@@ -196,7 +197,19 @@ state.viewMode = readViewModePreference();
 state.online = navigator.onLine;
 
 subscribe(renderApp);
-startRouter((route) => update({ route }));
+startRouter((route) => {
+  // A tap on the tab bar swaps one tab-bar screen for another; cross-dissolve
+  // it like the Feed/List toggle does (ADR-0012, §"the group is here too").
+  // The Reader and the Story player already have their own entrance/exit
+  // motion (`growFrom`, the Story's own close fade), so a push into or out of
+  // either is left alone here.
+  const isTabSwitch =
+    route.name !== state.route.name &&
+    !hidesTabBar(state.route) &&
+    !hidesTabBar(route);
+  if (isTabSwitch) withViewTransition(() => update({ route }));
+  else update({ route });
+});
 
 window.addEventListener("online", () => update({ online: true }));
 window.addEventListener("offline", () => update({ online: false }));
