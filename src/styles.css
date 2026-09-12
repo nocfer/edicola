@@ -56,6 +56,11 @@
   --scrim-ink: rgba(18, 17, 16, 0.94);
   --scrim-flat: rgba(18, 17, 16, 0.72);
 
+  /* A modal's ::backdrop. Same dimming in both themes, like the scrim above:
+     it sits behind the page, not on it, so it never has to read as ink on a
+     surface. */
+  --backdrop: rgba(0, 0, 0, 0.5);
+
   /* --- Typography (system stacks, no bundled fonts) ---------------------- */
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-display: ui-serif, Georgia, "Times New Roman", serif;
@@ -457,6 +462,11 @@ a.chip {
   padding: 0;
   border-radius: var(--r-pill);
 }
+/* A `.btn` with a label, not just a glyph: same pill radius as `--icon`, but
+   width stays auto so the text sets it. */
+.btn--pill {
+  border-radius: var(--r-pill);
+}
 /* A 44px chromeless tap target: the floor the design brief puts touch targets
    at, with no chrome of its own, for icon rows that sit on a picture or inside
    another pill. Feed mode's action bar, the Story player's chevrons and its
@@ -778,6 +788,18 @@ a.chip {
   display: flex;
   justify-content: flex-end;
   gap: var(--s-2);
+}
+/* The add-by-URL form as a native modal: `<dialog>` gives Escape-to-close and
+   the focus trap for free, `.card` gives it the same surface as everything
+   else. Only what `<dialog>`'s UA stylesheet does not already do — sizing and
+   the backdrop dim — needs a rule here. */
+.pubs__dialog {
+  width: min(420px, calc(100vw - var(--s-4) * 2));
+  max-height: calc(100vh - var(--s-4) * 2);
+  overflow: auto;
+}
+.pubs__dialog::backdrop {
+  background: var(--backdrop);
 }
 
 /* Today: the "last refreshed" bar, the pull-to-refresh affordance, the filter

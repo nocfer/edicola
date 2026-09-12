@@ -449,11 +449,30 @@ function pick(finding) {
   update();
 }
 
+/** Id shared between the trigger button and the `<dialog>` it opens. */
+const ADD_DIALOG_ID = "pubs-add-dialog";
+
+function openAddDialog() {
+  const dialog = /** @type {HTMLDialogElement | null} */ (
+    document.getElementById(ADD_DIALOG_ID)
+  );
+  dialog?.showModal();
+}
+
+/** Also runs on Escape, via the dialog's own `close` event. */
+function closeAddDialog() {
+  const dialog = /** @type {HTMLDialogElement | null} */ (
+    document.getElementById(ADD_DIALOG_ID)
+  );
+  dialog?.close();
+}
+
 function cancelAdd() {
   screen.add.status = "idle";
   screen.add.findings = [];
   screen.add.errorKind = null;
   screen.add.draft = null;
+  closeAddDialog();
   update();
 }
 
@@ -484,6 +503,7 @@ async function confirmAdd() {
     add.status = "idle";
     add.findings = [];
     add.draft = null;
+    closeAddDialog();
     showToast(t("pubs.add.added", { name: row.name }));
     await load();
     await ensureNationSelected(row.country);
@@ -766,12 +786,34 @@ function draftForm() {
   `;
 }
 
-/** The add-by-URL card: input, lookup button, findings, draft, errors. */
+/**
+ * The button that opens the add-by-URL dialog, for the screen header: an
+ * accent-filled pill with its own label (`pubs.add.title`, already in both
+ * dictionaries), not an icon a reader has to guess at.
+ */
+function addTrigger() {
+  return html`
+    <button type="button" class="btn btn--primary btn--pill" @click=${openAddDialog}>
+      <span class="ico" aria-hidden="true">+</span>
+      ${t("pubs.add.title")}
+    </button>
+  `;
+}
+
+/** The add-by-URL dialog: input, lookup button, findings, draft, errors. */
 function addCard() {
   const add = screen.add;
   return html`
-    <section class="card pubs__add">
-      <h2 class="card__title">${t("pubs.add.title")}</h2>
+    <dialog
+      id=${ADD_DIALOG_ID}
+      class="card pubs__dialog"
+      aria-labelledby="pubs-add-title"
+      @close=${cancelAdd}
+      @click=${(event) => {
+        if (event.target === event.currentTarget) cancelAdd();
+      }}
+    >
+      <h2 class="card__title" id="pubs-add-title">${t("pubs.add.title")}</h2>
       <p class="pubs__hint">${t("pubs.add.hint")}</p>
       <div class="pubs__addrow">
         <input
@@ -809,7 +851,7 @@ function addCard() {
       }
       ${add.findings.length > 0 ? findingsList() : nothing}
       ${draftForm()}
-    </section>
+    </dialog>
   `;
 }
 
@@ -818,7 +860,12 @@ export function publicationsView(appState) {
   ensureLoaded();
   return html`
     <section class="screen">
-      ${screenHeader(appState, t("pubs.title"))}
+      ${screenHeader(
+        appState,
+        t("pubs.title"),
+        nothing,
+        screen.status === "loading" ? nothing : addTrigger(),
+      )}
       <div class="screen__body">
         ${
           screen.status === "loading" || screen.status === "idle"
