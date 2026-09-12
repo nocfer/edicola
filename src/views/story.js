@@ -118,6 +118,7 @@ async function load(publicationId) {
     screen.objectUrls = resolved.objectUrls;
     screen.status = "ready";
     screen.index = currentReel().startIndex;
+    preloadNeighbors(screen.index);
   } catch (error) {
     console.warn("The Story could not be read:", error);
     screen.status = "error";
@@ -365,6 +366,40 @@ function step(dir, total) {
     screen.done = false;
     update();
   });
+  preloadNeighbors(index);
+}
+
+/**
+ * Ask the browser to decode the photo one Frame away in either direction
+ * from `index`, so the next tap lands on a picture that is already
+ * rasterized instead of decoding for the first time — a real, if brief,
+ * hitch `--decoding="async"` on the `<img>` does not cover, since that only
+ * keeps a slow decode from blocking the frame it happens on, not start it
+ * early. Cheap to call on every index change: it only touches two
+ * neighbours, never the whole reel, and a Cover-only Frame (no photo) is a
+ * no-op.
+ * @param {number} index
+ */
+function preloadNeighbors(index) {
+  const frames = currentReel().frames;
+  for (const neighbor of [index - 1, index + 1]) {
+    preloadPhoto(frames[neighbor] && framePhoto(frames[neighbor]));
+  }
+}
+
+/**
+ * Warm the browser's image cache for `url`: fetch and fully decode off-DOM,
+ * so the `<img>` that later points at the same URL paints on its first
+ * frame rather than showing blank while it decodes. Best-effort — a
+ * decode failure here just means that Frame pays for its own decode later,
+ * exactly as every Frame's photo did before this existed.
+ * @param {string | null | undefined} url
+ */
+function preloadPhoto(url) {
+  if (!url) return;
+  const img = new Image();
+  img.src = url;
+  img.decode?.().catch(() => {});
 }
 
 /**
