@@ -47,7 +47,6 @@ import {
   compareAppVersions,
   RELOAD_GUARD_KEY,
   runVersionGuard,
-  shouldReloadForVersion,
   SKIP_WAITING_MESSAGE,
 } from "../src/update.js";
 
@@ -400,8 +399,10 @@ test("an empty settings table reads back as the defaults", async () => {
 test("the store writes one row per key and normalizes on the way in", async () => {
   const db = fakeDb();
   const store = createSettingsStore(/** @type {any} */ (db));
-  await store.setProxyTemplate("  https://my.worker.dev/?url={url} ");
-  await store.setRetention({ maxAgeDays: 9999, keepPerPublication: 1 });
+  await store.write({ proxyTemplate: "  https://my.worker.dev/?url={url} " });
+  await store.write({
+    retention: { maxAgeDays: 9999, keepPerPublication: 1 },
+  });
   assert.deepEqual(
     [...db.rows.keys()].sort(),
     [SETTINGS_KEYS.proxyTemplate, SETTINGS_KEYS.retention].sort(),
@@ -417,13 +418,20 @@ test("the store writes one row per key and normalizes on the way in", async () =
   );
 });
 
-test("setRetention merges, so one limit can be changed alone", async () => {
+test("a retention patch replaces the whole object, it does not merge", async () => {
+  // Which is why the Settings screen writes a complete `RetentionLimits`: a
+  // patch that names one limit takes the DEFAULTS for the rest, not whatever
+  // was stored. Documented on the SettingsStore typedef.
   const store = createSettingsStore(/** @type {any} */ (fakeDb()));
-  await store.setRetention({ maxAgeDays: 7 });
-  await store.setRetention({ keepPerPublication: 20 });
-  const limits = await store.getRetention();
-  assert.equal(limits.maxAgeDays, 7);
-  assert.equal(limits.keepPerPublication, 20);
+  await store.write({ retention: { maxAgeDays: 7, keepPerPublication: 20 } });
+  await store.write({ retention: { maxAgeDays: 9 } });
+  const limits = (await store.read()).retention;
+  assert.equal(limits.maxAgeDays, 9);
+  assert.equal(
+    limits.keepPerPublication,
+    DEFAULT_RETENTION.keepPerPublication,
+    "an unnamed limit returns to its default",
+  );
 });
 
 test("a hand-edited or corrupt row cannot brick the screen", async () => {
@@ -439,12 +447,12 @@ test("a hand-edited or corrupt row cannot brick the screen", async () => {
 
 test("an invalid template is stored as empty, so the default applies", async () => {
   const store = createSettingsStore(/** @type {any} */ (fakeDb()));
+  const saved = await store.write({
+    proxyTemplate: "http://relay.example/?url={url}",
+  });
+  assert.equal(saved.proxyTemplate, "");
   assert.equal(
-    await store.setProxyTemplate("http://relay.example/?url={url}"),
-    "",
-  );
-  assert.equal(
-    effectiveProxyTemplate(await store.getProxyTemplate()),
+    effectiveProxyTemplate(saved.proxyTemplate),
     DEFAULT_PROXY_TEMPLATE,
   );
 });
@@ -469,14 +477,17 @@ test("a Nation selection is cleaned up rather than trusted", () => {
 
 test("no Nation is selected until the reader chooses, which is the first-run signal", async () => {
   const store = createSettingsStore(/** @type {any} */ (fakeDb()));
-  assert.deepEqual(await store.getNations(), []);
+  assert.deepEqual((await store.read()).nations, []);
 });
 
 test("the Nation selection round-trips through its own row", async () => {
   const db = fakeDb();
   const store = createSettingsStore(/** @type {any} */ (db));
-  assert.deepEqual(await store.setNations(["GB", "it"]), ["GB", "IT"]);
-  assert.deepEqual(await store.getNations(), ["GB", "IT"]);
+  assert.deepEqual((await store.write({ nations: ["GB", "it"] })).nations, [
+    "GB",
+    "IT",
+  ]);
+  assert.deepEqual((await store.read()).nations, ["GB", "IT"]);
   assert.deepEqual(
     db.rows.get(SETTINGS_KEYS.nations).value,
     ["GB", "IT"],
@@ -492,11 +503,14 @@ test("the Nation selection round-trips through its own row", async () => {
 test("an empty Nation selection is refused, not stored", async () => {
   const db = fakeDb();
   const store = createSettingsStore(/** @type {any} */ (db));
-  await store.setNations(["GB"]);
-  await assert.rejects(() => store.setNations([]), RangeError);
-  await assert.rejects(() => store.setNations(["nonsense"]), RangeError);
+  await store.write({ nations: ["GB"] });
+  await assert.rejects(() => store.write({ nations: [] }), RangeError);
+  await assert.rejects(
+    () => store.write({ nations: ["nonsense"] }),
+    RangeError,
+  );
   assert.deepEqual(
-    await store.getNations(),
+    (await store.read()).nations,
     ["GB"],
     "the previous choice survives a refused write",
   );
@@ -505,13 +519,13 @@ test("an empty Nation selection is refused, not stored", async () => {
 test("a corrupt Nation row reads back as no choice at all", async () => {
   const db = fakeDb([{ key: SETTINGS_KEYS.nations, value: "GB,IT" }]);
   const store = createSettingsStore(/** @type {any} */ (db));
-  assert.deepEqual(await store.getNations(), []);
+  assert.deepEqual((await store.read()).nations, []);
 });
 
 test("clear drops every stored setting", async () => {
   const db = fakeDb();
   const store = createSettingsStore(/** @type {any} */ (db));
-  await store.setRetention({ maxAgeDays: 7 });
+  await store.write({ retention: { ...DEFAULT_RETENTION, maxAgeDays: 7 } });
   await store.clear();
   assert.equal(db.rows.size, 0);
   assert.deepEqual((await store.read()).retention, { ...DEFAULT_RETENTION });
@@ -676,18 +690,36 @@ test("resetApp deletes the database and the reader's preferences", async () => {
   const db = fakeContentDb({});
   const removed = [];
   let sessionCleared = false;
-  await resetApp(db, {
-    local: /** @type {any} */ ({ removeItem: (key) => removed.push(key) }),
-    session: /** @type {any} */ ({
+  const local = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+  const session = Object.getOwnPropertyDescriptor(globalThis, "sessionStorage");
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: { removeItem: (key) => removed.push(key) },
+  });
+  Object.defineProperty(globalThis, "sessionStorage", {
+    configurable: true,
+    value: {
       clear: () => {
         sessionCleared = true;
       },
-    }),
+    },
   });
+  try {
+    await resetApp(db);
+  } finally {
+    restoreGlobal("localStorage", local);
+    restoreGlobal("sessionStorage", session);
+  }
   assert.equal(db.deleted, true);
   assert.deepEqual(removed, [...PREFERENCE_KEYS]);
   assert.equal(sessionCleared, true);
 });
+
+/** Put a global back exactly as it was, present or absent. */
+function restoreGlobal(name, descriptor) {
+  if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+  else delete globalThis[name];
+}
 
 // --- ADR-0008: version comparison and the reload guard --------------------
 
@@ -707,8 +739,18 @@ test("compareAppVersions orders dotted versions numerically", () => {
 });
 
 test("only a strictly newer stored version asks for a reload", () => {
-  const guard = (running, stored, alreadyReloaded = false) =>
-    shouldReloadForVersion({ running, stored, alreadyReloaded });
+  const guard = (running, stored, reloaded = false) => {
+    let triggered = false;
+    runVersionGuard({
+      runningVersion: running,
+      storedVersion: stored,
+      session: fakeSession(reloaded ? { [RELOAD_GUARD_KEY]: "1" } : {}),
+      reload: () => {
+        triggered = true;
+      },
+    });
+    return triggered;
+  };
   assert.equal(guard("0.1.0", "0.2.0"), true, "the Shell is older: reload");
   assert.equal(guard("0.2.0", "0.1.0"), false, "the Shell is newer: carry on");
   assert.equal(guard("0.1.0", "0.1.0"), false);

@@ -11,7 +11,7 @@
 // pass rather than beside it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canEvict, EVICTION_BATCH_SIZE, runEviction } from "../src/evict.js";
+import { EVICTION_BATCH_SIZE, runEviction } from "../src/evict.js";
 import { DEFAULT_RETENTION } from "../src/retention.js";
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -84,24 +84,6 @@ function memoryStore(items, content = {}) {
   };
   return { store, rows, articles, images, batches };
 }
-
-test("canEvict recognizes a store that carries the Eviction seam", () => {
-  const { store } = memoryStore([]);
-  assert.equal(canEvict(store), true);
-  assert.equal(canEvict(null), false);
-  assert.equal(canEvict({}), false);
-  // The Sync pipeline's own test store implements the Sync half only, so
-  // runSync must be able to hand one over without failing.
-  assert.equal(canEvict({ allItems: () => [], deleteItems: () => {} }), false);
-});
-
-test("a store without the Eviction seam yields an empty result", async () => {
-  const result = await runEviction({
-    store: /** @type {any} */ ({ upsertItems: async () => 0 }),
-    now: NOW,
-  });
-  assert.deepEqual(result, { deleted: [], bytesFreed: 0 });
-});
 
 test("the age pass Evicts Items older than maxAgeDays and leaves the rest", async () => {
   const { store, rows, batches } = memoryStore([

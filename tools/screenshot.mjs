@@ -39,59 +39,53 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { parseArgs } from "node:util";
 import { DEFAULT_CHROME, launch, sleep } from "./testing/cdp.js";
 
 /** Parse `<url> <out> [--flag value]...` into an options object. */
-function parseArgs(argv) {
-  const opts = {
-    url: null,
-    out: null,
-    theme: null,
-    lang: null,
-    viewmode: null,
-    offline: false,
-    width: 390,
-    height: 844,
-    scale: 2,
-    wait: 1200,
-    profile: null,
-    eval: null,
-    chrome: DEFAULT_CHROME,
-  };
-  const positional = [];
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a.startsWith("--")) {
-      const key = a.slice(2);
-      if (!(key in opts)) throw new Error(`Unknown option ${a}`);
-      if (key === "offline") {
-        opts.offline = true;
-        continue;
-      }
-      const v = argv[++i];
-      if (v === undefined) throw new Error(`Missing value for ${a}`);
-      opts[key] = ["width", "height", "scale", "wait"].includes(key)
-        ? Number(v)
-        : v;
-    } else positional.push(a);
-  }
-  [opts.url, opts.out] = positional;
-  if (!opts.url || !opts.out) {
+function parseOptions(argv) {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: {
+      theme: { type: "string" },
+      lang: { type: "string" },
+      viewmode: { type: "string" },
+      offline: { type: "boolean", default: false },
+      width: { type: "string", default: "390" },
+      height: { type: "string", default: "844" },
+      scale: { type: "string", default: "2" },
+      wait: { type: "string", default: "1200" },
+      profile: { type: "string" },
+      eval: { type: "string" },
+      chrome: { type: "string", default: DEFAULT_CHROME },
+    },
+  });
+  const [url, out] = positionals;
+  if (!url || !out) {
     throw new Error(
       "Usage: node tools/screenshot.mjs <url> <out.png> [options]",
     );
   }
-  if (opts.theme && !["light", "dark"].includes(opts.theme))
+  if (values.theme && !["light", "dark"].includes(values.theme))
     throw new Error("--theme must be light or dark");
-  if (opts.lang && !["en", "it"].includes(opts.lang))
+  if (values.lang && !["en", "it"].includes(values.lang))
     throw new Error("--lang must be en or it");
-  if (opts.viewmode && !["list", "feed"].includes(opts.viewmode))
+  if (values.viewmode && !["list", "feed"].includes(values.viewmode))
     throw new Error("--viewmode must be list or feed");
-  return opts;
+  return {
+    ...values,
+    url,
+    out,
+    width: Number(values.width),
+    height: Number(values.height),
+    scale: Number(values.scale),
+    wait: Number(values.wait),
+  };
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const opts = parseOptions(process.argv.slice(2));
   let failed = false;
   /** @type {Awaited<ReturnType<typeof launch>> | null} */
   let browser = null;

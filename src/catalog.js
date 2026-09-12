@@ -14,7 +14,7 @@
 //    The Publications screen passes `getDatabase()`.
 //
 // Reader preferences are **not** here. The Nation selection is a setting, so it
-// lives in `src/settings.js` (`getNations` / `setNations`) and reaches
+// lives in `src/settings.js` (the `nations` key of its store) and reaches
 // `loadPublications` as a parameter; the Language lives in
 // `localStorage['edicola.lang']` (`src/i18n.js`). This module reads the
 // `publications` table and nothing else.

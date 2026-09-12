@@ -7,7 +7,6 @@
     "pretest": "node tools/ensure-test-deps.mjs",
     "start": "python3 -m http.server 8000",
     "test": "node --test",
-    "check:imports": "node tools/check-imports.mjs",
     "qa": "node tools/qa-run.mjs",
     "qa:scenarios": "node tools/qa-scenarios.mjs",
     "stamp": "node tools/stamp-sw.mjs",

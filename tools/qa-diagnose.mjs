@@ -32,6 +32,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { MIN_ORIGINAL_WORDS, extractArticle } from "../src/extract-core.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
@@ -42,16 +43,17 @@ const FIXTURE_DIR = join(ROOT, "test/fixtures/articles");
 const FETCH_TIMEOUT_MS = 20000;
 
 /** @param {string[]} argv */
-function parseArgs(argv) {
-  const opts = { url: null, publication: null, save: null };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--publication") opts.publication = argv[++i];
-    else if (a === "--save") opts.save = argv[++i];
-    else if (a.startsWith("--")) throw new Error(`Unknown option ${a}`);
-    else opts.url = a;
-  }
-  return opts;
+function parseOptions(argv) {
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: {
+      publication: { type: "string" },
+      save: { type: "string" },
+    },
+  });
+  // The URL is positional; the last one wins, as it always has.
+  return { ...values, url: positionals.at(-1) ?? null };
 }
 
 /** Load the DOM dependencies, with a useful message when they are absent. */
@@ -78,7 +80,7 @@ function fromReport(id) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const opts = parseOptions(process.argv.slice(2));
   let browserSide = null;
   if (opts.publication) {
     browserSide = fromReport(opts.publication);

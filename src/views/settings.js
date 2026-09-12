@@ -146,7 +146,7 @@ function saveProxy() {
   void (async () => {
     try {
       const store = await getSettingsStore();
-      const saved = await store.setProxyTemplate(draft);
+      const saved = (await store.write({ proxyTemplate: draft })).proxyTemplate;
       patchSettings({ proxyTemplate: saved, proxyDraft: saved, busy: false });
       showToast(t("settings.proxy.saved"));
     } catch (error) {
@@ -205,7 +205,11 @@ function saveRetention() {
   void (async () => {
     try {
       const store = await getSettingsStore();
-      const saved = await store.setRetention(normalizeRetention(draft));
+      // `draft` is a complete RetentionLimits (the screen edits every field),
+      // which is what `write` needs — see the SettingsStore typedef.
+      const saved = (
+        await store.write({ retention: normalizeRetention(draft) })
+      ).retention;
       patchSettings({ retention: saved, retentionDraft: saved, busy: false });
       if (!retentionShrank(stored, saved)) {
         showToast(t("settings.retention.saved"));

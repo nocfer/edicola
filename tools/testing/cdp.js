@@ -23,14 +23,16 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+// `waitForPort` below uses it too, so it is imported and re-exported rather
+// than re-exported straight through: `export … from` creates no local binding.
+import { setTimeout as sleep } from "node:timers/promises";
 
 /** Chrome binary: `$CHROME`, or the macOS default. */
 export const DEFAULT_CHROME =
   process.env.CHROME ||
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 
-/** @param {number} ms */
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export { sleep };
 
 /**
  * Wait for Chrome to write `DevToolsActivePort` into the profile; return the port.

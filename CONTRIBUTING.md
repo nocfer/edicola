@@ -27,21 +27,19 @@ you are here, skip to [The Catalog](#the-catalog).
   list of gotchas inherited from [SkyHue](https://github.com/nocfer/skyhue),
   which is this project's reference implementation for conventions.
 
-## The five gates
+## The four gates
 
-All five must exit 0 before you commit. CI runs four of them; `check-imports`
-also runs inside `npm test`, so a red gate there fails the build too.
+All four must exit 0 before you commit, and CI runs exactly these.
 
 ```
 npm test                                    # node --test, installs jsdom etc. on demand
 npx -y @biomejs/biome@2 format --write .    # then:
 npx -y @biomejs/biome@2 ci .                # lint AND format; warnings are OK
 npm run typecheck                           # tsc --checkJs, lenient
-node tools/check-imports.mjs                # every relative named import resolves
 npm run stamp:check                         # sw.js CACHE matches the Shell files
 ```
 
-`npm run ci:local` chains the first four in CI order. `npm run install:hooks`
+`npm run ci:local` chains them in CI order. `npm run install:hooks`
 installs `tools/pre-push.sh` as a pre-push hook so you cannot push a red tree
 by accident; do it once per clone.
 
@@ -53,12 +51,15 @@ Two of these fail in ways that are not obvious:
   means readers keep an old app. **Format before you stamp.** `biome format
   --write` rewrites Shell files, so a stamp taken first is stale again by the
   time you reach `stamp:check`, and the two gates fail each other in turn.
-- **`check-imports`** exists because a committed module once imported a named
-  export nothing provided, ES module linking threw, and the whole deployed app
-  showed a blank page. `node --check` cannot see that, and there is no bundler
-  to catch it. This is also why the codebase uses **only named imports and
-  named exports** — no default exports, no namespace imports, no re-exports.
-  Keeping that true is what keeps the check sound.
+- **`typecheck`** is what stands between you and a blank deployed page. A
+  committed module once imported a named export nothing provided, ES module
+  linking threw, and the whole app showed nothing. `node --check` cannot see
+  that (one file, no cross-module linking) and there is no bundler to catch it;
+  `tsc --checkJs` reports it as `TS2305: Module '"./x.js"' has no exported
+  member 'y'`. It covers `src/`, which is what ships. A broken import under
+  `test/` fails `npm test` on load instead. This is also why the codebase uses
+  **only named imports and named exports** — no default exports, no namespace
+  imports, no re-exports.
 
 ## Rules that are not negotiable
 

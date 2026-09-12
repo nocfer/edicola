@@ -13,19 +13,13 @@
 // Every dependency is a parameter, as in sync.js, so this module has no DOM,
 // no globals and no Dexie import, and runs under `node --test`.
 
-import { DEFAULT_RETENTION } from "./retention.js";
+import { fetchTextTwice, reasonOf } from "./fetcher.js";
+import { byteLength, DEFAULT_RETENTION } from "./retention.js";
 
 /** @typedef {import('./db.js').ItemRow} ItemRow */
 /** @typedef {import('./db.js').ArticleRow} ArticleRow */
 /** @typedef {import('./store.js').SyncStore} SyncStore */
 /** @typedef {import('./fetcher.js').Fetcher} Fetcher */
-
-/** Failure kinds a second attempt cannot improve on (same set as sync.js). */
-const FINAL_FAILURES = new Set([
-  "not-found",
-  "too-large",
-  "proxy-unconfigured",
-]);
 
 /**
  * What one on-demand Extraction did. `article` is the row that was stored, so
@@ -127,22 +121,6 @@ function summaryOnly(reason) {
 }
 
 /**
- * Fetch text with one retry, unless a retry cannot help (404, too large, no
- * Proxy configured).
- * @param {Fetcher} fetcher
- * @param {string} url
- * @returns {Promise<import('./fetcher.js').FetchTextResult>}
- */
-async function fetchTextTwice(fetcher, url) {
-  try {
-    return await fetcher.fetchText(url);
-  } catch (error) {
-    if (FINAL_FAILURES.has(reasonOf(error))) throw error;
-    return await fetcher.fetchText(url);
-  }
-}
-
-/**
  * The Article's images, in document order, within the per-Article budget. An
  * image that fails or would overrun the budget is skipped: an Article with one
  * missing picture still reads, and the Reader falls back to the network URL
@@ -168,24 +146,4 @@ async function fetchImages(fetcher, urls, { maxImageBytesPerArticle }) {
     }
   }
   return stored;
-}
-
-/**
- * A short, stable token for why something failed: the fetcher's `kind`, the
- * Article's `reason`, or the error name as a last resort (same rule as
- * sync.js, so `items.summaryOnlyReason` keeps one vocabulary).
- * @param {any} error
- * @returns {string}
- */
-function reasonOf(error) {
-  return error?.kind || error?.reason || error?.name || "error";
-}
-
-/**
- * UTF-8 byte length, for the Retention size accounting.
- * @param {string} text
- * @returns {number}
- */
-function byteLength(text) {
-  return new TextEncoder().encode(text).length;
 }

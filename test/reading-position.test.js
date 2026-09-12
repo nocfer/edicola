@@ -154,10 +154,8 @@ test("the debounce writes once, with the last value", () => {
   saver.call(0.2);
   saver.call(0.3);
   assert.deepEqual(written, [], "nothing is written while the finger moves");
-  assert.equal(saver.isPending(), true);
   run();
   assert.deepEqual(written, [0.3], "the trailing value is the one that lands");
-  assert.equal(saver.isPending(), false);
 });
 
 test("flush writes a pending value now, and does nothing when there is none", () => {
@@ -180,19 +178,4 @@ test("flush writes a pending value now, and does nothing when there is none", ()
   );
   saver.flush();
   assert.deepEqual(written, [0.6], "and lands it exactly once");
-});
-
-test("cancel drops a pending write", () => {
-  const written = [];
-  const { timers, run, size } = fakeTimers();
-  const saver = debounce(
-    (/** @type {number} */ p) => written.push(p),
-    400,
-    timers,
-  );
-  saver.call(0.4);
-  saver.cancel();
-  assert.equal(size(), 0);
-  run();
-  assert.deepEqual(written, []);
 });

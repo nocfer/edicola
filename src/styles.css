@@ -133,9 +133,6 @@
   --stagger: 0.04s; /* between one arriving card and the next */
   --delay-arrive: 0.14s; /* held back so it lands inside, not travels with */
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
-  /* Accelerating out, with no ease at the end: for content that is leaving and
-     should be gone rather than lingering. The mirror of --ease. */
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
   /* Stiffness 190, damping 26. Settles without ever crossing 1, so nothing
      that carries text overshoots and snaps back. */
   --ease-spring: linear(0, 0.0396, 0.1311, 0.2448,
@@ -688,14 +685,6 @@ a.chip {
   align-items: center;
   gap: var(--s-2);
   font-weight: 600;
-}
-/* Unread dot placeholder: tickets 09 and 11 drive it from the Unread count. */
-.pub__unread {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--r-pill);
-  background: var(--accent);
-  flex: none;
 }
 .pub__meta {
   color: var(--faint);

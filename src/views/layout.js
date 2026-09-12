@@ -4,6 +4,7 @@
 
 import { html, nothing } from "../render.js";
 import { t } from "../i18n.js";
+import { update } from "../state.js";
 
 /**
  * Wrap a screen's first-render loader so it only ever runs once, no matter how
@@ -17,6 +18,33 @@ export function once(fn) {
     if (started) return;
     started = true;
     fn();
+  };
+}
+
+/**
+ * The `@error` handler for a thumbnail: a picture that will not load leaves no
+ * gap and no broken-image glyph. The element is hidden imperatively so the
+ * current DOM is right immediately (no `?hidden` binding to undo), and the URL
+ * is remembered in `brokenThumbs` so no later render offers it again.
+ *
+ * `redraw` is Feed mode's requirement, not a preference: a failed photo there
+ * has to be replaced by the generated Cover, and a 4:5 hole is exactly the
+ * "looks broken" the Cover treatment exists to avoid. The Saved list and List
+ * mode reach the right answer with no redraw at all, so they do not ask for
+ * one.
+ *
+ * @param {Set<string>} brokenThumbs The screen's own set, captured once — it is
+ *   never replaced, only added to.
+ * @param {{ redraw?: boolean }} [options]
+ * @returns {(event: Event) => void}
+ */
+export function thumbErrorHandler(brokenThumbs, { redraw = false } = {}) {
+  return (event) => {
+    const img = /** @type {HTMLImageElement} */ (event.currentTarget);
+    const url = img.getAttribute("src");
+    if (url) brokenThumbs.add(url);
+    img.hidden = true;
+    if (url && redraw) update();
   };
 }
 

@@ -11,7 +11,7 @@
 // main.js is what redraws (CLAUDE.md).
 //
 // The Nation selection *is* a reader preference, so it goes through the one
-// settings layer (`src/settings.js`: `getNations` / `setNations`) and is handed
+// settings layer (`src/settings.js`: the `nations` key of its store) and is handed
 // to `loadPublications` as data. This screen is that row's only writer. The
 // Language it may seed on first run belongs to `localStorage['edicola.lang']`
 // (`src/i18n.js`), which is the app's single copy of it.
@@ -160,7 +160,7 @@ function inCatalogOrder(nations) {
  * @returns {Promise<string[]>}
  */
 async function readNations() {
-  return await (await getSettingsStore()).getNations();
+  return (await (await getSettingsStore()).read()).nations;
 }
 
 /**
@@ -170,7 +170,7 @@ async function readNations() {
  * @returns {Promise<void>}
  */
 async function saveNations(nations) {
-  await (await getSettingsStore()).setNations(nations);
+  await (await getSettingsStore()).write({ nations: [...nations] });
 }
 
 // --- Loading ---------------------------------------------------------------

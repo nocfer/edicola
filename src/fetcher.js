@@ -8,7 +8,7 @@
 //
 // This module has no DOM and no globals of its own: `fetch` and `onLine` are
 // injected so it runs unchanged in the page, the Sync worker and Node tests.
-// Named exports only (tools/check-imports.mjs relies on it).
+// Named exports only, like every module here.
 
 /**
  * Public CORS relay used when the reader has not configured their own Proxy.
@@ -67,7 +67,6 @@ const URL_PLACEHOLDER = "{url}";
  * @typedef {object} Fetcher
  * @property {(url: string) => Promise<FetchTextResult>} fetchText
  * @property {(url: string, options?: { maxBytes?: number }) => Promise<FetchBlobResult>} fetchBlob
- * @property {(url: string) => Promise<FetchResultMeta>} probe
  */
 
 /**
@@ -99,6 +98,48 @@ export class FetchFailure extends Error {
     this.status = details.status;
     /** @type {FetchVia | undefined} */
     this.via = details.via;
+  }
+}
+
+/**
+ * A short, stable token for why something failed, stored in `lastError` and
+ * `items.summaryOnlyReason`: this module's own `kind` first, then the Feed
+ * parser's or the Article's `reason`, then the error name as a last resort.
+ *
+ * Lives here because `kind` is this module's vocabulary, and because both the
+ * Sync pipeline (sync.js) and the Reader's on-demand Extraction (fetch-one.js)
+ * write that one column — two copies of this rule is how a stored reason ends
+ * up in two vocabularies nothing can read back.
+ *
+ * @param {any} error
+ * @returns {string}
+ */
+export function reasonOf(error) {
+  return error?.kind || error?.reason || error?.name || "error";
+}
+
+/** Failure kinds a second attempt cannot improve on. */
+const FINAL_FAILURES = new Set([
+  "not-found",
+  "too-large",
+  "proxy-unconfigured",
+]);
+
+/**
+ * Fetch text with one retry, unless a retry cannot help: a 404 stays a 404, an
+ * over-budget body stays over budget, and an unconfigured Proxy will not
+ * configure itself between two calls.
+ *
+ * @param {Fetcher} fetcher
+ * @param {string} url
+ * @returns {Promise<FetchTextResult>}
+ */
+export async function fetchTextTwice(fetcher, url) {
+  try {
+    return await fetcher.fetchText(url);
+  } catch (error) {
+    if (FINAL_FAILURES.has(reasonOf(error))) throw error;
+    return await fetcher.fetchText(url);
   }
 }
 
@@ -494,13 +535,6 @@ export function createFetcher({
       const att = await reach(url);
       const blob = await readBlob(att, url, maxBytes, onLine);
       return { ...metaOf(att.response, url, att.via), blob };
-    },
-
-    async probe(url) {
-      const att = await reach(url);
-      att.release();
-      att.abort();
-      return metaOf(att.response, url, att.via);
     },
   };
 }

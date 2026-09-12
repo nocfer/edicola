@@ -31,6 +31,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { evaluate, goto, launch, reload, sleep } from "./testing/cdp.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
@@ -202,28 +203,28 @@ const item = (over) => ({
 `;
 
 /** @param {string[]} argv */
-function parseArgs(argv) {
-  const opts = {
-    out: join(ROOT, "qa/scenarios"),
-    only: null,
-    theme: "dark",
-    lang: "en",
-    keepGoing: false,
+function parseOptions(argv) {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      "keep-going": { type: "boolean", default: false },
+      only: { type: "string" },
+      out: { type: "string", default: join(ROOT, "qa/scenarios") },
+      theme: { type: "string", default: "dark" },
+      lang: { type: "string", default: "en" },
+    },
+  });
+  return {
+    out: resolve(values.out),
+    only: values.only ? values.only.split(",") : null,
+    theme: values.theme,
+    lang: values.lang,
+    keepGoing: values["keep-going"],
   };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--keep-going") opts.keepGoing = true;
-    else if (a === "--only") opts.only = argv[++i].split(",");
-    else if (a === "--out") opts.out = resolve(argv[++i]);
-    else if (a === "--theme") opts.theme = argv[++i];
-    else if (a === "--lang") opts.lang = argv[++i];
-    else throw new Error(`Unknown option ${a}`);
-  }
-  return opts;
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const opts = parseOptions(process.argv.slice(2));
   const chosen = opts.only
     ? SCENARIOS.filter((s) => opts.only.includes(s.name))
     : SCENARIOS;

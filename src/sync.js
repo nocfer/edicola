@@ -14,18 +14,12 @@
 
 import { runEviction } from "./evict.js";
 import { toPlainText } from "./extract-core.js";
-import { DEFAULT_RETENTION, timeOf } from "./retention.js";
+import { fetchTextTwice, reasonOf } from "./fetcher.js";
+import { byteLength, DEFAULT_RETENTION, timeOf } from "./retention.js";
 import { planArticleFetches, planFeedFetches } from "./sync-plan.js";
 
 /** Feeds and Articles fetched at once (spec: concurrency 4). */
 const DEFAULT_CONCURRENCY = 4;
-
-/** Failure kinds that a second attempt cannot improve on. */
-const FINAL_FAILURES = new Set([
-  "not-found",
-  "too-large",
-  "proxy-unconfigured",
-]);
 
 /** @typedef {import('./store.js').SyncStore} SyncStore */
 /** @typedef {import('./db.js').ItemRow} ItemRow */
@@ -91,17 +85,6 @@ function defaultYield() {
   return new Promise((resolve) => {
     setTimeout(resolve);
   });
-}
-
-/**
- * A short, stable token for why something failed, stored in `lastError` and
- * `summaryOnlyReason`: the fetcher's `kind`, the Feed parser's `reason`, the
- * Article's `reason`, or the error name as a last resort.
- * @param {any} error
- * @returns {string}
- */
-function reasonOf(error) {
-  return error?.kind || error?.reason || error?.name || "error";
 }
 
 /**
@@ -171,20 +154,6 @@ export async function runSync({
     document: new DOMParser().parseFromString(html, "text/html"),
   });
 
-  /**
-   * Fetch text with one retry on a non-final failure.
-   * @param {string} url
-   * @returns {Promise<import('./fetcher.js').FetchTextResult>}
-   */
-  async function fetchTextTwice(url) {
-    try {
-      return await fetcher.fetchText(url);
-    } catch (error) {
-      if (FINAL_FAILURES.has(reasonOf(error))) throw error;
-      return await fetcher.fetchText(url);
-    }
-  }
-
   /** @type {SyncSummary} */
   const summary = {
     feedsOk: 0,
@@ -227,7 +196,7 @@ export async function runSync({
   });
   await pool(queue, concurrency, async (publication) => {
     try {
-      const { text } = await fetchTextTwice(publication.feedUrl);
+      const { text } = await fetchTextTwice(fetcher, publication.feedUrl);
       const feed = parseFeed(text, {
         url: publication.feedUrl,
         DOMParser,
@@ -374,7 +343,7 @@ export async function runSync({
     /** @type {import('./fetcher.js').FetchTextResult} */
     let page;
     try {
-      page = await fetchTextTwice(item.link);
+      page = await fetchTextTwice(fetcher, item.link);
     } catch (error) {
       await store.markSummaryOnly(item.id, reasonOf(error), {
         countAttempt: true,
@@ -489,13 +458,4 @@ function itemRowFor(
     hasArticle: false,
     fetchedAt,
   };
-}
-
-/**
- * UTF-8 byte length of a string, for the Retention size accounting.
- * @param {string} text
- * @returns {number}
- */
-function byteLength(text) {
-  return new TextEncoder().encode(text).length;
 }

@@ -54,6 +54,7 @@ import {
   once,
   screenHeader,
   shareIcon,
+  thumbErrorHandler,
 } from "./layout.js";
 import { rememberRingRect } from "./story.js";
 
@@ -967,21 +968,10 @@ function itemCard(card) {
 
 /**
  * A picture that will not load leaves no gap and no broken-image glyph. The
- * element is hidden imperatively so the current DOM is right immediately, the
- * URL is remembered so no later render offers it again, and a redraw follows
- * because Feed mode must put the generated Cover in the slot the photo just
- * failed to fill — a 4:5 hole is exactly the "looks broken" the Cover treatment
- * exists to avoid. List mode reaches the same answer it always did, one redraw
- * later.
- * @param {Event} event
+ * element is hidden imperatively and the redraw puts the generated Cover in the
+ * slot the photo just failed to fill; see `thumbErrorHandler`.
  */
-function onThumbError(event) {
-  const img = /** @type {HTMLImageElement} */ (event.currentTarget);
-  const url = img.getAttribute("src");
-  if (url) screen.brokenThumbs.add(url);
-  img.hidden = true;
-  if (url) update();
-}
+const onThumbError = thumbErrorHandler(screen.brokenThumbs, { redraw: true });
 
 /** @param {DaySection} section */
 function daySection(section) {

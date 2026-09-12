@@ -1,7 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { planFeedFetches, planArticleFetches } from "../src/sync-plan.js";
-import { DEFAULT_RETENTION, MAX_ARTICLE_ATTEMPTS } from "../src/retention.js";
+import {
+  DEFAULT_RETENTION,
+  groupByPublication,
+  MAX_ARTICLE_ATTEMPTS,
+} from "../src/retention.js";
 
 const DAY = 24 * 60 * 60 * 1000;
 const T0 = Date.UTC(2026, 0, 31, 12, 0, 0);
@@ -30,7 +34,23 @@ const ids = (items) => items.map((i) => i.id);
  * ordering and caps, which is what they are for.
  */
 const planArticles = (items, limits = {}) =>
-  planArticleFetches(items, { now: T0, ...limits });
+  planArticleFetches(asMap(items), { now: T0, ...limits });
+
+/**
+ * The Map `planArticleFetches` takes, from the shapes these fixtures are
+ * written in: a Map already, an array of per-Publication Item arrays, or a flat
+ * Item list grouped by `publicationId` in first-seen order. The production
+ * caller always has a Map (`SyncStore.itemsNeedingArticles` returns one), so
+ * this convenience lives here rather than in the planner.
+ */
+function asMap(items) {
+  if (items instanceof Map) return items;
+  const list = Array.from(items ?? []);
+  if (list.length === 0) return new Map();
+  if (list.every(Array.isArray))
+    return new Map(list.map((group, k) => [`lane-${k}`, group]));
+  return groupByPublication(list);
+}
 
 test("planFeedFetches orders never-synced first, then least recently synced, then name", () => {
   const pubs = [
@@ -201,25 +221,34 @@ test("planArticleFetches is deterministic on equal dates (ties by id)", () => {
   assert.deepEqual(again, once);
 });
 
-test("planArticleFetches accepts a Map or a flat Item list, keeping Publication order", () => {
+test("planArticleFetches round-robins in the Map's own Publication order", () => {
   const a = itemsFor("a", 1);
   const b = itemsFor("b", 2);
-  const expected = ["a-00", "b-00", "b-01"];
-  const fromArrays = ids(planArticles([a, b]));
-  const fromMap = ids(
-    planArticles(
-      new Map([
-        ["a", a],
-        ["b", b],
-      ]),
+  assert.deepEqual(
+    ids(
+      planArticles(
+        new Map([
+          ["a", a],
+          ["b", b],
+        ]),
+      ),
     ),
+    ["a-00", "b-00", "b-01"],
   );
-  const fromFlat = ids(planArticles([...a, ...b]));
-  assert.deepEqual(fromArrays, expected);
-  assert.deepEqual(fromMap, expected);
-  assert.deepEqual(fromFlat, expected);
-  // Flat input groups by first appearance, so a Publication seen first leads.
-  assert.deepEqual(ids(planArticles([...b, ...a])), ["b-00", "a-00", "b-01"]);
+  // The Map's insertion order is the round-robin order, which is how
+  // `itemsNeedingArticles` hands the Publications over in `planFeedFetches`
+  // order: reversing it leads with the other Publication.
+  assert.deepEqual(
+    ids(
+      planArticles(
+        new Map([
+          ["b", b],
+          ["a", a],
+        ]),
+      ),
+    ),
+    ["b-00", "a-00", "b-01"],
+  );
 });
 
 test("planArticleFetches skips Items that Eviction will delete on age", () => {
@@ -248,7 +277,17 @@ test("planArticleFetches applies no age cutoff when maxAgeDays does not bound on
 });
 
 test("planArticleFetches handles empty input and empty Publications", () => {
-  assert.deepEqual(planArticles([]), []);
   assert.deepEqual(planArticles(new Map()), []);
-  assert.deepEqual(ids(planArticles([[], itemsFor("b", 1), []])), ["b-00"]);
+  assert.deepEqual(
+    ids(
+      planArticles(
+        new Map([
+          ["a", []],
+          ["b", itemsFor("b", 1)],
+          ["c", []],
+        ]),
+      ),
+    ),
+    ["b-00"],
+  );
 });

@@ -8,7 +8,6 @@ import {
   DEFAULT_RETENTION,
   MAX_ARTICLE_ATTEMPTS,
   compareItemsNewestFirst,
-  groupByPublication,
   timeOf,
 } from "./retention.js";
 
@@ -84,12 +83,11 @@ function comparePublications(a, b) {
 }
 
 /**
- * Items grouped per Publication, in Publication order. Accepted shapes:
- * - a `Map` from Publication id to that Publication's Items;
- * - an array of per-Publication Item arrays;
- * - a flat array of Items, grouped by `publicationId` in first-seen order.
+ * Items grouped per Publication, in Publication order: a `Map` from Publication
+ * id to that Publication's Items, which is exactly what
+ * `SyncStore.itemsNeedingArticles` returns.
  *
- * @typedef {Map<string, ItemRecord[]> | ItemRecord[][] | ItemRecord[]} ItemsByPublication
+ * @typedef {Map<string, ItemRecord[]>} ItemsByPublication
  */
 
 /**
@@ -127,7 +125,7 @@ export function planArticleFetches(itemsByPublication, limits = {}) {
     Number.isFinite(maxAgeDays) && maxAgeDays > 0
       ? now - maxAgeDays * MS_PER_DAY
       : Number.NEGATIVE_INFINITY;
-  const lanes = groups(itemsByPublication).map((group) =>
+  const lanes = [...(itemsByPublication?.values() ?? [])].map((group) =>
     group
       .filter(
         (item) =>
@@ -147,22 +145,4 @@ export function planArticleFetches(itemsByPublication, limits = {}) {
     }
   }
   return queue;
-}
-
-/**
- * @param {ItemsByPublication} input
- * @returns {ItemRecord[][]}
- */
-function groups(input) {
-  if (input instanceof Map) return Array.from(input.values());
-  const iterable = /** @type {Iterable<unknown>} */ (input ?? []);
-  /** @type {unknown[]} */
-  const list = Array.from(iterable);
-  if (list.length === 0) return [];
-  if (list.every(Array.isArray)) {
-    const nested = /** @type {ItemRecord[][]} */ (list);
-    return nested;
-  }
-  const flat = /** @type {ItemRecord[]} */ (list);
-  return Array.from(groupByPublication(flat).values());
 }

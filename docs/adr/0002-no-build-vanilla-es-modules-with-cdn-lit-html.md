@@ -19,8 +19,9 @@ where it has proven itself: a contributor can clone and open `index.html`, and
 
 ## Consequences
 
-- Static import resolution is checked by `tools/check-imports.mjs` because no
-  bundler will catch a bad named import before deploy.
+- Static import resolution is checked by `npm run typecheck` (`tsc --checkJs`),
+  which reports an import of an export that does not exist as `TS2305`, because
+  no bundler will catch a bad named import before deploy.
 - Only named imports and named exports are used, which is what keeps that check
   sound.
 - A library that cannot be loaded as an ES module from esm.sh is not an option.

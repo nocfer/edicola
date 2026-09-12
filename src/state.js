@@ -129,15 +129,14 @@ export function update(patch) {
 }
 
 /**
- * Register a reaction to state changes; returns an unsubscribe function.
+ * Register a reaction to state changes. There is no unsubscribe: the app has
+ * exactly one subscriber (`renderApp` in main.js) registered once at boot and
+ * never torn down, and an unsubscribe nothing calls is a teardown path nothing
+ * tests.
  * @param {() => void} fn
  */
 export function subscribe(fn) {
   listeners.push(fn);
-  return () => {
-    const i = listeners.indexOf(fn);
-    if (i !== -1) listeners.splice(i, 1);
-  };
 }
 
 let toastTimer;

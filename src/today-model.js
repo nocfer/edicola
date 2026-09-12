@@ -55,9 +55,10 @@ export const SUMMARY_MAX_CHARS = 160;
 /** @typedef {import('./cover.js').CoverSource} CoverSource */
 
 /**
- * How a Publication is handed to `buildTodayModel`: a Map keyed by id, or a
- * plain object. Only `name` is read; anything else is ignored.
- * @typedef {Map<string, PublicationRow> | Record<string, PublicationRow>} PublicationsById
+ * How the Publications are handed to `buildTodayModel`: a Map keyed by id,
+ * whose insertion order is the order the filter chips and the rings take. Only
+ * `name` is read; anything else is ignored.
+ * @typedef {Map<string, PublicationRow>} PublicationsById
  */
 
 /**
@@ -202,7 +203,7 @@ export function buildTodayModel(items, publicationsById, options = {}) {
   const nowStart = startOfLocalDay(nowMs);
   const cutoff = nowMs - maxAgeDays * MS_PER_DAY;
   const keep = Math.max(0, Math.floor(keepPerPublication));
-  const publications = publicationLookup(publicationsById);
+  const publications = publicationsById ?? new Map();
   const filterId = filterPublicationId ? String(filterPublicationId) : null;
 
   // 1. The Retention window: an Enabled Publication, published inside the age
@@ -491,22 +492,6 @@ function phrase(lang, key) {
   const table = DICTIONARIES[lang] || en;
   if (key in table) return table[key];
   return key in en ? en[key] : key;
-}
-
-/**
- * Normalize the Publications argument to a Map, keeping the caller's order.
- * @param {PublicationsById | null | undefined} publicationsById
- * @returns {Map<string, PublicationRow>}
- */
-function publicationLookup(publicationsById) {
-  if (publicationsById instanceof Map) return publicationsById;
-  /** @type {Map<string, PublicationRow>} */
-  const map = new Map();
-  if (!publicationsById) return map;
-  for (const key of Object.keys(publicationsById)) {
-    map.set(key, publicationsById[key]);
-  }
-  return map;
 }
 
 /**

@@ -524,28 +524,6 @@ test("fetchBlob falls through to the Proxy like fetchText", async () => {
   assert.equal(result.contentType, "image/png");
 });
 
-test("probe reports status, content type and via without reading the body", async () => {
-  const { fetchImpl } = scriptedFetch({ [FEED]: rss() });
-  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
-  const result = await fetcher.probe(FEED);
-  assert.deepEqual(result, {
-    finalUrl: FEED,
-    via: "direct",
-    status: 200,
-    contentType: "application/rss+xml",
-  });
-  assert.equal("text" in result, false);
-});
-
-test("probe fails the same way as fetchText", async () => {
-  const { fetchImpl } = scriptedFetch({
-    [FEED]: new Response("gone", { status: 404 }),
-  });
-  const fetcher = createFetcher({ fetch: fetchImpl, proxyTemplate: PROXY });
-  const error = await failure(() => fetcher.probe(FEED));
-  assert.equal(error.kind, "not-found");
-});
-
 test("FetchFailure is an Error with kind, url, status and via", () => {
   const error = new FetchFailure("blocked", FEED, {
     status: 403,

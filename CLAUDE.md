@@ -26,7 +26,8 @@ that repo is the reference implementation.
 - **Runtime libraries come from esm.sh, pinned, through one choke point each:**
   lit-html via `src/render.js`, Dexie via `src/db.js`, Readability and DOMPurify
   via `src/extract.js`. Never import a CDN URL anywhere else. Only **named
-  imports and named exports**, so `tools/check-imports.mjs` stays sound.
+  imports and named exports**, so `npm run typecheck` can see every consumer
+  and report an import of an export that does not exist (`TS2305`).
 - **DOMPurify is mandatory** on every piece of third-party HTML before it is
   stored or rendered. Feed Summaries and Articles are untrusted input from
   arbitrary sites; skipping the sanitizer is a stored XSS in every reader's app.

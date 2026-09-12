@@ -16,6 +16,12 @@
 // to what a template renders is the seam "the feed is complete offline" rests
 // on, and it is proved against a fake `images` table rather than a browser.
 
+// `readStoredImages` is shared with `article-render.js` rather than copied: a
+// thumbnail and an Article image are the same row of the same `images` table,
+// looked up by the same key, and the two copies had already drifted apart in
+// how they handled a database that will not open.
+import { readStoredImages } from "./article-render.js";
+
 /** How many fills the `--cover-1 … --cover-8` ramp has (styles.css §1). */
 export const COVER_RAMP_SIZE = 8;
 
@@ -220,30 +226,4 @@ export async function resolveCoverSources(
 function usableImageUrl(value) {
   const url = String(value ?? "").trim();
   return /^https?:\/\//i.test(url) ? url : null;
-}
-
-/**
- * The stored blob for each URL that has one, keyed by the URL as it appears on
- * the Item. `images` is keyed by the sha-256 of the URL (`imageKeyFor`), so one
- * `bulkGet` answers for the whole feed.
- *
- * A database that cannot be read is not a reason to show nothing: every Item
- * falls back to its publisher URL or its Cover, and the feed still renders.
- * @param {string[]} urls
- * @param {{ db: any, imageKeyFor: (url: string) => Promise<string> }} deps
- * @returns {Promise<Map<string, Blob>>}
- */
-async function readStoredImages(urls, { db, imageKeyFor }) {
-  /** @type {Map<string, Blob>} */
-  const blobs = new Map();
-  try {
-    const keys = await Promise.all(urls.map((url) => imageKeyFor(url)));
-    const rows = await db.images.bulkGet(keys);
-    rows.forEach((/** @type {{ blob?: Blob } | undefined} */ row, i) => {
-      if (row?.blob) blobs.set(urls[i], row.blob);
-    });
-  } catch (error) {
-    console.warn("Stored thumbnails could not be read:", error);
-  }
-  return blobs;
 }

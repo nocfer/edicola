@@ -20,6 +20,11 @@ function item(id, ageDays, extra = {}) {
   };
 }
 
+/** Article bytes per Item id, the Map shape `planEviction` takes. */
+function bytes(byId) {
+  return new Map(Object.entries(byId));
+}
+
 test("DEFAULT_RETENTION carries the spec defaults and is frozen", () => {
   assert.deepEqual(DEFAULT_RETENTION, {
     maxAgeDays: 30,
@@ -95,7 +100,7 @@ test("planItemTrim is deterministic on equal dates (ties by id)", () => {
 
 test("planEviction removes every unsaved Item older than maxAgeDays, oldest first", () => {
   const items = [item("fresh", 1), item("old", 31), item("older", 40)];
-  const sizes = { fresh: 1 * MB, old: 2 * MB, older: 3 * MB };
+  const sizes = bytes({ fresh: 1 * MB, old: 2 * MB, older: 3 * MB });
   const plan = planEviction(items, sizes, { maxAgeDays: 30 }, NOW);
   assert.deepEqual(plan, {
     deleteItemIds: ["older", "old"],
@@ -109,7 +114,11 @@ test("planEviction never returns Saved Items, even when old or oversized", () =>
     item("saved-big", 1, { saved: true }),
     item("fresh", 1),
   ];
-  const sizes = { "saved-old": 1 * MB, "saved-big": 100 * MB, fresh: 1 * MB };
+  const sizes = bytes({
+    "saved-old": 1 * MB,
+    "saved-big": 100 * MB,
+    fresh: 1 * MB,
+  });
   const plan = planEviction(
     items,
     sizes,
@@ -149,13 +158,13 @@ test("planEviction applies age first, then size oldest first until under the cap
 
 test("planEviction does nothing when within Retention", () => {
   const items = [item("a", 1), item("b", 2)];
-  const plan = planEviction(items, { a: MB, b: MB }, undefined, NOW);
+  const plan = planEviction(items, bytes({ a: MB, b: MB }), undefined, NOW);
   assert.deepEqual(plan, { deleteItemIds: [], bytesFreed: 0 });
 });
 
 test("planEviction treats Items with no size entry as free and skips them in the size pass", () => {
   const items = [item("summary-only", 20), item("big-a", 2), item("big-b", 1)];
-  const sizes = { "big-a": 30 * MB, "big-b": 30 * MB };
+  const sizes = bytes({ "big-a": 30 * MB, "big-b": 30 * MB });
   const plan = planEviction(
     items,
     sizes,
@@ -167,7 +176,7 @@ test("planEviction treats Items with no size entry as free and skips them in the
 
 test("planEviction is deterministic on equal dates (ties by id)", () => {
   const items = [item("b", 40), item("a", 40), item("c", 40)];
-  const sizes = { a: 1, b: 2, c: 3 };
+  const sizes = bytes({ a: 1, b: 2, c: 3 });
   const once = planEviction(items, sizes, { maxAgeDays: 30 }, NOW);
   const again = planEviction(
     items.slice().reverse(),
@@ -181,7 +190,7 @@ test("planEviction is deterministic on equal dates (ties by id)", () => {
   const equalAge = [item("y", 1), item("x", 1), item("z", 1)];
   const bySize = planEviction(
     equalAge,
-    { x: 5 * MB, y: 5 * MB, z: 5 * MB },
+    bytes({ x: 5 * MB, y: 5 * MB, z: 5 * MB }),
     { maxAgeDays: 30, maxTotalBytes: 6 * MB },
     NOW,
   );
@@ -190,7 +199,7 @@ test("planEviction is deterministic on equal dates (ties by id)", () => {
 
 test("planEviction accepts a Date for now and uses DEFAULT_RETENTION when limits are omitted", () => {
   const items = [item("old", 31), item("fresh", 29)];
-  const plan = planEviction(items, {}, {}, new Date(NOW));
+  const plan = planEviction(items, bytes({}), {}, new Date(NOW));
   assert.deepEqual(plan.deleteItemIds, ["old"]);
 });
 
@@ -199,6 +208,6 @@ test("planEviction treats an Item with no date as the oldest", () => {
     { id: "undated", publicationId: "p", publishedAt: undefined },
     item("fresh", 1),
   ];
-  const plan = planEviction(items, {}, { maxAgeDays: 30 }, NOW);
+  const plan = planEviction(items, bytes({}), { maxAgeDays: 30 }, NOW);
   assert.deepEqual(plan.deleteItemIds, ["undated"]);
 });

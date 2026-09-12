@@ -30,7 +30,7 @@ import { html, nothing, repeat } from "../render.js";
 import { hrefFor, parseRoute } from "../router.js";
 import { showToast, update } from "../state.js";
 import { oneLine } from "../today-model.js";
-import { emptyState, once, screenHeader } from "./layout.js";
+import { emptyState, once, screenHeader, thumbErrorHandler } from "./layout.js";
 
 /** @typedef {import('../db.js').ItemRow} ItemRow */
 /** @typedef {import('../db.js').PublicationRow} PublicationRow */
@@ -138,17 +138,11 @@ async function unsave(item) {
 }
 
 /**
- * A thumbnail that will not load leaves no gap and no broken-image glyph, the
- * same imperative hide Today uses: no `?hidden` binding to undo it, and no
- * `update()`, because the DOM is already right.
- * @param {Event} event
+ * A thumbnail that will not load leaves no gap and no broken-image glyph. No
+ * redraw: this list has no Cover to swap in, so the imperative hide is already
+ * the right DOM (see `thumbErrorHandler`).
  */
-function onThumbError(event) {
-  const img = /** @type {HTMLImageElement} */ (event.currentTarget);
-  const url = img.getAttribute("src");
-  if (url) screen.brokenThumbs.add(url);
-  img.hidden = true;
-}
+const onThumbError = thumbErrorHandler(screen.brokenThumbs);
 
 // --- Templates -------------------------------------------------------------
 

@@ -220,7 +220,7 @@ export async function pageFetcher() {
   let proxyTemplate;
   try {
     proxyTemplate = effectiveProxyTemplate(
-      await (await getSettingsStore()).getProxyTemplate(),
+      (await (await getSettingsStore()).read()).proxyTemplate,
     );
   } catch {
     proxyTemplate = effectiveProxyTemplate("");
@@ -427,18 +427,13 @@ export async function testProxyTemplate(template, deps = {}) {
  * @property {() => Promise<Settings>} read
  *   Every setting, normalized; defaults for anything unset.
  * @property {(patch: Partial<Settings>) => Promise<Settings>} write
- *   Merge and store; resolves with the settings as they now read.
- * @property {() => Promise<string>} getProxyTemplate
- *   The stored override, "" when the default is in use.
- * @property {(template: string) => Promise<string>} setProxyTemplate
- * @property {() => Promise<RetentionLimits>} getRetention
- * @property {(limits: Partial<RetentionLimits>) => Promise<RetentionLimits>} setRetention
- * @property {() => Promise<string[]>} getNations
- *   The Nation selection; `[]` when the reader has never chosen.
- * @property {(nations: readonly string[]) => Promise<string[]>} setNations
- *   Persist the selection. Throws `RangeError` on a list that normalizes to
- *   nothing: at least one Nation must stay selected, and an empty row would
- *   also erase the first-run signal.
+ *   Merge and store the keys the patch carries, and resolve with the settings
+ *   as they now read. Each value is normalized on the way in, so a `retention`
+ *   patch must be a COMPLETE `RetentionLimits` — a partial one fills its
+ *   missing fields from the defaults, it does not keep the stored values.
+ *   Throws `RangeError` on a `nations` list that normalizes to nothing: at
+ *   least one Nation must stay selected, and an empty row would also erase the
+ *   first-run signal.
  * @property {() => Promise<void>} clear
  *   Drop every stored setting, so the defaults apply again.
  */
@@ -505,34 +500,6 @@ export function createSettingsStore(db) {
         await putValue(SETTINGS_KEYS.nations, nations);
       }
       return await read();
-    },
-
-    async getProxyTemplate() {
-      return (await read()).proxyTemplate;
-    },
-
-    async setProxyTemplate(template) {
-      return (await this.write({ proxyTemplate: template })).proxyTemplate;
-    },
-
-    async getRetention() {
-      return (await read()).retention;
-    },
-
-    async setRetention(limits) {
-      const next = normalizeRetention({
-        ...(await read()).retention,
-        ...limits,
-      });
-      return (await this.write({ retention: next })).retention;
-    },
-
-    async getNations() {
-      return (await read()).nations;
-    },
-
-    async setNations(nations) {
-      return (await this.write({ nations: [...nations] })).nations;
     },
 
     async clear() {

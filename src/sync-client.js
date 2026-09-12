@@ -79,7 +79,7 @@ function publish(patch) {
  */
 async function pageLimits() {
   try {
-    return await (await getSettingsStore()).getRetention();
+    return (await (await getSettingsStore()).read()).retention;
   } catch {
     return {};
   }

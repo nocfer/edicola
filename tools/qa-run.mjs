@@ -50,6 +50,7 @@ import { createServer } from "node:http";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
 import { evaluate, goto, launch, reload, sleep } from "./testing/cdp.js";
 
 const ROOT = resolve(fileURLToPath(import.meta.url), "../..");
@@ -62,33 +63,32 @@ const BASE_URL = "http://localhost:8000/";
 const REGRESSION_MARGIN = 0.2;
 
 /** @param {string[]} argv */
-function parseArgs(argv) {
-  const opts = {
-    out: join(ROOT, "qa"),
-    only: null,
-    shots: true,
-    proxy: null,
-    shippedProxy: false,
-    captureDom: null,
-    profile: null,
-    timeout: 120000,
-    writeBaseline: false,
+function parseOptions(argv) {
+  const { values } = parseArgs({
+    args: argv,
+    options: {
+      "no-shots": { type: "boolean", default: false },
+      "shipped-proxy": { type: "boolean", default: false },
+      "capture-dom": { type: "string" },
+      "write-baseline": { type: "boolean", default: false },
+      only: { type: "string" },
+      out: { type: "string", default: join(ROOT, "qa") },
+      proxy: { type: "string" },
+      profile: { type: "string" },
+      timeout: { type: "string", default: "120000" },
+    },
+  });
+  return {
+    out: resolve(values.out),
+    only: values.only ? values.only.split(",").map((s) => s.trim()) : null,
+    shots: !values["no-shots"],
+    proxy: values.proxy ?? null,
+    shippedProxy: values["shipped-proxy"],
+    captureDom: values["capture-dom"] ? resolve(values["capture-dom"]) : null,
+    profile: values.profile ?? null,
+    timeout: Number(values.timeout),
+    writeBaseline: values["write-baseline"],
   };
-  for (let i = 0; i < argv.length; i++) {
-    const a = argv[i];
-    if (a === "--no-shots") opts.shots = false;
-    else if (a === "--shipped-proxy") opts.shippedProxy = true;
-    else if (a === "--capture-dom") opts.captureDom = resolve(argv[++i]);
-    else if (a === "--write-baseline") opts.writeBaseline = true;
-    else if (a === "--only")
-      opts.only = argv[++i].split(",").map((s) => s.trim());
-    else if (a === "--out") opts.out = resolve(argv[++i]);
-    else if (a === "--proxy") opts.proxy = argv[++i];
-    else if (a === "--profile") opts.profile = argv[++i];
-    else if (a === "--timeout") opts.timeout = Number(argv[++i]);
-    else throw new Error(`Unknown option ${a}`);
-  }
-  return opts;
 }
 
 /**
@@ -263,7 +263,7 @@ async function route(cdp, hash) {
 }
 
 async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+  const opts = parseOptions(process.argv.slice(2));
   const ids = opts.only ?? catalogIds();
   const shotDir = join(opts.out, "shots");
 
@@ -288,7 +288,7 @@ async function main() {
         browser.cdp,
         `const { getSettingsStore } = await import('/src/settings.js');
          const store = await getSettingsStore();
-         await store.setProxyTemplate(${JSON.stringify(proxyTemplate)});
+         await store.write({ proxyTemplate: ${JSON.stringify(proxyTemplate)} });
          return null;`,
       );
       console.error(

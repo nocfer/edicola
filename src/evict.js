@@ -22,7 +22,12 @@
 // The store is a parameter and this module imports only the planners, so it
 // loads under Node and `test/evict.test.js` drives it with an in-memory store.
 
-import { DEFAULT_RETENTION, planEviction, planItemTrim } from "./retention.js";
+import {
+  DEFAULT_RETENTION,
+  planEviction,
+  planItemTrim,
+  sizeLookup,
+} from "./retention.js";
 
 /** @typedef {import('./retention.js').RetentionLimits} RetentionLimits */
 /** @typedef {import('./db.js').ItemRow} ItemRow */
@@ -59,25 +64,6 @@ export const EVICTION_BATCH_SIZE = 50;
  */
 
 /**
- * Whether a store can be Evicted through. The Sync pipeline's test store
- * (test/sync.test.js) implements the Sync half of `SyncStore` only, so
- * `runSync` must not fail when handed one; this is the check that keeps
- * Eviction an addition to that seam rather than a change to it.
- *
- * @param {unknown} store
- * @returns {boolean}
- */
-export function canEvict(store) {
-  const candidate = /** @type {Partial<EvictionStore> | null} */ (store);
-  return (
-    Boolean(candidate) &&
-    typeof candidate.allItems === "function" &&
-    typeof candidate.articleBytesByItem === "function" &&
-    typeof candidate.deleteItems === "function"
-  );
-}
-
-/**
  * Evict everything outside Retention, and say what went.
  *
  * Three passes, in this order:
@@ -89,9 +75,6 @@ export function canEvict(store) {
  * The trim runs first and its Items are withheld from the planner's input, so
  * the size pass accounts for the bytes the trim already frees instead of
  * Evicting an Item to reclaim space that was going anyway.
- *
- * A store with no Eviction seam yields an empty result rather than throwing:
- * see `canEvict`.
  *
  * @param {object} options
  * @param {EvictionStore} options.store
@@ -106,8 +89,6 @@ export async function runEviction({
   now = Date.now(),
   batchSize = EVICTION_BATCH_SIZE,
 }) {
-  if (!canEvict(store)) return { deleted: [], bytesFreed: 0 };
-
   const {
     keepPerPublication = DEFAULT_RETENTION.keepPerPublication,
     maxAgeDays = DEFAULT_RETENTION.maxAgeDays,
@@ -152,22 +133,4 @@ export async function runEviction({
     for (const id of batch) bytesFreed += sizeOf(id);
   }
   return { deleted, bytesFreed };
-}
-
-/**
- * Bytes for one Item id, from a Map or a plain object, never negative and
- * never NaN.
- *
- * @param {Map<string, number> | Record<string, number>} sizes
- * @returns {(id: string) => number}
- */
-function sizeLookup(sizes) {
-  const get =
-    sizes instanceof Map
-      ? (/** @type {string} */ id) => sizes.get(id)
-      : (/** @type {string} */ id) => sizes[id];
-  return (id) => {
-    const n = Number(get(String(id)));
-    return Number.isFinite(n) && n > 0 ? n : 0;
-  };
 }

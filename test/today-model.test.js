@@ -230,13 +230,23 @@ test("an Item whose Publication is not Enabled is dropped", () => {
   assert.equal(model.itemCount, 1);
 });
 
-test("a plain object works as well as a Map for the Publications", () => {
+test("a card falls back to its Publication id when the Publication has no name", () => {
   const model = buildTodayModel(
     [item("a", NOW - 3600_000)],
-    { "bbc-news": { id: "bbc-news", name: "BBC News" } },
+    new Map([["bbc-news", { id: "bbc-news" }]]),
     { now: NOW },
   );
-  assert.equal(model.sections[0].cards[0].publicationName, "BBC News");
+  assert.equal(model.sections[0].cards[0].publicationName, "bbc-news");
+});
+
+test("no Publications means no cards, however the argument is missing", () => {
+  for (const publications of [new Map(), null, undefined]) {
+    const model = buildTodayModel([item("a", NOW - 3600_000)], publications, {
+      now: NOW,
+    });
+    assert.deepEqual(model.sections, []);
+    assert.equal(model.itemCount, 0);
+  }
 });
 
 // --- The Retention bound ---------------------------------------------------

@@ -61,23 +61,6 @@ export function compareAppVersions(a, b) {
 }
 
 /**
- * Whether the running Shell should reload to pick up a newer one: only when the
- * database was written by a strictly newer version and this session has not
- * reloaded for that reason already.
- * @param {object} input
- * @param {string} input.running The `APP_VERSION` of the Shell now executing.
- * @param {string | null | undefined} input.stored `meta.appVersion` before this
- *   boot stamped it; null on a first run.
- * @param {boolean} input.alreadyReloaded The sessionStorage guard is set.
- * @returns {boolean}
- */
-export function shouldReloadForVersion({ running, stored, alreadyReloaded }) {
-  if (alreadyReloaded) return false;
-  if (!stored) return false;
-  return compareAppVersions(running, stored) < 0;
-}
-
-/**
  * Apply the version guard. Resolves with whether a reload was triggered.
  * Every dependency is a parameter, so the decision is testable without a
  * browser: pass a fake `session` and a `reload` spy.
@@ -104,14 +87,12 @@ export function runVersionGuard({
     // storage becomes a reload loop.
     return false;
   }
-  if (
-    !shouldReloadForVersion({
-      running: runningVersion,
-      stored: storedVersion,
-      alreadyReloaded,
-    })
-  )
-    return false;
+  // Reload only when the database was written by a strictly newer Shell than
+  // the one running, and only once per session. A first run has nothing stored
+  // to compare against.
+  if (alreadyReloaded) return false;
+  if (!storedVersion) return false;
+  if (compareAppVersions(runningVersion, storedVersion) >= 0) return false;
   try {
     session?.setItem(RELOAD_GUARD_KEY, "1");
   } catch {

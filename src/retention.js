@@ -66,6 +66,18 @@ export const MAX_ARTICLE_ATTEMPTS = 3;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
+ * UTF-8 byte length of a string. Here because it is the Retention size
+ * accounting's own unit: what `planEviction` weighs and what `articles.bytes`
+ * stores, written by both the Sync pipeline and the Reader's on-demand fetch.
+ *
+ * @param {string} text
+ * @returns {number}
+ */
+export function byteLength(text) {
+  return new TextEncoder().encode(text).length;
+}
+
+/**
  * Epoch milliseconds of a date-like value; -Infinity when missing or invalid,
  * so an undated record sorts as the oldest.
  *
@@ -165,7 +177,7 @@ export function planItemTrim(items, limits = {}) {
  * Bytes stored for each Item's Article (HTML plus images), keyed by Item id.
  * Items with no entry are treated as taking no space.
  *
- * @typedef {Map<string, number> | Record<string, number>} ArticleSizeById
+ * @typedef {Map<string, number>} ArticleSizeById
  */
 
 /**
@@ -227,18 +239,20 @@ export function planEviction(items, articlesSizeById, limits = {}, now) {
 }
 
 /**
+ * Bytes for one Item id, never negative and never NaN. An absent entry, a
+ * missing Map and a nonsense value all read as zero: an Item whose Article
+ * takes no space frees nothing by being Evicted.
+ *
+ * Exported because `evict.js` weighs the same Map when it reports `bytesFreed`,
+ * and a second copy of this rule there would be a second place for "what counts
+ * as no bytes" to drift.
+ *
  * @param {ArticleSizeById | null | undefined} sizes
  * @returns {(id: string) => number}
  */
-function sizeLookup(sizes) {
-  if (!sizes) return () => 0;
-  const get =
-    sizes instanceof Map
-      ? (/** @type {string} */ id) => sizes.get(id)
-      : (/** @type {string} */ id) =>
-          Object.hasOwn(sizes, id) ? sizes[id] : undefined;
+export function sizeLookup(sizes) {
   return (id) => {
-    const n = Number(get(String(id)));
+    const n = Number(sizes?.get(String(id)));
     return Number.isFinite(n) && n > 0 ? n : 0;
   };
 }

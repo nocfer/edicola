@@ -72,15 +72,6 @@ export function estimateValueBytes(value) {
   return 0;
 }
 
-/**
- * Rough byte size of one row.
- * @param {Record<string, unknown>} row
- * @returns {number}
- */
-function estimateRowBytes(row) {
-  return estimateValueBytes(row);
-}
-
 const UNITS = ["B", "KB", "MB", "GB", "TB"];
 
 /**
@@ -165,7 +156,7 @@ export async function readStorageUsage({
     let rows = 0;
     await table.each((/** @type {any} */ row) => {
       rows += 1;
-      bytes += estimateRowBytes(row);
+      bytes += estimateValueBytes(row);
       if (name === "publications" && row.enabled) enabledPublications += 1;
       if (name === "items" && (row.saved === 1 || row.saved === true))
         savedItems += 1;
@@ -266,25 +257,19 @@ export async function clearContent(db, { lastSyncAtKey = "lastSyncAt" } = {}) {
  * offline until the next online load. The caller reloads afterwards.
  *
  * @param {import('./db.js').EdicolaDb} db
- * @param {{ local?: Storage, session?: Storage, keys?: ReadonlyArray<string> }} [options]
  * @returns {Promise<void>}
  */
-export async function resetApp(db, options = {}) {
-  const {
-    local = globalThis.localStorage,
-    session = globalThis.sessionStorage,
-    keys = PREFERENCE_KEYS,
-  } = options;
+export async function resetApp(db) {
   await db.delete();
-  for (const key of keys) {
+  for (const key of PREFERENCE_KEYS) {
     try {
-      local?.removeItem(key);
+      globalThis.localStorage?.removeItem(key);
     } catch {
       // Storage disabled: the preference was never persisted anyway.
     }
   }
   try {
-    session?.clear();
+    globalThis.sessionStorage?.clear();
   } catch {
     // Same: nothing to clear.
   }

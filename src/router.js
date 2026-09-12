@@ -134,16 +134,15 @@ export function goBack() {
 
 /**
  * Start listening for hash changes. Calls `onChange` once immediately with the
- * current Route, then on every `hashchange`. Returns a stop function.
+ * current Route, then on every `hashchange`. There is no stop function: main.js
+ * starts the router once at boot and the app never runs without one.
  * @param {(route: Route) => void} onChange
  */
 export function startRouter(onChange) {
-  const handler = () => {
+  window.addEventListener("hashchange", () => {
     if (backPending) backPending = false;
     else depth += 1;
     onChange(currentRoute());
-  };
-  window.addEventListener("hashchange", handler);
+  });
   onChange(currentRoute());
-  return () => window.removeEventListener("hashchange", handler);
 }

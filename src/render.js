@@ -5,7 +5,7 @@
 // lit-html choke point — the single place the CDN URL and version are pinned
 // (ADR-0002). Every screen imports { html, render, nothing, unsafeHTML, repeat }
 // from here, never the raw CDN URL, so bumping the version or swapping the CDN
-// is a one-line change and tools/check-imports.mjs can see every consumer.
+// is a one-line change and `npm run typecheck` can see every consumer.
 //
 // Why esm.sh: jsdelivr's `+esm` inlines a private copy of the lit-html core
 // into each directive bundle, so `unsafeHTML` would carry a different core

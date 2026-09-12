@@ -160,8 +160,7 @@ export function isWorthRestoring(position) {
  * @param {number} waitMs
  * @param {{ setTimer?: (fn: () => void, ms: number) => any,
  *           clearTimer?: (handle: any) => void }} [timers]
- * @returns {{ call: (...args: Parameters<F>) => void, flush: () => void,
- *            cancel: () => void, isPending: () => boolean }}
+ * @returns {{ call: (...args: Parameters<F>) => void, flush: () => void }}
  */
 export function debounce(fn, waitMs, timers = {}) {
   const setTimer = timers.setTimer ?? ((run, ms) => setTimeout(run, ms));
@@ -188,14 +187,6 @@ export function debounce(fn, waitMs, timers = {}) {
       if (handle === null) return;
       clearTimer(handle);
       fire();
-    },
-    cancel() {
-      if (handle !== null) clearTimer(handle);
-      handle = null;
-      queued = null;
-    },
-    isPending() {
-      return handle !== null;
     },
   };
 }

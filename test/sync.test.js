@@ -184,6 +184,34 @@ function memoryStore(publications, items = []) {
       }
       return doomed;
     },
+    // The Eviction seam (src/evict.js). Implemented rather than left out: a
+    // store that carries half the interface is what `runSync` would trip over,
+    // and a half-store here proves nothing about the pipeline.
+    async allItems() {
+      return [...rows.values()];
+    },
+    async articleBytesByItem() {
+      const sizes = new Map();
+      for (const [itemId, article] of articles) {
+        sizes.set(itemId, article.bytes ?? 0);
+      }
+      // `images` is keyed by `${itemId} ${url}`, so group it back by Item.
+      for (const image of images.values()) {
+        const at = sizes.get(image.itemId) ?? 0;
+        sizes.set(image.itemId, at + (image.bytes ?? 0));
+      }
+      return sizes;
+    },
+    async deleteItems(itemIds) {
+      const doomed = new Set(itemIds);
+      for (const id of doomed) {
+        rows.delete(id);
+        articles.delete(id);
+      }
+      for (const [key, image] of images) {
+        if (doomed.has(image.itemId)) images.delete(key);
+      }
+    },
     async getMeta(key) {
       return meta.get(key);
     },

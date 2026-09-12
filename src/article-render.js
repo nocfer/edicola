@@ -139,26 +139,30 @@ function markImages(html, { windowFor }) {
  * the markup. `images` is keyed by the sha-256 of the URL (`imageKeyFor`), so
  * one `bulkGet` answers for the whole Article and an image shared by two
  * Articles is found whichever of them stored it.
+ *
+ * Exported because `cover.js` asks the same table the same question for the
+ * feed's thumbnails; the two had drifted into differently-shaped copies of one
+ * `bulkGet`.
+ *
+ * A database that cannot be read is not a reason to show nothing: every image
+ * falls back to its network URL and the Article still reads.
+ *
  * @param {string[]} urls
  * @param {{ db: any, imageKeyFor: (url: string) => Promise<string> }} deps
  * @returns {Promise<Map<string, Blob>>}
  */
-async function readStoredImages(urls, { db, imageKeyFor }) {
+export async function readStoredImages(urls, { db, imageKeyFor }) {
   /** @type {Map<string, Blob>} */
   const blobs = new Map();
-  const keys = await Promise.all(urls.map((url) => imageKeyFor(url)));
-  /** @type {Array<{ blob?: Blob } | undefined>} */
-  let rows = [];
   try {
-    rows = await db.images.bulkGet(keys);
+    const keys = await Promise.all(urls.map((url) => imageKeyFor(url)));
+    /** @type {Array<{ blob?: Blob } | undefined>} */
+    const rows = await db.images.bulkGet(keys);
+    rows.forEach((row, i) => {
+      if (row?.blob) blobs.set(urls[i], row.blob);
+    });
   } catch (error) {
-    // A database that cannot be read is not a reason to show nothing: the
-    // Article still reads, with its images coming from the network.
     console.warn("Stored images could not be read:", error);
-    return blobs;
   }
-  rows.forEach((row, i) => {
-    if (row?.blob) blobs.set(urls[i], row.blob);
-  });
   return blobs;
 }
