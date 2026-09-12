@@ -101,6 +101,34 @@ export function withViewTransition(mutate) {
   lastArrival = transition.finished.catch(() => {});
 }
 
+/**
+ * Give a View Transition's "after" snapshot something painted to show,
+ * instead of a screen whose pictures are still mid-decode. A screen that
+ * remounts from scratch — Today rebuilding its cards on the way back from
+ * any other route, its List/Feed toggle swapping templates — hands the
+ * transition a tree of brand-new `<img>` elements, and the snapshot a
+ * cross-dissolve captures right after `update()` is of whichever of those
+ * haven't decoded yet. That is what reads as a glitch. `decode()` waits for
+ * exactly that, but only for pictures already inside the viewport: the rest
+ * are behind `loading="lazy"` on purpose, and forcing them to load here
+ * would defeat that. Capped at 150ms — long enough for a warm-cache decode,
+ * short enough that a slow one cuts to the render rather than holding the
+ * transition open.
+ * @param {ParentNode} [root]
+ * @returns {Promise<void>}
+ */
+export function whenVisiblePicturesReady(root = document) {
+  const vh = window.innerHeight;
+  const imgs = Array.from(root.querySelectorAll("img")).filter(
+    (img) => img.getBoundingClientRect().top < vh,
+  );
+  const ready = Promise.all(imgs.map((img) => img.decode().catch(() => {})));
+  return Promise.race([
+    ready,
+    new Promise((resolve) => setTimeout(resolve, 150)),
+  ]);
+}
+
 /** @type {Promise<void>} */
 let lastArrival = Promise.resolve();
 

@@ -10,7 +10,7 @@ import { html, nothing, render } from "./render.js";
 import { state, subscribe, update } from "./state.js";
 import { applyStaticI18n, getLang, initLang, setLang, t } from "./i18n.js";
 import { hidesTabBar, startRouter } from "./router.js";
-import { withViewTransition } from "./motion.js";
+import { whenVisiblePicturesReady, withViewTransition } from "./motion.js";
 import { initSyncClient, syncIfStale } from "./sync-client.js";
 import { applyUpdate, dismissUpdate, initUpdates } from "./update.js";
 import { todayView } from "./views/today.js";
@@ -196,31 +196,6 @@ state.lang = initLang();
 state.viewMode = readViewModePreference();
 state.online = navigator.onLine;
 
-/**
- * Give the View Transition's "after" snapshot something painted to show.
- * Today's cards remount from scratch on the way back from the Reader (its
- * lit-html tree was torn down while the Reader was on screen), so right
- * after `update({ route })` their pictures are still mid-decode — the
- * snapshot a cross-dissolve captures is of an unfinished paint, which is
- * what reads as a glitch. `decode()` waits for exactly that, but only for
- * pictures already inside the viewport: the rest are behind `loading="lazy"`
- * on purpose, and forcing them to load here would defeat that. Capped at
- * 150ms — long enough for a warm-cache decode, short enough that a slow one
- * cuts to the render rather than holding the transition open.
- * @returns {Promise<void>}
- */
-function whenVisiblePicturesReady() {
-  const vh = window.innerHeight;
-  const imgs = Array.from(screenEl.querySelectorAll("img")).filter(
-    (img) => img.getBoundingClientRect().top < vh,
-  );
-  const ready = Promise.all(imgs.map((img) => img.decode().catch(() => {})));
-  return Promise.race([
-    ready,
-    new Promise((resolve) => setTimeout(resolve, 150)),
-  ]);
-}
-
 subscribe(renderApp);
 startRouter((route) => {
   // Every route change zooms+fades like the Feed/List toggle does (ADR-0012,
@@ -229,12 +204,16 @@ startRouter((route) => {
   // Story is the one exception: it grows out of the ring that was tapped
   // (`growFrom` in views/story.js), and a root-level zoom on top of that
   // would fight the very rect it is growing from rather than complement it.
+  // Today rebuilds its cards from scratch on arrival from any other route —
+  // the Reader, Story, Publications, Saved, Settings all tear its lit-html
+  // tree down the same way — so every arrival there needs the transition to
+  // wait for the fresh pictures to decode, not just the one from the Reader.
   const isStoryOpen = route.name === "story";
-  const isBackToToday = route.name === "today" && state.route.name === "reader";
+  const isTodayArrival = route.name === "today";
   if (route.name !== state.route.name && !isStoryOpen) {
     withViewTransition(async () => {
       update({ route });
-      if (isBackToToday) await whenVisiblePicturesReady();
+      if (isTodayArrival) await whenVisiblePicturesReady(screenEl);
     });
   } else {
     update({ route });

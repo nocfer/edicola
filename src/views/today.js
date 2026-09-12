@@ -37,6 +37,7 @@ import {
   motionToken,
   prefersReducedMotion,
   rubberBand,
+  whenVisiblePicturesReady,
   withViewTransition,
 } from "../motion.js";
 import { html, nothing, repeat } from "../render.js";
@@ -278,7 +279,12 @@ function setFilter(publicationId) {
  * The redraw is wrapped in a View Transition so the two presentations
  * cross-dissolve rather than cut. `update()` notifies inline and lit commits
  * inline, so the whole swap happens inside the callback; without the API, or
- * under reduced motion, `withViewTransition` just calls it.
+ * under reduced motion, `withViewTransition` just calls it. Both modes hand
+ * the transition a template of brand-new `<img>` elements (`today__thumb` in
+ * List, `today__photo` in Feed), so the snapshot waits on
+ * `whenVisiblePicturesReady` the same way arriving at Today from another
+ * route does — otherwise it would be cross-dissolving whichever pictures
+ * hadn't decoded yet.
  * @param {import('../state.js').ViewMode} viewMode
  */
 function setViewMode(viewMode) {
@@ -293,7 +299,10 @@ function setViewMode(viewMode) {
   // Transition would capture it at `opacity: 0`, still behind its stagger
   // delay. The cross-dissolve is its entrance instead.
   for (const item of screen.items) screen.arrived.add(item.id);
-  withViewTransition(() => update({ viewMode }));
+  withViewTransition(async () => {
+    update({ viewMode });
+    await whenVisiblePicturesReady();
+  });
 }
 
 /**
