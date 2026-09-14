@@ -46,6 +46,33 @@ export const RESTORE_ATTEMPTS_MS = Object.freeze([0, 120, 400]);
 export const RESTORE_ABANDON_PX = 24;
 
 /**
+ * Whether the reader has taken the scroll over, given a restore scroll from
+ * `from` towards `to`.
+ *
+ * The restore scrolls smoothly, so for a few hundred milliseconds the window
+ * is somewhere between the two on its own account. Comparing the offset with
+ * the target alone reads that as the reader scrolling — which it did: the
+ * third attempt, the one that exists to re-aim after `loading="lazy"` images
+ * have grown the container, abandoned every single time and left the reader
+ * short of where they were. Anywhere along the corridor between where the
+ * scroll started and where it is headed is ours; only leaving that corridor is
+ * the reader.
+ *
+ * @param {{ scrollY: number, from: number, to: number }} scroll
+ * @param {number} [slack] How far outside the corridor still counts as ours.
+ * @returns {boolean}
+ */
+export function readerTookOver(
+  { scrollY, from, to },
+  slack = RESTORE_ABANDON_PX,
+) {
+  const y = num(scrollY);
+  const a = num(from);
+  const b = num(to);
+  return y < Math.min(a, b) - slack || y > Math.max(a, b) + slack;
+}
+
+/**
  * Grace period after the last restore attempt before the scroll listener is
  * allowed to record a position again, so the programmatic scrolls of the
  * restore itself are never mistaken for the reader's own.

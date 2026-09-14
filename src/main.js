@@ -211,8 +211,20 @@ startRouter((route) => {
   const isStoryOpen = route.name === "story";
   const isTodayArrival = route.name === "today";
   if (route.name !== state.route.name && !isStoryOpen) {
+    // `startViewTransition` runs its callback asynchronously, so `state.route`
+    // written inside it stays stale for a frame or more — and ANY `update()`
+    // landing in that gap redraws the screen the app has just left.
+    // `refreshReadState()`, which Today kicks off from its own `hashchange`
+    // listener, lands there whenever its Dexie read is quick, and the redraw
+    // remounted the Reader on top of Today: the Reader then believed it was
+    // still mounted, so the next real visit to that Item took `ensureMounted`'s
+    // early return, never ran `load()`, and never restored the Reading
+    // Position. Assigning the route here costs nothing — it touches no DOM, so
+    // the transition's "old" snapshot is unchanged — and makes it impossible
+    // for a redraw to render a route the app is no longer on.
+    state.route = route;
     withViewTransition(async () => {
-      update({ route });
+      update();
       if (isTodayArrival) await whenVisiblePicturesReady(screenEl);
     });
   } else {

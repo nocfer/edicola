@@ -19,6 +19,7 @@ import {
   RESTORE_ATTEMPTS_MS,
   scrollTargetFor,
   scrollTravel,
+  readerTookOver,
 } from "../src/reading-position.js";
 
 /** A tall Article under a sticky header, on a phone-sized viewport. */
@@ -178,4 +179,49 @@ test("flush writes a pending value now, and does nothing when there is none", ()
   );
   saver.flush();
   assert.deepEqual(written, [0.6], "and lands it exactly once");
+});
+
+test("a restore's own smooth scroll is not the reader taking over", () => {
+  // The regression: the third restore attempt exists to re-aim after lazy
+  // images have grown the container, and it fired ~520ms after a smooth scroll
+  // towards 4303 began — with the window at 3610, still on its way. Measuring
+  // that against the target alone abandoned the restore every time and left
+  // the reader hundreds of pixels short of where they had been.
+  assert.equal(
+    readerTookOver({ scrollY: 3610, from: 0, to: 4303 }),
+    false,
+    "mid-flight towards the target is our own scroll",
+  );
+  assert.equal(
+    readerTookOver({ scrollY: 0, from: 0, to: 4303 }),
+    false,
+    "not having moved yet is not the reader either",
+  );
+  assert.equal(
+    readerTookOver({ scrollY: 4303, from: 0, to: 4303 }),
+    false,
+    "arriving is not the reader",
+  );
+  assert.equal(
+    readerTookOver({ scrollY: 4600, from: 0, to: 4303 }),
+    true,
+    "past the target by more than the slack is the reader reading on",
+  );
+  assert.equal(
+    readerTookOver({ scrollY: -60, from: 0, to: 4303 }),
+    true,
+    "back above the start is the reader going for the top",
+  );
+  assert.equal(
+    readerTookOver({ scrollY: 4315, from: 0, to: 4303 }),
+    false,
+    "overshooting inside the slack is still ours",
+  );
+  // A later attempt re-aims from wherever the window now is, so the corridor
+  // runs the other way when the container grew and the target moved down.
+  assert.equal(
+    readerTookOver({ scrollY: 4400, from: 3610, to: 4685 }),
+    false,
+    "the corridor is ordered by value, not by direction",
+  );
 });

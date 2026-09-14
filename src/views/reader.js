@@ -48,8 +48,8 @@ import {
   debounce,
   isAtEnd,
   isWorthRestoring,
+  readerTookOver,
   readingPositionOf,
-  RESTORE_ABANDON_PX,
   RESTORE_ATTEMPTS_MS,
   RESTORE_SETTLE_MS,
   SAVE_DEBOUNCE_MS,
@@ -349,12 +349,15 @@ let restoreTimer = null;
 /** The offset the last restore attempt applied, so a manual scroll wins. */
 /** @type {number | null} */
 let restoredTo = null;
+/** Where the window stood when that attempt started its scroll. */
+let restoredFrom = 0;
 
 /** Stop re-applying a Reading Position. */
 function cancelRestore() {
   if (restoreTimer !== null) clearTimeout(restoreTimer);
   restoreTimer = null;
   restoredTo = null;
+  restoredFrom = 0;
   screen.restoring = false;
 }
 
@@ -403,14 +406,19 @@ function applyRestore(id, position, attempt) {
     cancelRestore();
     return;
   }
-  // Attempt 0 starts a smooth scroll the browser is still animating at the
-  // 120ms mark (RESTORE_ATTEMPTS_MS[1]); checking for drift there would read
-  // our own motion as the reader's. By the next attempt, ~520ms after attempt
-  // 0 started, any smooth scroll it began has settled.
+  // A smooth scroll this restore started is still running at the 120ms mark,
+  // and often at the 520ms one too — measuring the window against the target
+  // alone read that as the reader and abandoned the restore every time, so the
+  // attempt that re-aims after the lazy images have grown the container never
+  // ran. The corridor between where each scroll started and where it was
+  // headed is ours; only leaving it is the reader.
   const drifted =
-    attempt !== 1 &&
     restoredTo !== null &&
-    Math.abs(window.scrollY - restoredTo) > RESTORE_ABANDON_PX;
+    readerTookOver({
+      scrollY: window.scrollY,
+      from: restoredFrom,
+      to: restoredTo,
+    });
   if (drifted) {
     // The reader took over. Their scroll is the truth from here on.
     cancelRestore();
@@ -418,6 +426,7 @@ function applyRestore(id, position, attempt) {
   }
   const target = scrollTargetFor(position, metrics);
   if (target > 0) {
+    restoredFrom = window.scrollY;
     window.scrollTo({
       top: target,
       left: 0,
