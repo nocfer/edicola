@@ -173,7 +173,10 @@ const publication = (over) => ({
   language: 'it',
   category: 'news',
   feedUrl: 'https://test.invalid/feed',
-  siteUrl: 'https://test.invalid',
+  // No site: the logo chain only guesses over https, and a fake https site made
+  // it fire at a non-resolving host, whose browser DNS error the harness counts
+  // as a scenario failure. A Publication with no site has no logo to guess.
+  siteUrl: null,
   truncated: true,
   custom: false,
   enabled: true,
