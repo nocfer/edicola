@@ -2,7 +2,7 @@
 // The CACHE version is a content hash of the SHELL files, stamped by
 // `npm run stamp` (tools/stamp-sw.mjs). Do NOT edit it by hand — CI's
 // `npm run stamp:check` fails the build if it is stale.
-const CACHE = "edicola-00cd0978";
+const CACHE = "edicola-9d7fb0f2";
 
 // Shell files to pre-cache (paths relative to the scope). Every shipped file
 // belongs here; add yours and run `npm run stamp`.
@@ -11,6 +11,9 @@ const SHELL = [
   "./index.html",
   "./manifest.webmanifest",
   "./icon.svg",
+  "./apple-touch-icon.png",
+  "./icon-192.png",
+  "./icon-512.png",
   "./src/styles.css",
   "./src/main.js",
   "./src/render.js",

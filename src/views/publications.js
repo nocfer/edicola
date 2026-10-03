@@ -452,11 +452,41 @@ function pick(finding) {
 /** Id shared between the trigger button and the `<dialog>` it opens. */
 const ADD_DIALOG_ID = "pubs-add-dialog";
 
+/**
+ * Whether the browser implements the native modal `<dialog>` (Safari 15.4+).
+ * Below that, `<dialog>` is an unknown element: `showModal()` is missing, no
+ * `close` event ever fires, and without an explicit `display: none` its content
+ * renders inline in the page. `openAddDialog`/`closeAddDialog` carry the
+ * fallback; the `pubs__dialog--fallback` rules in styles.css restore the modal
+ * presentation. Modern browsers take every branch above and are unaffected.
+ */
+const SUPPORTS_MODAL_DIALOG =
+  typeof HTMLDialogElement !== "undefined" &&
+  typeof HTMLDialogElement.prototype.showModal === "function";
+
+/** The fallback dialog closes on Escape; the native one does it itself. */
+/** @param {KeyboardEvent} event */
+function onFallbackEscape(event) {
+  if (event.key === "Escape") cancelAdd();
+}
+
 function openAddDialog() {
   const dialog = /** @type {HTMLDialogElement | null} */ (
     document.getElementById(ADD_DIALOG_ID)
   );
-  dialog?.showModal();
+  if (!dialog) return;
+  if (SUPPORTS_MODAL_DIALOG) {
+    dialog.showModal();
+    return;
+  }
+  dialog.classList.add("pubs__dialog--fallback");
+  dialog.setAttribute("open", "");
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  document.addEventListener("keydown", onFallbackEscape);
+  /** @type {HTMLInputElement | null} */ (
+    dialog.querySelector("input")
+  )?.focus();
 }
 
 /** Also runs on Escape, via the dialog's own `close` event. */
@@ -464,7 +494,16 @@ function closeAddDialog() {
   const dialog = /** @type {HTMLDialogElement | null} */ (
     document.getElementById(ADD_DIALOG_ID)
   );
-  dialog?.close();
+  if (!dialog) return;
+  document.removeEventListener("keydown", onFallbackEscape);
+  if (SUPPORTS_MODAL_DIALOG) {
+    dialog.close();
+    return;
+  }
+  dialog.removeAttribute("open");
+  dialog.removeAttribute("role");
+  dialog.removeAttribute("aria-modal");
+  dialog.classList.remove("pubs__dialog--fallback");
 }
 
 function cancelAdd() {

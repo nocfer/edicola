@@ -909,6 +909,28 @@ a.chip {
 .pubs__dialog::backdrop {
   background: var(--backdrop);
 }
+/* Safari < 15.4 has no `<dialog>`: the element is unknown, so its content would
+   otherwise render inline in the page, and it is opened with the `open`
+   attribute rather than `showModal()`. Only that browser gets the fallback
+   class, so the modal presentation below changes nothing elsewhere. */
+.pubs__dialog:not([open]) {
+  display: none;
+}
+.pubs__dialog--fallback {
+  display: block;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  /* Dim the page the way `::backdrop` does elsewhere; an outset shadow paints
+     behind the dialog, so it never covers it. `--glass-shadow` is deliberately
+     not reused here: it is `none` in the dark theme, and a `box-shadow` list
+     containing `none` is invalid, which would drop the dim with it. */
+  box-shadow:
+    0 0 0 100vmax var(--backdrop),
+    inset 0 1px 0 var(--glass-highlight);
+}
 
 /* Today: the "last refreshed" bar, the pull-to-refresh affordance, the filter
    chips with their Unread counts, and the day sections with one card per Item.

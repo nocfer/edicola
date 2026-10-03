@@ -6,6 +6,12 @@
     <title>Edicola</title>
     <meta name="description" content="Edicola: la tua edicola, anche offline. Your newsstand, offline." />
     <meta name="theme-color" content="#121110" />
+    <!-- iOS standalone ("Add to Home Screen"). The manifest's `display` covers
+         iOS 15.4+; these cover older iOS, where the icon must be a PNG (`icon.svg`
+         is ignored for the home screen) and no manifest display is honoured. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Edicola" />
     <script>
       // Apply the saved theme (or the system one) before paint so there is no
       // flash. Settings writes `edicola.theme` = 'light' | 'dark', or removes it
@@ -33,7 +39,7 @@
     </script>
     <link rel="manifest" href="./manifest.webmanifest" />
     <link rel="icon" href="./icon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
     <link rel="stylesheet" href="./src/styles.css" />
   </head>
   <body>
