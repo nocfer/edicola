@@ -10,7 +10,11 @@ import { html, nothing, render } from "./render.js";
 import { state, subscribe, update } from "./state.js";
 import { applyStaticI18n, getLang, initLang, setLang, t } from "./i18n.js";
 import { hidesTabBar, startRouter } from "./router.js";
-import { whenVisiblePicturesReady, withViewTransition } from "./motion.js";
+import {
+  prefersReducedMotion,
+  whenVisiblePicturesReady,
+  withViewTransition,
+} from "./motion.js";
 import { initSyncClient, syncIfStale } from "./sync-client.js";
 import { applyUpdate, dismissUpdate, initUpdates } from "./update.js";
 import { todayView } from "./views/today.js";
@@ -117,6 +121,24 @@ const SCREENS = {
 
 const screenEl = /** @type {HTMLElement} */ (document.getElementById("screen"));
 const tabbarEl = /** @type {HTMLElement} */ (document.getElementById("tabbar"));
+
+// Tapping the tab of the route you are already on is a no-op hash navigation:
+// the hash is already `#/`, so no `hashchange` fires and renderApp's
+// scroll-to-top on path change never runs. Intercept the click in that one
+// case and scroll to the top by hand; from any other route the href navigates
+// as usual. Reduced motion gets an instant jump because the stylesheet's
+// reset zeroes CSS transitions and animations but does not reach the UA's own
+// smooth scroll animation.
+tabbarEl
+  .querySelector('[data-route="today"]')
+  .addEventListener("click", (event) => {
+    if (state.route.name !== "today") return; // other routes: let the href navigate
+    event.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: prefersReducedMotion() ? "auto" : "smooth",
+    });
+  });
 
 let lastPath = "";
 
