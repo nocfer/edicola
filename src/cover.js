@@ -126,7 +126,7 @@ function splitWords(text) {
   return text
     .split(/[^\p{L}\p{N}]+/u)
     .flatMap((token) => token.replace(/\p{N}+/gu, " ").split(" "))
-    .flatMap((token) => token.split(/(?<=\p{Ll})(?=\p{Lu})/u))
+    .flatMap((token) => token.replace(/(\p{Ll})(\p{Lu})/gu, "$1 $2").split(" "))
     .filter((token) => token !== "");
 }
 

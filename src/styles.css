@@ -193,6 +193,18 @@
      scores 1.6:1. The comment on bare :root has the numbers. */
 }
 
+/* Safari < 17.2 has no `linear()` easing. There, a `transition` that names
+   `--ease-spring`/`--ease-pop` is dropped outright, and `src/motion.js` hands the
+   same token to `el.animate()`, whose `easing` rejects an invalid value with a
+   TypeError. Overriding the tokens here fixes both, because JS reads them from
+   the same place. Browsers with `linear()` keep the exact solved springs. */
+@supports not (transition-timing-function: linear(0, 1)) {
+  :root {
+    --ease-spring: cubic-bezier(0.22, 0.85, 0.24, 1);
+    --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
 /* ==========================================================================
    §2 — BASE
    ========================================================================== */
@@ -205,10 +217,14 @@
 html {
   color-scheme: var(--scheme);
   -webkit-text-size-adjust: 100%;
+  /* iOS flashes a grey box on tap by default; the app draws its own `:active`
+     feedback. Non-Safari engines ignore the prefixed property. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   margin: 0;
+  min-height: 100vh; /* fallback for Safari < 15.4, which has no `dvh` */
   min-height: 100dvh;
   background: var(--bg);
   color: var(--text);
@@ -234,6 +250,14 @@ button {
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+/* Safari < 15.4 has no `:focus-visible`, so it would show no focus ring at all.
+   Scoped by `@supports` so browsers with the selector are unaffected. */
+@supports not selector(:focus-visible) {
+  :focus {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
 }
 
 .ico {
@@ -873,6 +897,7 @@ a.chip {
 .pubs__dialog {
   width: min(420px, calc(100vw - var(--s-4) * 2));
   max-height: calc(100vh - var(--s-4) * 2);
+  max-height: calc(100dvh - var(--s-4) * 2); /* iOS: `vh` includes browser chrome */
   overflow: auto;
   background: var(--glass-bg);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -1317,6 +1342,7 @@ a.chip {
   position: relative;
   display: flex;
   flex-direction: column;
+  min-height: 100vh; /* fallback for Safari < 15.4, which has no `dvh` */
   min-height: 100dvh;
   /* --scrim-ink, NOT --bg. "The player is dark in both themes" has to include
      its own background: with --bg here the light theme painted the header strip
@@ -1378,6 +1404,7 @@ a.chip {
   flex: 1;
   height: 3px;
   border-radius: var(--r-pill);
+  background: rgba(255, 248, 243, 0.25); /* fallback: no `color-mix` in Safari < 16.2 */
   background: color-mix(in srgb, var(--accent-ink) 25%, transparent);
   overflow: hidden;
 }
@@ -1496,6 +1523,12 @@ a.chip {
   background: linear-gradient(
     to top,
     var(--scrim-flat) 0%,
+    rgba(18, 17, 16, 0.54) 45%,
+    transparent 100%
+  ); /* fallback: no `color-mix` in Safari < 16.2 */
+  background: linear-gradient(
+    to top,
+    var(--scrim-flat) 0%,
     color-mix(in srgb, var(--scrim-flat) 75%, transparent) 45%,
     transparent 100%
   );
@@ -1609,6 +1642,7 @@ a.chip {
   flex-direction: column;
   gap: var(--s-3);
   padding: var(--s-6);
+  border: 1px solid rgba(255, 248, 243, 0.14); /* fallback: no `color-mix` in Safari < 16.2 */
   border: 1px solid color-mix(in srgb, var(--accent-ink) 14%, transparent);
   border-radius: var(--r-card);
   background: var(--scrim-ink);
@@ -1641,6 +1675,7 @@ a.chip {
 /* The quiet button on the dark panel: `.btn`'s own --card fill would be the
    theme's, and this panel is not the theme's. */
 .story__ghost {
+  border-color: rgba(255, 248, 243, 0.14); /* fallback: no `color-mix` in Safari < 16.2 */
   border-color: color-mix(in srgb, var(--accent-ink) 14%, transparent);
   background: transparent;
   color: var(--accent-ink);

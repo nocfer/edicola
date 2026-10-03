@@ -636,7 +636,7 @@ function dropFeedFooter(root) {
   }
 
   const blocks = [...root.children];
-  const rule = blocks.findLastIndex((el) => el.tagName === "HR");
+  const rule = blocks.map((el) => el.tagName === "HR").lastIndexOf(true);
   if (rule > -1) {
     const footer = blocks.slice(rule + 1);
     const words = countWords(footer.map((el) => textOf(el)).join(" "));
